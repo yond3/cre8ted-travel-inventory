@@ -85,7 +85,7 @@ function normalize_methods($methods): string
 if ($method === 'GET') {
     if (isset($_GET['quotable'])) {
         $rows = $pdo->query(
-            "SELECT item_key, label, unit FROM items WHERE item_type = 'consumable' ORDER BY label"
+            "SELECT item_key, label, unit FROM items WHERE item_type = 'consumable' AND active = 1 ORDER BY label"
         )->fetchAll();
         echo json_encode(array_map(fn($r) => [
             'item_key' => $r['item_key'],
@@ -132,7 +132,7 @@ if ($method === 'POST') {
     }
 
     $validItems = $pdo->query(
-        "SELECT item_key FROM items WHERE item_type = 'consumable'"
+        "SELECT item_key FROM items WHERE item_type = 'consumable' AND active = 1"
     )->fetchAll(PDO::FETCH_COLUMN);
     $validSet = array_flip($validItems);
 

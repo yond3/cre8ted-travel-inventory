@@ -10,7 +10,7 @@ require __DIR__ . '/config.php';
 
 $pdo = get_pdo();
 $items = $pdo->query(
-    "SELECT * FROM items WHERE item_type = 'consumable' ORDER BY label"
+    "SELECT * FROM items WHERE item_type = 'consumable' AND active = 1 ORDER BY label"
 )->fetchAll();
 
 $result = [];

@@ -137,7 +137,8 @@ sql.append("""CREATE TABLE locations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     location_type ENUM('storage','in_use') NOT NULL DEFAULT 'storage',
-    description VARCHAR(255) NULL
+    description VARCHAR(255) NULL,
+    active TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB;""")
 sql.append("")
 
@@ -151,6 +152,7 @@ sql.append("""CREATE TABLE items (
     current_qty DECIMAL(10,2) NOT NULL DEFAULT 0,
     min_qty DECIMAL(10,2) NULL,
     max_qty DECIMAL(10,2) NULL,
+    active TINYINT(1) NOT NULL DEFAULT 1,
     FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;""")
 sql.append("")

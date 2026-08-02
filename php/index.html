@@ -270,12 +270,16 @@
   </div>
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
-    <div class="flex items-center gap-2 mb-4" id="inventoryFilters">
+    <div class="flex items-center gap-2 mb-4 flex-wrap" id="inventoryFilters">
       <button class="filter-pill active px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="all">All items</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Low stock">Low stock</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="In stock">In stock</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Not tracked">Equipment</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="vouchers">Vouchers</button>
+      <label class="ml-auto flex items-center gap-2 text-[.8rem] text-textMid cursor-pointer select-none">
+        <input type="checkbox" id="showInactiveInventory" class="rounded border-line">
+        Show inactive
+      </label>
     </div>
     <div class="overflow-x-auto" id="inventoryTableWrap">
       <table class="gl-table w-full text-[.85rem] border-collapse">
@@ -677,9 +681,9 @@
 
 <!-- ===================== MODAL: ADD LOCATION ===================== -->
 <div class="modal-overlay fixed inset-0 bg-black/45 z-[2100] items-center justify-center p-4" id="locationModalOverlay">
-  <div class="bg-card rounded-card shadow-modal w-full max-w-sm p-6">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-4">
-      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Add location</h3>
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Add &amp; manage locations</h3>
       <button onclick="closeModal('locationModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
     </div>
     <form id="locationForm" class="flex flex-col gap-4">
@@ -700,6 +704,16 @@
       </div>
       <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add location</button>
     </form>
+    <div class="mt-6 pt-5 border-t border-line">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <h4 class="font-display font-bold text-[.9rem] text-textDark">Existing locations</h4>
+        <label class="flex items-center gap-2 text-[.72rem] text-textMid cursor-pointer select-none">
+          <input type="checkbox" id="showInactiveLocations" class="rounded border-line">
+          Show inactive
+        </label>
+      </div>
+      <div id="locationManageList" class="flex flex-col gap-2"></div>
+    </div>
   </div>
 </div>
 
@@ -892,7 +906,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   /* ---------- live state (loaded from MySQL via PHP) ---------- */
-  const state = { locations: [], inventory: [], vouchers: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false };
+  const state = { locations: [], inventory: [], vouchers: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
 
   const PROCUREMENT_LABELS = {
     walk_in: 'Walk-in', pickup: 'Pick-up', delivery: 'Delivery', online: 'Online',
@@ -923,32 +937,77 @@ document.addEventListener('DOMContentLoaded', function(){
       'Low stock': 'bg-redBg text-redTx',
       'In stock': 'bg-greenBg text-greenTx',
       'Not tracked': 'bg-[#eef2f7] text-textMid',
+      'Inactive': 'bg-[#eef2f7] text-textMid',
     };
     return `<span class="px-2.5 py-1 rounded-full text-[.72rem] font-semibold ${map[status] || 'bg-[#eef2f7] text-textMid'}">${status}</span>`;
   }
 
   /* ---------- locations ---------- */
   async function loadLocations(){
-    state.locations = await apiGet('locations.php');
+    state.locations = await apiGet('locations.php?include_inactive=1');
     populateLocationSelect();
+    renderLocationManageList();
   }
 
-  function populateLocationSelect(){
-    const storage = state.locations.filter(l => l.location_type === 'storage');
-    const inUse = state.locations.filter(l => l.location_type === 'in_use');
-    const optGroup = (label, list) => list.length ? `<optgroup label="${label}">${
-      list.map(l => `<option value="${l.id}">${l.name}</option>`).join('')
-    }</optgroup>` : '';
-    document.getElementById('itmLocationId').innerHTML =
-      optGroup('Storage', storage) + optGroup('In use', inUse);
+  function activeLocations(){
+    return state.locations.filter(l => l.active !== false);
   }
+
+  function populateLocationSelect(keepLocationId){
+    const visible = activeLocations();
+    const keep = keepLocationId ? state.locations.find(l => l.id === keepLocationId && !l.active) : null;
+    const storage = visible.filter(l => l.location_type === 'storage');
+    const inUse = visible.filter(l => l.location_type === 'in_use');
+    const opt = (l) => `<option value="${l.id}">${escapeHtml(l.name)}</option>`;
+    const optGroup = (label, list) => list.length ? `<optgroup label="${label}">${list.map(opt).join('')}</optgroup>` : '';
+    let html = optGroup('Storage', storage) + optGroup('In use', inUse);
+    if(keep) html += `<optgroup label="Inactive">${opt(keep)}</optgroup>`;
+    document.getElementById('itmLocationId').innerHTML = html || '<option value="">No active locations</option>';
+    if(keepLocationId) document.getElementById('itmLocationId').value = keepLocationId;
+  }
+
+  function renderLocationManageList(){
+    const el = document.getElementById('locationManageList');
+    if(!el) return;
+    const visible = state.showInactiveLocations ? state.locations : activeLocations();
+    if(!visible.length){
+      el.innerHTML = '<p class="text-[.78rem] text-textMid">No locations to show.</p>';
+      return;
+    }
+    el.innerHTML = visible.map(l => `
+      <div class="flex items-center justify-between gap-3 p-3 rounded-xl border ${l.active ? 'border-line bg-[#f8fafc]' : 'border-dashed border-textSoft/40 opacity-80'}">
+        <div class="min-w-0">
+          <div class="font-semibold text-[.84rem] text-textDark truncate">${escapeHtml(l.name)}</div>
+          <div class="text-[.72rem] text-textSoft">${l.location_type === 'storage' ? 'Storage' : 'In use'} · ${l.item_count} item${l.item_count === 1 ? '' : 's'}</div>
+        </div>
+        <button type="button" onclick="setLocationActive(${l.id}, ${l.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${l.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.72rem] font-semibold border-none cursor-pointer shrink-0">${l.active ? 'Mark inactive' : 'Reactivate'}</button>
+      </div>`).join('');
+  }
+
+  window.setLocationActive = async function(id, active){
+    const loc = state.locations.find(l => l.id === id);
+    if(!loc) return;
+    const verb = active ? 'Reactivate' : 'Mark inactive';
+    const detail = active
+      ? `${loc.name} will appear in location dropdowns again.`
+      : loc.item_count > 0
+        ? `${loc.name} still has ${loc.item_count} item(s) assigned — move or hide those items first.`
+        : `${loc.name} will be hidden from location dropdowns. Empty locations only.`;
+    if(!confirm(`${verb} ${loc.name}?\n\n${detail}`)) return;
+    try {
+      await apiSend(`locations.php?id=${id}`, 'PUT', { active: active ? 1 : 0 });
+      await loadLocations();
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not update location.');
+    }
+  };
 
   window.openLocationModal = function(){
-    // Equipment tends to live "in use" (a desk, reception, a room); consumables
-    // tend to sit "in storage" (a cabinet, shelf, locker) — default to whichever
-    // matches the item type currently selected in the Add/Edit item form.
     const currentType = document.querySelector('input[name="itmType"]:checked')?.value;
     document.getElementById('locType').value = currentType === 'equipment' ? 'in_use' : 'storage';
+    document.getElementById('showInactiveLocations').checked = state.showInactiveLocations;
+    renderLocationManageList();
     openModal('locationModalOverlay');
   };
   document.getElementById('locationForm').addEventListener('submit', async function(e){
@@ -976,30 +1035,59 @@ document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('input[name="itmType"]').forEach(r => r.addEventListener('change', itemTypeToggle));
 
   async function loadInventory(){
-    state.inventory = await apiGet('inventory.php');
+    state.inventory = await apiGet('inventory.php?include_inactive=1');
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
     if(active?.dataset.view !== 'vouchers'){
       renderInventory(active?.dataset.filter || 'all');
     }
   }
 
+  function activeItems(){
+    return state.inventory.filter(it => it.active !== false);
+  }
+
+  window.setItemActive = async function(itemKey, active){
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    if(!it) return;
+    const verb = active ? 'Reactivate' : 'Mark inactive';
+    const detail = active
+      ? `${it.label} will appear in inventory, requests, and forecasts again.`
+      : `${it.label} will be hidden from lists and new purchase requests. History is kept.`;
+    if(!confirm(`${verb} ${it.label}?\n\n${detail}`)) return;
+    try {
+      await apiSend(`inventory.php?item=${encodeURIComponent(itemKey)}`, 'PUT', { active: active ? 1 : 0 });
+      await loadInventory();
+      renderDashboard();
+      await populateForecastSelect();
+    } catch (err) {
+      alert(err.error || 'Could not update item.');
+    }
+  };
+
   function renderInventory(filter){
     filter = filter || 'all';
+    const visible = (state.showInactiveInventory ? state.inventory : activeItems())
+      .filter(it => filter === 'all' || it.status === filter);
     const tbody = document.getElementById('inventoryTableBody');
-    tbody.innerHTML = state.inventory.filter(it => filter === 'all' || it.status === filter).map(it => `
-      <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark">${it.label}</td>
+    if(!visible.length){
+      tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-textMid">${state.showInactiveInventory ? 'No items match this filter.' : 'No active items. Turn on “Show inactive” to see hidden items.'}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = visible.map(it => `
+      <tr class="border-b border-line last:border-0 ${it.active ? '' : 'opacity-70'}">
+        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(it.label)}</td>
         <td class="py-3 pr-3 text-textMid capitalize">${it.item_type}</td>
-        <td class="py-3 pr-3 text-textMid">${it.location_name || '—'}</td>
+        <td class="py-3 pr-3 text-textMid">${escapeHtml(it.location_name || '—')}</td>
         <td class="py-3 pr-3">${it.current_qty} ${it.unit}</td>
         <td class="py-3 pr-3 text-textMid">${it.min_qty ?? '—'}</td>
         <td class="py-3 pr-3 text-textMid">${it.max_qty ?? '—'}</td>
         <td class="py-3 pr-3">${statusPill(it.status)}</td>
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
-            ${it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
-            ${it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
+            ${it.active && it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
+            ${it.active && it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
             <button onclick="openEditItemModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>
+            <button onclick="setItemActive('${it.item_key}', ${it.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${it.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${it.active ? 'Mark inactive' : 'Reactivate'}</button>
           </div>
         </td>
       </tr>`).join('');
@@ -1163,6 +1251,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('itemModalTitle').textContent = 'Add office item';
     document.getElementById('itemFormSubmitBtn').textContent = 'Add item';
     itemTypeToggle();
+    populateLocationSelect();
     openModal('itemModalOverlay');
   };
 
@@ -1173,13 +1262,13 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('itmName').value = it.label;
     document.getElementById('itmUnit').value = it.unit;
     document.querySelector(`input[name="itmType"][value="${it.item_type}"]`).checked = true;
-    document.getElementById('itmLocationId').value = it.location_id ?? '';
     document.getElementById('itmCurrent').value = it.current_qty;
     document.getElementById('itmMin').value = it.min_qty ?? 1;
     document.getElementById('itmMax').value = it.max_qty ?? 5;
     document.getElementById('itemModalTitle').textContent = `Edit / relocate — ${it.label}`;
     document.getElementById('itemFormSubmitBtn').textContent = 'Save changes';
     itemTypeToggle();
+    populateLocationSelect(it.location_id);
     openModal('itemModalOverlay');
   };
 
@@ -1295,10 +1384,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
   /* ---------- dashboard ---------- */
   function renderDashboard(){
-    const lowStock = state.inventory.filter(it => it.status === 'Low stock');
-    const storageLocCount = state.locations.filter(l => l.location_type === 'storage').length;
+    const lowStock = activeItems().filter(it => it.status === 'Low stock');
+    const storageLocCount = activeLocations().filter(l => l.location_type === 'storage').length;
 
-    document.getElementById('statTotalItems').textContent = state.inventory.length;
+    document.getElementById('statTotalItems').textContent = activeItems().length;
     document.querySelector('#statTotalItems').parentElement.querySelector('.text-textSoft').textContent =
       `Across ${storageLocCount} storage location${storageLocCount === 1 ? '' : 's'}`;
     document.getElementById('statLowStock').textContent = lowStock.length;
@@ -1838,7 +1927,7 @@ document.addEventListener('DOMContentLoaded', function(){
   window.closeModal = function(id){ document.getElementById(id).classList.remove('show'); };
 
   function populateItemSelect(){
-    document.getElementById('reqItem').innerHTML = state.inventory.map(it => `<option value="${it.item_key}">${it.label}</option>`).join('');
+    document.getElementById('reqItem').innerHTML = activeItems().map(it => `<option value="${it.item_key}">${it.label}</option>`).join('');
   }
 
   /** Baseline suggestion: enough to get back to minimum stock. */
@@ -1938,6 +2027,19 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('showInactiveSuppliers').addEventListener('change', function(){
     state.showInactiveSuppliers = this.checked;
     renderSuppliers();
+  });
+
+  document.getElementById('showInactiveInventory').addEventListener('change', function(){
+    state.showInactiveInventory = this.checked;
+    const active = document.querySelector('#inventoryFilters .filter-pill.active');
+    if(active?.dataset.view !== 'vouchers'){
+      renderInventory(active?.dataset.filter || 'all');
+    }
+  });
+
+  document.getElementById('showInactiveLocations').addEventListener('change', function(){
+    state.showInactiveLocations = this.checked;
+    renderLocationManageList();
   });
 
   /* ---------- init ---------- */

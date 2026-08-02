@@ -1,15 +1,10 @@
 <?php
 /**
- * GET    /api/inventory.php                  -> list every item (with location + computed status)
- * GET    /api/inventory.php?item=<key>        -> single item
- * POST   /api/inventory.php                   -> create a new item
- *        body: { label, unit, item_type, location_id, current_qty, min_qty, max_qty }
- *        item_type: 'consumable' | 'equipment' — equipment ignores min_qty/max_qty (forced NULL)
- * PUT    /api/inventory.php?item=<key>        -> edit / relocate an existing item
- *        body: any of { label, unit, item_type, location_id, current_qty, min_qty, max_qty }
- *
- * This replaces the old items.php for anything beyond the forecast dropdown
- * — full CRUD, plus the "Edit / Relocate" flow the plan called for.
+ * GET    /api/inventory.php                       -> active items (default)
+ * GET    /api/inventory.php?include_inactive=1     -> all items (admin)
+ * GET    /api/inventory.php?item=<key>            -> single item
+ * POST   /api/inventory.php                       -> create item (active by default)
+ * PUT    /api/inventory.php?item=<key>            -> edit or set active: 0|1
  */
 require __DIR__ . '/config.php';
 
@@ -18,8 +13,11 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 function item_status(array $item): string
 {
+    if ((int) ($item['active'] ?? 1) !== 1) {
+        return 'Inactive';
+    }
     if ($item['min_qty'] === null) {
-        return 'Not tracked'; // equipment — no reorder threshold
+        return 'Not tracked';
     }
     return ((float) $item['current_qty'] <= (float) $item['min_qty']) ? 'Low stock' : 'In stock';
 }
@@ -50,6 +48,7 @@ function format_item(array $row): array
         'current_qty' => (float) $row['current_qty'],
         'min_qty' => $row['min_qty'] !== null ? (float) $row['min_qty'] : null,
         'max_qty' => $row['max_qty'] !== null ? (float) $row['max_qty'] : null,
+        'active' => (int) ($row['active'] ?? 1) === 1,
         'status' => item_status($row),
     ];
 }
@@ -65,12 +64,15 @@ if ($method === 'GET') {
         exit;
     }
 
-    $rows = $pdo->query(
-        'SELECT i.*, l.name AS location_name, l.location_type
+    $includeInactive = isset($_GET['include_inactive']) && $_GET['include_inactive'] !== '0';
+    $sql = 'SELECT i.*, l.name AS location_name, l.location_type
          FROM items i
-         LEFT JOIN locations l ON l.id = i.location_id
-         ORDER BY i.label'
-    )->fetchAll();
+         LEFT JOIN locations l ON l.id = i.location_id';
+    if (!$includeInactive) {
+        $sql .= ' WHERE i.active = 1';
+    }
+    $sql .= ' ORDER BY i.label';
+    $rows = $pdo->query($sql)->fetchAll();
     echo json_encode(array_map('format_item', $rows));
     exit;
 }
@@ -90,12 +92,10 @@ if ($method === 'POST') {
         json_error("item_type must be 'consumable' or 'equipment'");
     }
 
-    // Equipment doesn't get reorder thresholds — nothing to "run low" on a printer.
     $minQty = $itemType === 'consumable' && isset($body['min_qty']) ? (float) $body['min_qty'] : null;
     $maxQty = $itemType === 'consumable' && isset($body['max_qty']) ? (float) $body['max_qty'] : null;
 
     $itemKey = slugify($label);
-    // Ensure uniqueness if two items share a slug (e.g. "Bond paper" twice).
     $base = $itemKey;
     $suffix = 2;
     while (fetch_item_row($pdo, $itemKey) !== null) {
@@ -104,8 +104,8 @@ if ($method === 'POST') {
     }
 
     $stmt = $pdo->prepare(
-        'INSERT INTO items (item_key, label, unit, item_type, location_id, current_qty, min_qty, max_qty)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO items (item_key, label, unit, item_type, location_id, current_qty, min_qty, max_qty, active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)'
     );
     $stmt->execute([$itemKey, $label, $unit, $itemType, $locationId, $current, $minQty, $maxQty]);
 
@@ -138,8 +138,10 @@ if ($method === 'PUT') {
         $fields[] = 'location_id = ?';
         $values[] = $body['location_id'] !== '' && $body['location_id'] !== null ? (int) $body['location_id'] : null;
     }
-    // Switching to equipment always clears thresholds; switching to/staying
-    // consumable accepts whatever min/max was supplied.
+    if (array_key_exists('active', $body)) {
+        $fields[] = 'active = ?';
+        $values[] = filter_var($body['active'], FILTER_VALIDATE_BOOLEAN) || (int) $body['active'] === 1 ? 1 : 0;
+    }
     if ($itemType === 'equipment') {
         $fields[] = 'min_qty = NULL';
         $fields[] = 'max_qty = NULL';
