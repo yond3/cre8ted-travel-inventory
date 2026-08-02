@@ -51,7 +51,8 @@ CREATE TABLE suppliers (
     contact VARCHAR(150) NULL,
     rating DECIMAL(2,1) NULL,
     procurement_methods VARCHAR(100) NOT NULL DEFAULT 'walk_in',
-    notes VARCHAR(255) NULL
+    notes VARCHAR(255) NULL,
+    active TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB;
 
 CREATE TABLE supplier_prices (

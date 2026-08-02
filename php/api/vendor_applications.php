@@ -242,10 +242,11 @@ if ($method === 'PUT') {
             if ($supplierId) {
                 $supplierId = (int) $supplierId;
                 $pdo->prepare(
-                    'UPDATE suppliers SET contact = COALESCE(?, contact), procurement_methods = ? WHERE id = ?'
+                    'UPDATE suppliers SET contact = COALESCE(?, contact), procurement_methods = ?, notes = COALESCE(?, notes), active = 1 WHERE id = ?'
                 )->execute([
                     $row['contact'],
                     $row['procurement_methods'],
+                    $row['notes'],
                     $supplierId,
                 ]);
             } else {

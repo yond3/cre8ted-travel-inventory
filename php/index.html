@@ -409,6 +409,13 @@
     </div>
     <div id="pendingVendorList"></div>
   </div>
+  <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+    <h3 class="font-display font-bold text-[1.02rem] text-textDark">Active suppliers</h3>
+    <label class="flex items-center gap-2 text-[.8rem] text-textMid cursor-pointer select-none">
+      <input type="checkbox" id="showInactiveSuppliers" class="rounded border-line">
+      Show inactive
+    </label>
+  </div>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="supplierGrid"></div>
 </section>
 
@@ -885,7 +892,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   /* ---------- live state (loaded from MySQL via PHP) ---------- */
-  const state = { locations: [], inventory: [], vouchers: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [] };
+  const state = { locations: [], inventory: [], vouchers: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false };
 
   const PROCUREMENT_LABELS = {
     walk_in: 'Walk-in', pickup: 'Pick-up', delivery: 'Delivery', online: 'Online',
@@ -1296,7 +1303,7 @@ document.addEventListener('DOMContentLoaded', function(){
       `Across ${storageLocCount} storage location${storageLocCount === 1 ? '' : 's'}`;
     document.getElementById('statLowStock').textContent = lowStock.length;
     document.getElementById('statPending').textContent = state.requests.filter(r => r.status === 'Pending').length;
-    document.getElementById('statSuppliers').textContent = state.suppliers.length;
+    document.getElementById('statSuppliers').textContent = activeSuppliers().length;
 
     document.getElementById('lowStockAlertList').innerHTML = lowStock.length ? lowStock.map(it => `
       <div class="flex items-center justify-between p-3 rounded-xl bg-[#fdf6f6] border border-[#f6dede]">
@@ -1376,7 +1383,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     document.getElementById('supplierChoiceSubtitle').textContent = `For: ${req.item_label} × ${req.qty} ${req.unit} (already approved)`;
 
-    const carriers = state.suppliers
+    const carriers = activeSuppliers()
       .map(s => ({ s, price: s.prices.find(p => p.item_key === req.item_key)?.price }))
       .filter(x => x.price != null)
       .sort((a, b) => a.price - b.price)
@@ -1650,13 +1657,34 @@ document.addEventListener('DOMContentLoaded', function(){
   };
 
   async function loadSuppliers(){
-    state.suppliers = await apiGet('suppliers.php');
+    state.suppliers = await apiGet('suppliers.php?include_inactive=1');
     renderSuppliers();
   }
 
+  function activeSuppliers(){
+    return state.suppliers.filter(s => s.active !== false);
+  }
+
+  window.setSupplierActive = async function(id, active){
+    const s = state.suppliers.find(x => x.id === id);
+    if(!s) return;
+    const verb = active ? 'Reactivate' : 'Mark inactive';
+    const detail = active
+      ? `${s.name} will appear in the directory and purchase orders again.`
+      : `${s.name} will be hidden from the directory and new purchase orders. Past orders are unchanged.`;
+    if(!confirm(`${verb} ${s.name}?\n\n${detail}`)) return;
+    try {
+      await apiSend(`suppliers.php?id=${id}`, 'PUT', { active: active ? 1 : 0 });
+      await loadSuppliers();
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not update supplier.');
+    }
+  };
+
   function bestSupplierFor(itemKey){
     let best = null;
-    state.suppliers.forEach(s => {
+    activeSuppliers().forEach(s => {
       const p = s.prices.find(x => x.item_key === itemKey);
       if(p && (!best || p.price < best.price)) best = { supplier: s, price: p.price };
     });
@@ -1664,26 +1692,38 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function renderSuppliers(){
-    document.getElementById('supplierGrid').innerHTML = state.suppliers.map(s => `
-      <div class="bg-card rounded-card shadow-panel border border-line p-5">
-        <div class="flex items-center justify-between mb-2">
-          <h4 class="font-display font-bold text-[.95rem] text-textDark">${s.name}</h4>
-          <span class="text-[.75rem] font-semibold text-amberTx flex items-center gap-1"><i class='bx bxs-star text-[.85rem]'></i>${s.rating ?? '—'}</span>
+    const showInactive = state.showInactiveSuppliers;
+    const visible = showInactive ? state.suppliers : activeSuppliers();
+
+    if(!visible.length){
+      document.getElementById('supplierGrid').innerHTML =
+        `<p class="text-[.85rem] text-textMid col-span-full">${showInactive ? 'No suppliers on record.' : 'No active suppliers. Turn on “Show inactive” to see hidden vendors.'}</p>`;
+    } else {
+      document.getElementById('supplierGrid').innerHTML = visible.map(s => `
+      <div class="bg-card rounded-card shadow-panel border p-5 ${s.active ? 'border-line' : 'border-dashed border-textSoft/40 opacity-80'}">
+        <div class="flex items-center justify-between mb-2 gap-2">
+          <h4 class="font-display font-bold text-[.95rem] text-textDark">${escapeHtml(s.name)}</h4>
+          <div class="flex items-center gap-2 shrink-0">
+            ${!s.active ? `<span class="px-2 py-0.5 rounded-full text-[.68rem] font-semibold bg-[#eef2f7] text-textMid">Inactive</span>` : ''}
+            <span class="text-[.75rem] font-semibold text-amberTx flex items-center gap-1"><i class='bx bxs-star text-[.85rem]'></i>${s.rating ?? '—'}</span>
+          </div>
         </div>
-        <div class="text-[.78rem] text-textMid mb-2">${s.contact || '—'}</div>
+        <div class="text-[.78rem] text-textMid mb-2">${escapeHtml(s.contact || '—')}</div>
         <div class="flex flex-wrap gap-1 mb-3">${(s.procurement_methods || []).map(m => `<span class="px-2 py-0.5 rounded-full text-[.68rem] font-medium bg-blueBg text-blueTx">${PROCUREMENT_LABELS[m] || m}</span>`).join('')}</div>
         <div class="flex flex-wrap gap-1.5 mb-3">${s.prices.map(p => {
           const best = bestSupplierFor(p.item_key);
-          const isBest = best && best.supplier.id === s.id;
-          return `<span class="px-2 py-1 rounded-full text-[.7rem] font-medium ${isBest ? 'bg-greenBg text-greenTx' : 'bg-[#eef2f7] text-textMid'}">${p.label} — ₱${p.price}${isBest ? ' ★' : ''}</span>`;
+          const isBest = s.active && best && best.supplier.id === s.id;
+          return `<span class="px-2 py-1 rounded-full text-[.7rem] font-medium ${isBest ? 'bg-greenBg text-greenTx' : 'bg-[#eef2f7] text-textMid'}">${escapeHtml(p.label)} — ₱${p.price}${isBest ? ' ★' : ''}</span>`;
         }).join('')}</div>
-        <div class="text-[.72rem] text-textSoft">Last purchase: ${s.prices[0]?.last_purchase_date ? fmtDate(s.prices[0].last_purchase_date) : '—'}</div>
+        <div class="text-[.72rem] text-textSoft mb-3">Last purchase: ${s.prices[0]?.last_purchase_date ? fmtDate(s.prices[0].last_purchase_date) : '—'}</div>
+        <button type="button" onclick="setSupplierActive(${s.id}, ${s.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${s.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${s.active ? 'Mark inactive' : 'Reactivate'}</button>
       </div>`).join('');
+    }
 
     let bestTip = null;
-    const allItemKeys = [...new Set(state.suppliers.flatMap(s => s.prices.map(p => p.item_key)))];
+    const allItemKeys = [...new Set(activeSuppliers().flatMap(s => s.prices.map(p => p.item_key)))];
     allItemKeys.forEach(key => {
-      const pricesForItem = state.suppliers.flatMap(s => s.prices.filter(p => p.item_key === key).map(p => p.price));
+      const pricesForItem = activeSuppliers().flatMap(s => s.prices.filter(p => p.item_key === key).map(p => p.price));
       if(pricesForItem.length < 2) return;
       const spread = Math.max(...pricesForItem) - Math.min(...pricesForItem);
       if(!bestTip || spread > bestTip.spread){
@@ -1893,6 +1933,11 @@ document.addEventListener('DOMContentLoaded', function(){
     } catch (err) {
       alert(err.error || 'Could not submit request.');
     }
+  });
+
+  document.getElementById('showInactiveSuppliers').addEventListener('change', function(){
+    state.showInactiveSuppliers = this.checked;
+    renderSuppliers();
   });
 
   /* ---------- init ---------- */

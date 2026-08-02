@@ -35,8 +35,10 @@ function format_request(array $row): array
 if ($method === 'GET') {
     $rows = $pdo->query(
         "SELECT r.*, i.label, i.unit,
-                (SELECT sp.price FROM supplier_prices sp WHERE sp.item_key = r.item_key ORDER BY sp.price ASC LIMIT 1) AS best_price,
-                (SELECT s.name FROM supplier_prices sp JOIN suppliers s ON s.id = sp.supplier_id
+                (SELECT sp.price FROM supplier_prices sp
+                    JOIN suppliers s ON s.id = sp.supplier_id AND s.active = 1
+                    WHERE sp.item_key = r.item_key ORDER BY sp.price ASC LIMIT 1) AS best_price,
+                (SELECT s.name FROM supplier_prices sp JOIN suppliers s ON s.id = sp.supplier_id AND s.active = 1
                     WHERE sp.item_key = r.item_key ORDER BY sp.price ASC LIMIT 1) AS best_supplier,
                 (SELECT COUNT(*) FROM purchase_orders po WHERE po.request_id = r.id) AS has_po
          FROM purchase_requests r

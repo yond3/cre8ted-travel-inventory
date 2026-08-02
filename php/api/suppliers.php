@@ -1,11 +1,12 @@
 <?php
 /**
- * GET  /api/suppliers.php                 -> list suppliers with their item prices
- * POST /api/suppliers.php                  body: { name, contact, rating, procurement_methods: ['walk_in',...], notes }
- * PUT  /api/suppliers.php?id=<id>          body: any of the above -> edit a supplier
+ * GET  /api/suppliers.php                      -> active suppliers only (default)
+ * GET  /api/suppliers.php?include_inactive=1   -> all suppliers (admin directory)
+ * POST /api/suppliers.php                       body: { name, contact, ... }
+ * PUT  /api/suppliers.php?id=<id>               body: { active: 0|1, ... } or edit fields
  *
- * procurement_methods is stored as a comma list (walk_in,pickup,delivery,online)
- * — what the office can actually do with that vendor (locked-in design decision).
+ * Inactive suppliers are hidden from the directory and PO supplier picker but kept
+ * for order history. Set active = 0 to mark inactive; active = 1 to reactivate.
  */
 require __DIR__ . '/config.php';
 
@@ -36,12 +37,19 @@ function format_supplier(PDO $pdo, array $row): array
         'rating' => $row['rating'] !== null ? (float) $row['rating'] : null,
         'procurement_methods' => $row['procurement_methods'] ? explode(',', $row['procurement_methods']) : [],
         'notes' => $row['notes'],
+        'active' => (int) ($row['active'] ?? 1) === 1,
         'prices' => $prices,
     ];
 }
 
 if ($method === 'GET') {
-    $rows = $pdo->query('SELECT * FROM suppliers ORDER BY name')->fetchAll();
+    $includeInactive = isset($_GET['include_inactive']) && $_GET['include_inactive'] !== '0';
+    $sql = 'SELECT * FROM suppliers';
+    if (!$includeInactive) {
+        $sql .= ' WHERE active = 1';
+    }
+    $sql .= ' ORDER BY name';
+    $rows = $pdo->query($sql)->fetchAll();
     echo json_encode(array_map(fn($r) => format_supplier($pdo, $r), $rows));
     exit;
 }
@@ -56,7 +64,8 @@ if ($method === 'POST') {
     $methods = is_array($methods) ? implode(',', $methods) : (string) $methods;
 
     $stmt = $pdo->prepare(
-        'INSERT INTO suppliers (name, contact, rating, procurement_methods, notes) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO suppliers (name, contact, rating, procurement_methods, notes, active)
+         VALUES (?, ?, ?, ?, ?, 1)'
     );
     $stmt->execute([
         $name,
@@ -67,7 +76,6 @@ if ($method === 'POST') {
     ]);
     $id = (int) $pdo->lastInsertId();
 
-    // Optional: seed one item price at creation time, if provided.
     if (!empty($body['item_key']) && isset($body['price'])) {
         $priceStmt = $pdo->prepare(
             'INSERT INTO supplier_prices (supplier_id, item_key, price) VALUES (?, ?, ?)'
@@ -100,13 +108,16 @@ if ($method === 'PUT') {
         $fields[] = 'procurement_methods = ?';
         $values[] = is_array($methods) ? implode(',', $methods) : (string) $methods;
     }
+    if (array_key_exists('active', $body)) {
+        $fields[] = 'active = ?';
+        $values[] = filter_var($body['active'], FILTER_VALIDATE_BOOLEAN) || (int) $body['active'] === 1 ? 1 : 0;
+    }
     if (!empty($fields)) {
         $values[] = $id;
         $stmt = $pdo->prepare('UPDATE suppliers SET ' . implode(', ', $fields) . ' WHERE id = ?');
         $stmt->execute($values);
     }
 
-    // Optional: upsert a single item price in the same call.
     if (!empty($body['item_key']) && isset($body['price'])) {
         $priceStmt = $pdo->prepare(
             'INSERT INTO supplier_prices (supplier_id, item_key, price, last_purchase_date)
