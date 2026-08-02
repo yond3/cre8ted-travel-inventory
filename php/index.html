@@ -619,6 +619,45 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: CLOSE MONTH (consumables) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2150] items-center justify-center p-4" id="closeMonthModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="closeMonthModalTitle">Close month</h3>
+      <button onclick="closeModal('closeMonthModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="closeMonthSubtitle">After a physical count — logs usage for the AI forecast.</p>
+    <form id="closeMonthForm" class="flex flex-col gap-4">
+      <input type="hidden" id="closeMonthItemKey" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Month to close</label>
+        <input id="closeMonthPick" type="month" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        <p class="text-[.72rem] text-textSoft mt-1">Usually the month that just ended (e.g. July if today is August).</p>
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Opening</label>
+          <input id="closeOpening" type="number" min="0" step="any" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <p class="text-[.68rem] text-textSoft mt-1">Start of month</p>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Received</label>
+          <input id="closeReceived" type="number" min="0" step="any" required value="0" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <p class="text-[.68rem] text-textSoft mt-1">Deliveries (0 if none)</p>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Closing</label>
+          <input id="closeClosing" type="number" min="0" step="any" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <p class="text-[.68rem] text-textSoft mt-1">Counted on shelf</p>
+        </div>
+      </div>
+      <p class="text-[.82rem] font-semibold text-navy800 bg-[#eaf1fb] rounded-xl px-3 py-2.5" id="closeMonthPreview">Usage = opening + received − closing</p>
+      <span class="hidden" id="closeMonthUnit"></span>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Close month &amp; save usage</button>
+    </form>
+  </div>
+</div>
+
 <!-- ===================== MODAL: ADD LOCATION ===================== -->
 <div class="modal-overlay fixed inset-0 bg-black/45 z-[2100] items-center justify-center p-4" id="locationModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-sm p-6">
@@ -940,8 +979,9 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3 text-textMid">${it.max_qty ?? '—'}</td>
         <td class="py-3 pr-3">${statusPill(it.status)}</td>
         <td class="py-3 pr-3">
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             ${it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
+            ${it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
             <button onclick="openEditItemModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>
           </div>
         </td>
@@ -1125,6 +1165,88 @@ document.addEventListener('DOMContentLoaded', function(){
     itemTypeToggle();
     openModal('itemModalOverlay');
   };
+
+  function defaultCloseMonthPick(){
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function receivedQtyForMonth(itemKey, yearMonth){
+    if(!yearMonth || !state.orders.length) return 0;
+    return state.orders
+      .filter(o => o.item_key === itemKey && o.status === 'Received' && o.received_at)
+      .filter(o => o.received_at.replace(' ', 'T').slice(0, 7) === yearMonth)
+      .reduce((sum, o) => sum + o.qty, 0);
+  }
+
+  function updateCloseMonthPreview(){
+    const opening = Number(document.getElementById('closeOpening').value) || 0;
+    const received = Number(document.getElementById('closeReceived').value) || 0;
+    const closingRaw = document.getElementById('closeClosing').value;
+    const unit = document.getElementById('closeMonthUnit').textContent || '';
+    const preview = document.getElementById('closeMonthPreview');
+    if(closingRaw === ''){
+      preview.textContent = `Usage will be: ${opening} + ${received} − (enter closing count)${unit ? ' ' + unit : ''}`;
+      return;
+    }
+    const closing = Number(closingRaw);
+    const usage = Math.max(0, opening + received - closing);
+    preview.textContent = `Usage for this month: ${usage}${unit ? ' ' + unit : ''} · new stock on hand: ${closing}${unit ? ' ' + unit : ''}`;
+  }
+
+  function refreshCloseMonthReceived(){
+    const itemKey = document.getElementById('closeMonthItemKey').value;
+    const yearMonth = document.getElementById('closeMonthPick').value;
+    if(!itemKey || !yearMonth) return;
+    document.getElementById('closeReceived').value = receivedQtyForMonth(itemKey, yearMonth);
+    updateCloseMonthPreview();
+  }
+
+  window.openCloseMonthModal = function(itemKey){
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    if(!it || it.item_type !== 'consumable') return;
+    document.getElementById('closeMonthItemKey').value = it.item_key;
+    document.getElementById('closeMonthUnit').textContent = it.unit;
+    document.getElementById('closeMonthModalTitle').textContent = `Close month — ${it.label}`;
+    document.getElementById('closeMonthPick').value = defaultCloseMonthPick();
+    document.getElementById('closeOpening').value = it.current_qty;
+    document.getElementById('closeClosing').value = '';
+    refreshCloseMonthReceived();
+    openModal('closeMonthModalOverlay');
+  };
+
+  ['closeOpening', 'closeReceived', 'closeClosing'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateCloseMonthPreview);
+  });
+  document.getElementById('closeMonthPick').addEventListener('change', refreshCloseMonthReceived);
+
+  document.getElementById('closeMonthForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const itemKey = document.getElementById('closeMonthItemKey').value;
+    const yearMonth = document.getElementById('closeMonthPick').value;
+    const opening = Number(document.getElementById('closeOpening').value);
+    const received = Number(document.getElementById('closeReceived').value);
+    const closing = Number(document.getElementById('closeClosing').value);
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    const monthLabel = yearMonth ? new Date(yearMonth + '-01T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'this month';
+    if(!confirm(`Close ${monthLabel} for ${it?.label || itemKey}?\n\nOpening ${opening}, received ${received}, closing ${closing}.`)) return;
+    try {
+      const result = await apiSend(`close_month.php?item=${encodeURIComponent(itemKey)}`, 'POST', {
+        month: yearMonth + '-01',
+        opening_qty: opening,
+        received_qty: received,
+        closing_qty: closing,
+      });
+      closeModal('closeMonthModalOverlay');
+      await loadInventory();
+      renderDashboard();
+      alert(`${monthLabel} closed.\n\nUsage logged: ${result.computed_usage} ${it?.unit || ''}\nStock on hand: ${result.new_current_qty} ${it?.unit || ''}\n\nOpen AI Demand Forecast to see the updated prediction.`);
+    } catch (err) {
+      alert(err.error || 'Could not close month.');
+    }
+  });
 
   document.getElementById('itemForm').addEventListener('submit', async function(e){
     e.preventDefault();
