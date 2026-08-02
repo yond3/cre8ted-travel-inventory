@@ -1,0 +1,176 @@
+<?php
+/**
+ * GET  /api/purchase_orders.php                 -> list all POs (request + supplier details)
+ * POST /api/purchase_orders.php                  body: { request_id, supplier_id, procurement_method, assigned_to, amount }
+ *      -> only for Approved requests. Sets request -> Ordered, PO -> Placed.
+ * PUT  /api/purchase_orders.php?id=<id>          body: { action: 'receive' | 'cancel' }
+ *      -> 'receive' is where the locked-in automation happens:
+ *         PO -> Received, request -> Completed, and inventory.current_qty
+ *         increases by the requested quantity automatically. This is the
+ *         only place stock goes up from a purchase.
+ */
+require __DIR__ . '/config.php';
+
+$pdo = get_pdo();
+$method = $_SERVER['REQUEST_METHOD'];
+
+function format_order(array $row): array
+{
+    return [
+        'id' => (int) $row['id'],
+        'po_code' => $row['po_code'],
+        'request_id' => (int) $row['request_id'],
+        'request_code' => $row['request_code'],
+        'item_key' => $row['item_key'],
+        'item_label' => $row['label'],
+        'unit' => $row['unit'],
+        'qty' => (float) $row['qty'],
+        'supplier_id' => $row['supplier_id'] !== null ? (int) $row['supplier_id'] : null,
+        'supplier_name' => $row['supplier_name'],
+        'procurement_method' => $row['procurement_method'],
+        'assigned_to' => $row['assigned_to'],
+        'amount' => $row['amount'] !== null ? (float) $row['amount'] : null,
+        'status' => $row['status'],
+        'created_at' => $row['created_at'],
+        'received_at' => $row['received_at'],
+    ];
+}
+
+const ORDER_SELECT = "SELECT po.*, pr.request_code, pr.item_key, pr.qty, i.label, i.unit, s.name AS supplier_name
+    FROM purchase_orders po
+    JOIN purchase_requests pr ON pr.id = po.request_id
+    JOIN items i ON i.item_key = pr.item_key
+    LEFT JOIN suppliers s ON s.id = po.supplier_id";
+
+if ($method === 'GET') {
+    $rows = $pdo->query(ORDER_SELECT . ' ORDER BY po.created_at DESC, po.id DESC')->fetchAll();
+    echo json_encode(array_map('format_order', $rows));
+    exit;
+}
+
+if ($method === 'POST') {
+    $body = read_json_body();
+    $requestId = (int) ($body['request_id'] ?? 0);
+    if (!$requestId) {
+        json_error('request_id is required');
+    }
+
+    $stmt = $pdo->prepare('SELECT * FROM purchase_requests WHERE id = ?');
+    $stmt->execute([$requestId]);
+    $req = $stmt->fetch();
+    if (!$req) {
+        json_error('unknown request', 404);
+    }
+    if ($req['status'] !== 'Approved') {
+        json_error("request is '{$req['status']}', not Approved — approve it before creating a PO", 409);
+    }
+
+    $method_ = $body['procurement_method'] ?? 'walk_in';
+    if (!in_array($method_, ['walk_in', 'pickup', 'delivery', 'online'], true)) {
+        json_error("procurement_method must be one of walk_in, pickup, delivery, online");
+    }
+
+    $poCode = next_code('PO', 'purchase_orders', 'po_code');
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare(
+            'INSERT INTO purchase_orders (po_code, request_id, supplier_id, procurement_method, assigned_to, amount, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $poCode,
+            $requestId,
+            $body['supplier_id'] ?? null,
+            $method_,
+            $body['assigned_to'] ?? null,
+            $body['amount'] ?? null,
+            'Placed',
+        ]);
+        $pdo->prepare("UPDATE purchase_requests SET status = 'Ordered' WHERE id = ?")->execute([$requestId]);
+        create_document('Purchase order', $poCode, 'Placed');
+        update_document('Purchase request', $req['request_code'], 'Ordered');
+        $pdo->commit();
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        json_error('failed to create purchase order: ' . $e->getMessage(), 500);
+    }
+
+    $row = $pdo->query(ORDER_SELECT . " WHERE po.po_code = " . $pdo->quote($poCode))->fetch();
+    echo json_encode(format_order($row));
+    exit;
+}
+
+if ($method === 'PUT') {
+    $id = (int) ($_GET['id'] ?? 0);
+    if (!$id) {
+        json_error('missing required query param: id');
+    }
+    $body = read_json_body();
+    $action = $body['action'] ?? '';
+
+    $row = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
+    if (!$row) {
+        json_error('unknown purchase order', 404);
+    }
+    if ($row['status'] !== 'Placed') {
+        json_error("order is '{$row['status']}', not Placed", 409);
+    }
+
+    if ($action === 'receive') {
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare("UPDATE purchase_orders SET status = 'Received', received_at = NOW() WHERE id = ?")
+                ->execute([$id]);
+            $pdo->prepare("UPDATE purchase_requests SET status = 'Completed' WHERE id = ?")
+                ->execute([$row['request_id']]);
+            // The automatic step the whole plan was built around: stock only
+            // increases here, when items are confirmed physically received.
+            $pdo->prepare('UPDATE items SET current_qty = current_qty + ? WHERE item_key = ?')
+                ->execute([$row['qty'], $row['item_key']]);
+            update_document('Purchase order', $row['po_code'], 'Received');
+            update_document('Purchase request', $row['request_code'], 'Completed');
+            $pdo->commit();
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            json_error('failed to mark received: ' . $e->getMessage(), 500);
+        }
+
+        $newQty = $pdo->prepare('SELECT current_qty FROM items WHERE item_key = ?');
+        $newQty->execute([$row['item_key']]);
+        $updatedQty = (float) $newQty->fetchColumn();
+
+        echo json_encode([
+            'status' => 'ok',
+            'id' => $id,
+            'new_status' => 'Received',
+            'item_key' => $row['item_key'],
+            'item_label' => $row['label'],
+            'unit' => $row['unit'],
+            'qty_added' => (float) $row['qty'],
+            'new_stock' => $updatedQty,
+        ]);
+        exit;
+    }
+
+    if ($action === 'cancel') {
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare("UPDATE purchase_orders SET status = 'Cancelled' WHERE id = ?")->execute([$id]);
+            // Back to Approved so admin can re-create a PO (e.g. with a different supplier).
+            $pdo->prepare("UPDATE purchase_requests SET status = 'Approved' WHERE id = ?")->execute([$row['request_id']]);
+            update_document('Purchase order', $row['po_code'], 'Cancelled');
+            update_document('Purchase request', $row['request_code'], 'Approved');
+            $pdo->commit();
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            json_error('failed to cancel: ' . $e->getMessage(), 500);
+        }
+        echo json_encode(['status' => 'ok', 'id' => $id, 'new_status' => 'Cancelled']);
+        exit;
+    }
+
+    json_error("action must be 'receive' or 'cancel'");
+}
+
+json_error('method not allowed', 405);

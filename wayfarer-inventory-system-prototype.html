@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wayfarer Travel &amp; Tours — Supply Chain &amp; Inventory System</title>
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy900: '#0c1f3f',
+          navy800: '#0f2a52',
+          navy700: '#173868',
+          orange: '#f5a524',
+          orangeDark: '#e0930f',
+          bg: '#eef2f7',
+          card: '#ffffff',
+          textDark: '#0f2242',
+          textMid: '#5b6b85',
+          textSoft: '#94a3bb',
+          line: '#e7ecf3',
+          greenBg: '#e3f8ec',
+          greenTx: '#1a9b58',
+          amberBg: '#fdf1dd',
+          amberTx: '#c07d10',
+          redBg: '#fdeaea',
+          redTx: '#d5362f',
+          blueBg: '#e7eefc',
+          blueTx: '#1d4ed8',
+        },
+        fontFamily: {
+          sans: ['Inter', 'sans-serif'],
+          display: ['Plus Jakarta Sans', 'sans-serif'],
+        },
+        borderRadius: { card: '16px' },
+        boxShadow: {
+          sidebar: '6px 0 24px rgba(9,20,46,.18)',
+          panel: '0 4px 20px rgba(15,42,82,.06)',
+          btn: '0 8px 18px rgba(15,42,82,.25)',
+          btnhover: '0 10px 22px rgba(15,42,82,.32)',
+          menu: '0 12px 32px rgba(15,42,82,.12)',
+          modal: '0 24px 60px rgba(9,20,46,.35)',
+        },
+      }
+    }
+  }
+</script>
+<style>
+  * { transition-timing-function: cubic-bezier(.4,0,.2,1); }
+  .sidebar::-webkit-scrollbar{width:3px;}
+  .sidebar::-webkit-scrollbar-track{background:transparent;}
+  .sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px;}
+  .sidebar{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.08) transparent; }
+  .sidebar.collapsed{ width:0; overflow:hidden; }
+  .overlay.show{ opacity:1; visibility:visible; }
+
+  .nav-item.active, .nav-item.active:hover{ background:#fffcf6; transform:none; }
+  .nav-item.active .nav-icon, .nav-item.active:hover .nav-icon{ background: rgba(2,2,86,.934); }
+  .nav-item.active .nav-text .main, .nav-item.active:hover .nav-text .main{ color:#0f2242; }
+  .nav-item.active .nav-text .sub, .nav-item.active:hover .nav-text .sub{ color:#5b6b85; }
+  .nav-item:not(.active):hover{ background:rgba(255,255,255,.12); transform:translateX(3px); }
+  .nav-item:not(.active):hover .nav-icon{ background: rgba(2,2,86,.934); }
+  .nav-item:not(.active):hover .nav-text .main{ color:black; }
+  .nav-item:not(.active):hover .nav-text .sub{ color:rgb(62,59,59); }
+
+  .main-content.expanded{ margin-left:0; }
+  .menu-toggle:active, .icon-btn:active{ background:#b9c2d1 !important; color:#0f2242 !important; }
+  .profile-menu.show{ opacity:1; visibility:visible; transform:translateY(0); }
+  .filter-pill.active{ background:linear-gradient(135deg,#173868,#0c1f3f); color:#fff; box-shadow:0 8px 18px rgba(15,42,82,.25); }
+  .gl-table tbody tr:hover{ background:#f7f9fc; }
+  .page-section.hidden{ display:none; }
+  .modal-overlay{ display:none; }
+  .modal-overlay.show{ display:flex; }
+  .row-hidden{ display:none !important; }
+
+  @media (max-width:900px){
+    .sidebar{ position:fixed; top:0; left:0; height:100vh; transform:translateX(-100%); overflow-y:auto; }
+    .sidebar.show{ transform:translateX(0); }
+    .topbar{ padding:0 1.2rem; }
+    .main-content{ padding:1.5rem 1.2rem 3rem; }
+  }
+</style>
+</head>
+<body class="font-sans bg-bg text-textDark overflow-x-hidden">
+<div class="flex h-screen overflow-hidden">
+
+<div class="overlay fixed inset-0 bg-black/40 z-[999] opacity-0 invisible transition-all duration-300" id="overlay"></div>
+<aside class="sidebar shrink-0 w-[290px] h-full overflow-y-auto bg-gradient-to-br from-orange to-orangeDark flex flex-col z-[1000] transition-all duration-300 shadow-sidebar" id="sidebar">
+
+  <div class="sidebar-top flex items-center gap-3 px-[1.4rem] pt-[1.4rem] pb-[.6rem]">
+    <div class="w-11 h-11 rounded-xl bg-navy900 flex items-center justify-center text-orange text-[1.4rem] shrink-0"><i class='bx bx-plane'></i></div>
+    <div class="leading-[1.2]">
+      <div class="font-display font-extrabold text-[1.05rem] text-navy900">Wayfarer</div>
+      <div class="text-[.7rem] font-semibold text-navy900/70 tracking-wide">Travel &amp; Tours</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav px-[.9rem] py-2 pb-8" id="sidebarNav">
+    <div class="w-full h-px bg-white/10 mb-4"></div>
+    <a class="nav-item active group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl text-[#b7c6e3] no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative hover:bg-white hover:translate-x-[3px]" data-page="Dashboard" data-target="page-dashboard">
+      <div class="nav-icon w-[34px] h-[34px] rounded-[10px] bg-navy800 flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200 group-hover:bg-white/[.12]"><i class='bx bx-grid-alt'></i></div>
+      <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold text-black">Dashboard</span></div>
+    </a>
+    <div class="w-full h-px bg-white/10 mb-4"></div>
+
+    <div class="nav-section-title flex items-center gap-2 px-[.9rem] pt-[.4rem] pb-[.9rem]">
+      <span class="w-[6px] h-[6px] rounded-full bg-black shrink-0"></span>
+      <span class="text-[.66rem] font-semibold tracking-[2px] text-black uppercase whitespace-nowrap">Operations</span>
+    </div>
+    <a class="nav-item group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl text-[#b7c6e3] no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative hover:bg-white hover:translate-x-[3px]" data-page="Office Storage &amp; Inventory" data-target="page-inventory">
+      <div class="nav-icon w-[34px] h-[34px] rounded-[10px] bg-navy800 flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200 group-hover:bg-white/[.12]"><i class='bx bx-archive'></i></div>
+      <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold text-black">Office Storage &amp; Inventory</span><span class="sub text-[.68rem] font-medium text-black">Stock levels &amp; locations</span></div>
+    </a>
+    <a class="nav-item group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl text-[#b7c6e3] no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative hover:bg-white hover:translate-x-[3px]" data-page="Purchase Requests" data-target="page-requests">
+      <div class="nav-icon w-[34px] h-[34px] rounded-[10px] bg-navy800 flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200 group-hover:bg-white/[.12]"><i class='bx bx-note'></i></div>
+      <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold text-black">Purchase Requests</span><span class="sub text-[.68rem] font-medium text-black">Request &amp; approval flow</span></div>
+    </a>
+    <a class="nav-item group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl text-[#b7c6e3] no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative hover:bg-white hover:translate-x-[3px]" data-page="Purchase Orders" data-target="page-orders">
+      <div class="nav-icon w-[34px] h-[34px] rounded-[10px] bg-navy800 flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200 group-hover:bg-white/[.12]"><i class='bx bx-receipt'></i></div>
+      <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold text-black">Purchase Orders</span><span class="sub text-[.68rem] font-medium text-black">Orders &amp; fulfillment</span></div>
+    </a>
+
+    <div class="-mx-[.9rem] mt-[1.2rem] mb-[1.6rem] h-px bg-white/10"></div>
+    <div class="nav-section-title flex items-center gap-2 px-[.9rem] pt-[.4rem] pb-[.9rem]">
+      <span class="w-[6px] h-[6px] rounded-full bg-black shrink-0"></span>
+      <span class="text-[.66rem] font-semibold tracking-[2px] text-black uppercase whitespace-nowrap">Partners</span>
+    </div>
+    <a class="nav-item group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl text-[#b7c6e3] no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative hover:bg-white hover:translate-x-[3px]" data-page="Supplier Directory" data-target="page-suppliers">
+      <div class="nav-icon w-[34px] h-[34px] rounded-[10px] bg-navy800 flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200 group-hover:bg-white/[.12]"><i class='bx bx-store'></i></div>
+      <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold text-black">Supplier Directory</span><span class="sub text-[.68rem] font-medium text-black">Preferred vendors</span></div>
+    </a>
+
+    <div class="-mx-[.9rem] mt-[1.2rem] mb-[1.6rem] h-px bg-white/10"></div>
+    <div class="nav-section-title flex items-center gap-2 px-[.9rem] pt-[.4rem] pb-[.9rem]">
+      <span class="w-[6px] h-[6px] rounded-full bg-black shrink-0"></span>
+      <span class="text-[.66rem] font-semibold tracking-[2px] text-black uppercase whitespace-nowrap">Insights</span>
+    </div>
+    <a class="nav-item group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl text-[#b7c6e3] no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative hover:bg-white hover:translate-x-[3px]" data-page="AI Demand Forecast" data-target="page-forecast">
+      <div class="nav-icon w-[34px] h-[34px] rounded-[10px] bg-navy800 flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200 group-hover:bg-white/[.12]"><i class='bx bx-line-chart'></i></div>
+      <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold text-black">AI Demand Forecast</span><span class="sub text-[.68rem] font-medium text-black">Stock predictions</span></div>
+    </a>
+    <a class="nav-item group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl text-[#b7c6e3] no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative hover:bg-white hover:translate-x-[3px]" data-page="Document Tracking" data-target="page-documents">
+      <div class="nav-icon w-[34px] h-[34px] rounded-[10px] bg-navy800 flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200 group-hover:bg-white/[.12]"><i class='bx bx-folder'></i></div>
+      <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold text-black">Document Tracking</span><span class="sub text-[.68rem] font-medium text-black">Records &amp; receipts</span></div>
+    </a>
+  </nav>
+</aside>
+
+<div class="flex flex-col flex-1 min-w-0 h-full overflow-y-auto">
+<nav class="topbar sticky top-0 h-[65px] shrink-0 grow-0 bg-card border-b border-line flex items-center justify-between px-5 z-[900] transition-all duration-300" id="topbar">
+  <div class="topbar-left flex items-center gap-4">
+    <button class="menu-toggle w-10 h-10 rounded-full bg-transparent flex items-center justify-center text-textMid cursor-pointer mr-1 transition-all duration-200 hover:bg-[#dde3ec] hover:text-textDark" id="menuToggle" title="Toggle sidebar">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="5" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="5" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="5" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <div><h2 class="font-display text-[1.35rem] font-extrabold text-textDark" id="pageTitle">Dashboard</h2></div>
+  </div>
+  <div class="topbar-right flex items-center gap-0">
+    <div class="topbar-time flex items-center gap-0 text-[.95rem] text-textDark mr-[9px]">
+      <div class="date font-light text-[.9rem]" id="topbarDate">Loading date</div>
+      <span class="font-light text-[.9rem]">,&nbsp;</span>
+      <div class="time font-light text-[.9rem]" id="topbarTime">--:--</div>
+    </div>
+    <button class="icon-btn relative w-10 h-10 rounded-full bg-transparent border-none flex items-center justify-center text-textMid text-[1.5rem] cursor-pointer transition-all duration-200 hover:bg-[#dde3ec] hover:text-textDark" id="notifBtn" title="Notifications">
+      <i class='bx bx-bell'></i><span class="dot absolute top-[9px] right-[10px] w-2 h-2 bg-orangeDark rounded-full border-2 border-card"></span>
+    </button>
+    <div class="profile-menu-wrapper relative ml-1">
+      <button class="icon-btn profile-btn w-10 h-10 min-w-10 p-0 rounded-full bg-transparent border-none flex items-center justify-center text-textMid text-[1.5rem] cursor-pointer transition-all duration-200 hover:bg-[#dde3ec] hover:text-textDark" id="profileBtn" title="Profile">
+        <i class='bx bx-user-circle'></i>
+      </button>
+      <div class="profile-menu absolute top-[calc(100%+0.5rem)] right-0 bg-white border border-line rounded-2xl shadow-menu min-w-[220px] overflow-hidden opacity-0 invisible -translate-y-2 transition-all duration-200 z-[10000]" id="profileMenu">
+        <div class="profile-menu-header flex items-center gap-3 px-4 pt-4 pb-3 border-b border-[rgba(14,27,60,.08)]">
+          <div class="profile-menu-avatar w-10 h-10 rounded-xl flex items-center justify-center bg-[#eaf1fb] text-textMid text-[1.25rem]"><i class='bx bx-user-circle'></i></div>
+          <div>
+            <div class="profile-menu-name font-bold text-textDark">Maria Santos</div>
+            <div class="profile-menu-role text-[.8rem] text-textSoft">Office Administrator</div>
+          </div>
+        </div>
+        <button class="w-full px-4 py-[.95rem] bg-transparent border-none flex items-center gap-3 text-textDark text-[.95rem] cursor-pointer text-left hover:bg-[rgba(14,27,60,.05)]" id="profileViewBtn" title="Profile"><i class='bx bx-user text-[1.1rem]'></i>Profile</button>
+        <button class="w-full px-4 py-[.95rem] bg-transparent border-none flex items-center gap-3 text-textDark text-[.95rem] cursor-pointer text-left hover:bg-[rgba(14,27,60,.05)]" id="logoutBtn" title="Logout"><i class='bx bx-log-out text-[1.1rem]'></i>Logout</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="main-content flex-1 px-8 pt-[2.2rem] pb-12 transition-all duration-300" id="mainContent">
+
+<!-- ===================== DASHBOARD ===================== -->
+<section class="page-section" id="page-dashboard">
+  <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-grid-alt'></i></div>
+      <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Dashboard</h1>
+    </div>
+    <button onclick="openRequestModal()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
+      <i class='bx bx-plus text-[1.1rem]'></i> New Purchase Request
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+    <div class="bg-card rounded-card shadow-panel border border-line p-5">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Items tracked</span>
+        <div class="w-9 h-9 rounded-lg bg-[#eaf1fb] flex items-center justify-center text-navy800 text-[1.05rem]"><i class='bx bx-archive'></i></div>
+      </div>
+      <div class="font-display text-[1.8rem] font-extrabold text-textDark" id="statTotalItems">11</div>
+      <div class="text-[.78rem] text-textSoft mt-1">Across 4 storage locations</div>
+    </div>
+    <div class="bg-card rounded-card shadow-panel border border-line p-5">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Low stock items</span>
+        <div class="w-9 h-9 rounded-lg bg-redBg flex items-center justify-center text-redTx text-[1.05rem]"><i class='bx bx-error-circle'></i></div>
+      </div>
+      <div class="font-display text-[1.8rem] font-extrabold text-redTx" id="statLowStock">3</div>
+      <div class="text-[.78rem] text-textSoft mt-1">Below minimum threshold</div>
+    </div>
+    <div class="bg-card rounded-card shadow-panel border border-line p-5">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Pending requests</span>
+        <div class="w-9 h-9 rounded-lg bg-amberBg flex items-center justify-center text-amberTx text-[1.05rem]"><i class='bx bx-time-five'></i></div>
+      </div>
+      <div class="font-display text-[1.8rem] font-extrabold text-textDark" id="statPending">1</div>
+      <div class="text-[.78rem] text-textSoft mt-1">Awaiting manager approval</div>
+    </div>
+    <div class="bg-card rounded-card shadow-panel border border-line p-5">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Active suppliers</span>
+        <div class="w-9 h-9 rounded-lg bg-greenBg flex items-center justify-center text-greenTx text-[1.05rem]"><i class='bx bx-store'></i></div>
+      </div>
+      <div class="font-display text-[1.8rem] font-extrabold text-textDark">6</div>
+      <div class="text-[.78rem] text-textSoft mt-1">Nearby stores &amp; online</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
+    <div class="lg:col-span-3 bg-card rounded-card shadow-panel border border-line p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-display font-bold text-[1.02rem] text-textDark">Low stock alerts</h3>
+        <span class="text-[.72rem] font-semibold text-redTx bg-redBg px-2.5 py-1 rounded-full">Needs action</span>
+      </div>
+      <div class="flex flex-col gap-3" id="lowStockAlertList"></div>
+    </div>
+    <div class="lg:col-span-2 bg-card rounded-card shadow-panel border border-line p-5">
+      <h3 class="font-display font-bold text-[1.02rem] text-textDark mb-4">Recent activity</h3>
+      <div class="flex flex-col gap-4" id="recentActivityList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== INVENTORY ===================== -->
+<section class="page-section hidden" id="page-inventory">
+  <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-archive'></i></div>
+      <div>
+        <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Office Storage &amp; Inventory</h1>
+        <p class="text-[.78rem] text-textMid mt-0.5">No warehouse needed — just cabinets, drawers, shelves and a locker.</p>
+      </div>
+    </div>
+    <button onclick="openItemModal()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
+      <i class='bx bx-plus text-[1.1rem]'></i> Add item
+    </button>
+  </div>
+
+  <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <div class="flex items-center gap-2 mb-4" id="inventoryFilters">
+      <button class="filter-pill active px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="all">All items</button>
+      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Low stock">Low stock</button>
+      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="In stock">In stock</button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="gl-table w-full text-[.85rem] border-collapse">
+        <thead>
+          <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+            <th class="py-3 pr-3 font-semibold">Item</th>
+            <th class="py-3 pr-3 font-semibold">Storage location</th>
+            <th class="py-3 pr-3 font-semibold">Current qty</th>
+            <th class="py-3 pr-3 font-semibold">Min</th>
+            <th class="py-3 pr-3 font-semibold">Max</th>
+            <th class="py-3 pr-3 font-semibold">Status</th>
+            <th class="py-3 pr-3 font-semibold">Action</th>
+          </tr>
+        </thead>
+        <tbody id="inventoryTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PURCHASE REQUESTS ===================== -->
+<section class="page-section hidden" id="page-requests">
+  <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-note'></i></div>
+      <div>
+        <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Purchase Requests</h1>
+        <p class="text-[.78rem] text-textMid mt-0.5">Employee requests → manager approval → purchase order.</p>
+      </div>
+    </div>
+    <button onclick="openRequestModal()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
+      <i class='bx bx-plus text-[1.1rem]'></i> New request
+    </button>
+  </div>
+
+  <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <div class="overflow-x-auto">
+      <table class="gl-table w-full text-[.85rem] border-collapse">
+        <thead>
+          <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+            <th class="py-3 pr-3 font-semibold">Request ID</th>
+            <th class="py-3 pr-3 font-semibold">Employee</th>
+            <th class="py-3 pr-3 font-semibold">Item</th>
+            <th class="py-3 pr-3 font-semibold">Qty</th>
+            <th class="py-3 pr-3 font-semibold">Est. cost</th>
+            <th class="py-3 pr-3 font-semibold">Date</th>
+            <th class="py-3 pr-3 font-semibold">Status</th>
+            <th class="py-3 pr-3 font-semibold">Action</th>
+          </tr>
+        </thead>
+        <tbody id="requestsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PURCHASE ORDERS ===================== -->
+<section class="page-section hidden" id="page-orders">
+  <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-receipt'></i></div>
+      <div>
+        <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Purchase Orders</h1>
+        <p class="text-[.78rem] text-textMid mt-0.5">Generated automatically once a request is approved.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <div class="overflow-x-auto">
+      <table class="gl-table w-full text-[.85rem] border-collapse">
+        <thead>
+          <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+            <th class="py-3 pr-3 font-semibold">PO ID</th>
+            <th class="py-3 pr-3 font-semibold">Linked request</th>
+            <th class="py-3 pr-3 font-semibold">Supplier</th>
+            <th class="py-3 pr-3 font-semibold">Amount</th>
+            <th class="py-3 pr-3 font-semibold">Date</th>
+            <th class="py-3 pr-3 font-semibold">Status</th>
+            <th class="py-3 pr-3 font-semibold">Action</th>
+          </tr>
+        </thead>
+        <tbody id="ordersTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SUPPLIER DIRECTORY ===================== -->
+<section class="page-section hidden" id="page-suppliers">
+  <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-store'></i></div>
+      <div>
+        <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Supplier Directory</h1>
+        <p class="text-[.78rem] text-textMid mt-0.5">The handful of stores the office actually buys from.</p>
+      </div>
+    </div>
+  </div>
+  <div class="bg-blueBg border border-[#c6d7fb] rounded-card p-4 mb-5 flex items-start gap-3">
+    <i class='bx bx-bulb text-blueTx text-[1.3rem] mt-0.5'></i>
+    <p class="text-[.85rem] text-blueTx" id="supplierTipText"><span class="font-bold">System tip:</span> Loading...</p>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="supplierGrid"></div>
+</section>
+
+<!-- ===================== AI DEMAND FORECAST ===================== -->
+<section class="page-section hidden" id="page-forecast">
+  <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-line-chart'></i></div>
+      <div>
+        <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">AI Demand Forecast</h1>
+        <p class="text-[.78rem] text-textMid mt-0.5">Forecasts office supply usage, not travel bookings.</p>
+      </div>
+    </div>
+    <select id="forecastItemSelect" onchange="renderForecast(this.value)" class="px-3 py-2 rounded-xl border border-line bg-[#eef2f7] text-[.85rem] font-semibold text-textDark cursor-pointer">
+      <option value="bondpaper">Bond paper</option>
+      <option value="printerink">Printer ink</option>
+      <option value="ballpointpens">Ballpoint pens</option>
+      <option value="businesscards">Business cards</option>
+      <option value="cleaningsupplies">Cleaning supplies</option>
+    </select>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+    <div class="bg-card rounded-card shadow-panel border border-line p-5">
+      <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Current stock</span>
+      <div class="font-display text-[1.8rem] font-extrabold text-textDark mt-1" id="fcCurrent">8 reams</div>
+    </div>
+    <div class="bg-card rounded-card shadow-panel border border-line p-5">
+      <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Predicted next month</span>
+      <div class="font-display text-[1.8rem] font-extrabold text-textDark mt-1" id="fcPredicted">6 reams</div>
+    </div>
+    <div class="bg-card rounded-card shadow-panel border border-line p-5" id="fcAlertCard">
+      <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Recommended action</span>
+      <div class="font-display text-[1.15rem] font-extrabold mt-1" id="fcAlert">Reorder within 14 days</div>
+    </div>
+  </div>
+
+  <div class="bg-card rounded-card shadow-panel border border-line p-5 mb-5">
+    <h3 class="font-display font-bold text-[1.02rem] text-textDark mb-4">Monthly usage — actual vs predicted</h3>
+    <canvas id="forecastChart" height="90"></canvas>
+  </div>
+
+  <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <h3 class="font-display font-bold text-[.95rem] text-textDark mb-2">How this works</h3>
+    <p class="text-[.83rem] text-textMid leading-relaxed">When the forecasting backend is running, predictions are computed live by <span class="font-semibold text-textDark">Meta's Prophet</span> model. Rather than trying to learn a yearly travel-season cycle from only 6 months of data (tested — it badly overfits with this little history), the client's known peak/low travel season calendar is fed in directly as a Prophet regressor. This lets the model use that business knowledge immediately, and its influence on the forecast will grow more reliable as more real monthly usage data accumulates.</p>
+  </div>
+</section>
+
+<!-- ===================== DOCUMENT TRACKING ===================== -->
+<section class="page-section hidden" id="page-documents">
+  <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-folder'></i></div>
+      <div>
+        <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Document Tracking</h1>
+        <p class="text-[.78rem] text-textMid mt-0.5">Digital records — no paper trail, no filing cabinets.</p>
+      </div>
+    </div>
+  </div>
+  <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <div class="overflow-x-auto">
+      <table class="gl-table w-full text-[.85rem] border-collapse">
+        <thead>
+          <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+            <th class="py-3 pr-3 font-semibold">Doc ID</th>
+            <th class="py-3 pr-3 font-semibold">Type</th>
+            <th class="py-3 pr-3 font-semibold">Reference</th>
+            <th class="py-3 pr-3 font-semibold">Date</th>
+            <th class="py-3 pr-3 font-semibold">Status</th>
+            <th class="py-3 pr-3 font-semibold">Action</th>
+          </tr>
+        </thead>
+        <tbody id="documentsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== MODAL: NEW PURCHASE REQUEST ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000] items-center justify-center p-4" id="requestModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">New purchase request</h3>
+      <button onclick="closeModal('requestModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <form id="requestForm" class="flex flex-col gap-4">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Employee</label>
+        <select id="reqEmployee" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <option>Maria Santos</option>
+          <option>Juan Dela Cruz</option>
+          <option>Ana Reyes</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item</label>
+        <select id="reqItem" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity</label>
+        <input id="reqQty" type="number" min="1" value="1" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
+        <textarea id="reqNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. needed for client itinerary printing"></textarea>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Submit request</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ADD ITEM ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000] items-center justify-center p-4" id="itemModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Add office item</h3>
+      <button onclick="closeModal('itemModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <form id="itemForm" class="flex flex-col gap-4">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item name</label>
+        <input id="itmName" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Whiteboard markers">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Storage location</label>
+        <input id="itmLocation" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Cabinet A / Drawer 3">
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Current</label>
+          <input id="itmCurrent" type="number" min="0" value="0" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Min</label>
+          <input id="itmMin" type="number" min="0" value="1" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Max</label>
+          <input id="itmMax" type="number" min="0" value="5" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        </div>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add item</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CHOOSE SUPPLIER ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000] items-center justify-center p-4" id="supplierChoiceModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Choose a supplier</h3>
+      <button onclick="cancelApproval()" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="supplierChoiceSubtitle">For: —</p>
+    <div class="flex flex-col gap-3" id="supplierChoiceList"></div>
+  </div>
+</div>
+
+</div>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  /* ---------- shell behaviors (sidebar, clock, profile menu) ---------- */
+  const sidebar = document.getElementById('sidebar');
+  const menuToggle = document.getElementById('menuToggle');
+  const overlay = document.getElementById('overlay');
+
+  function toggleSidebar(){
+    if(window.innerWidth <= 900){
+      sidebar.classList.toggle('show');
+      overlay.classList.toggle('show');
+    } else {
+      sidebar.classList.toggle('collapsed');
+    }
+  }
+  menuToggle.addEventListener('click', toggleSidebar);
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('show');
+    overlay.classList.remove('show');
+  });
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function(){
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      this.classList.add('active');
+      document.getElementById('pageTitle').textContent = this.dataset.page;
+      document.querySelectorAll('.page-section').forEach(sec => sec.classList.add('hidden'));
+      document.getElementById(this.dataset.target).classList.remove('hidden');
+      if(window.innerWidth <= 900){
+        sidebar.classList.remove('show');
+        overlay.classList.remove('show');
+      }
+    });
+  });
+
+  function updateTopbarTime(){
+    const now = new Date();
+    const timeOptions = { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Manila' };
+    const dateOptions = { weekday:'short', month:'short', day:'numeric', year:'numeric', timeZone:'Asia/Manila' };
+    document.getElementById('topbarTime').textContent = now.toLocaleTimeString(undefined, timeOptions);
+    document.getElementById('topbarDate').textContent = now.toLocaleDateString(undefined, dateOptions);
+  }
+  updateTopbarTime();
+  setInterval(updateTopbarTime, 1000);
+
+  document.getElementById('notifBtn').addEventListener('click', () => {
+    alert('3 low stock alerts need attention.');
+  });
+  const profileBtn = document.getElementById('profileBtn');
+  const profileMenu = document.getElementById('profileMenu');
+  profileBtn.addEventListener('click', () => profileMenu.classList.toggle('show'));
+  document.getElementById('profileViewBtn').addEventListener('click', () => { alert('Opening profile settings...'); profileMenu.classList.remove('show'); });
+  document.getElementById('logoutBtn').addEventListener('click', () => { alert('Logging out...'); profileMenu.classList.remove('show'); });
+  document.addEventListener('click', (e) => {
+    if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) profileMenu.classList.remove('show');
+  });
+  window.addEventListener('resize', () => {
+    if(window.innerWidth > 900){ sidebar.classList.remove('show'); overlay.classList.remove('show'); }
+  });
+
+  /* ---------- data model ---------- */
+  let itemSeq = 100, reqSeq = 15, poSeq = 10, docSeq = 46;
+
+  const items = [
+    { id:'ITM-001', name:'Printer ink (black)', location:'Cabinet A / Drawer 1', current:2, min:3, max:10 },
+    { id:'ITM-002', name:'Bond paper (A4)', location:'Cabinet A / Drawer 2', current:8, min:4, max:15 },
+    { id:'ITM-003', name:'Ballpoint pens', location:'Shelf B', current:25, min:10, max:50 },
+    { id:'ITM-009', name:'Business cards', location:'Cabinet A', current:100, min:50, max:200 },
+    { id:'ITM-010', name:'Extension cord', location:'Shelf B', current:2, min:1, max:3 },
+    { id:'ITM-011', name:'Cleaning supplies', location:'Locker', current:5, min:3, max:10 },
+  ];
+
+  const requests = [
+    { id:'PR-2026-014', employee:'Maria Santos', item:'Printer ink (black)', qty:2, date:'Jul 24, 2026', status:'Pending' },
+    { id:'PR-2026-013', employee:'Juan Dela Cruz', item:'Envelopes (long)', qty:1, date:'Jul 22, 2026', status:'Approved' },
+    { id:'PR-2026-012', employee:'Maria Santos', item:'Receipt books', qty:2, date:'Jul 18, 2026', status:'Purchased' },
+    { id:'PR-2026-011', employee:'Ana Reyes', item:'Bond paper (A4)', qty:2, date:'Jul 10, 2026', status:'Completed' },
+  ];
+
+  const orders = [
+    { id:'PO-2026-009', request:'PR-2026-013', supplier:'National Book Store', amount:'₱150', date:'Jul 22, 2026', status:'Purchased' },
+    { id:'PO-2026-008', request:'PR-2026-012', supplier:'Office Warehouse', amount:'₱320', date:'Jul 18, 2026', status:'Completed' },
+  ];
+
+  const suppliers = [
+    { name:'National Book Store', contact:'(02) 8123-4567', rating:4.5, last:'Jul 22, 2026',
+      prices: { 'Bond paper (A4)':195, 'Ballpoint pens':8, 'Business cards':350 } },
+    { name:'Office Warehouse', contact:'(02) 8234-5678', rating:4.2, last:'Jul 18, 2026',
+      prices: { 'Printer ink (black)':650, 'Bond paper (A4)':210, 'Cleaning supplies':120 } },
+    { name:'SM Department Store', contact:'(02) 8345-6789', rating:4.0, last:'Jun 30, 2026',
+      prices: { 'Cleaning supplies':135, 'Business cards':380 } },
+    { name:'Shopee (online)', contact:'App / website', rating:4.3, last:'Jun 12, 2026',
+      prices: { 'Business cards':300, 'Extension cord':150 } },
+    { name:'Lazada (online)', contact:'App / website', rating:4.1, last:'May 28, 2026',
+      prices: { 'Extension cord':140, 'Bond paper (A4)':185 } },
+    { name:'Local computer shop', contact:'0917-123-4567', rating:4.4, last:'Jul 5, 2026',
+      prices: { 'Printer ink (black)':600, 'Extension cord':160 } },
+  ];
+
+  // Picks the cheapest supplier that actually carries the given item.
+  // Returns null if nobody in the directory carries it.
+  function pickBestSupplier(itemName){
+    const candidates = suppliers.filter(s => s.prices[itemName] != null);
+    if(candidates.length === 0) return null;
+    return candidates.reduce((best, s) => s.prices[itemName] < best.prices[itemName] ? s : best);
+  }
+
+  // Every supplier that carries the item, cheapest first, capped to `n`.
+  function pickTopSuppliers(itemName, n = 2){
+    return suppliers
+      .filter(s => s.prices[itemName] != null)
+      .sort((a, b) => a.prices[itemName] - b.prices[itemName])
+      .slice(0, n);
+  }
+
+  const documents = [
+    { id:'DOC-045', type:'Purchase request', ref:'PR-2026-014', date:'Jul 24, 2026', status:'Pending' },
+    { id:'DOC-044', type:'Purchase order', ref:'PO-2026-009', date:'Jul 22, 2026', status:'Purchased' },
+    { id:'DOC-043', type:'Official receipt', ref:'PO-2026-009', date:'Jul 22, 2026', status:'Completed' },
+    { id:'DOC-042', type:'Delivery receipt', ref:'PO-2026-008', date:'Jul 18, 2026', status:'Completed' },
+    { id:'DOC-041', type:'Supplier quotation', ref:'National Book Store', date:'Jul 15, 2026', status:'Completed' },
+  ];
+
+  function statusPill(status){
+    const map = {
+      'Pending': 'bg-amberBg text-amberTx',
+      'Approved': 'bg-blueBg text-blueTx',
+      'Purchased': 'bg-greenBg text-greenTx',
+      'Completed': 'bg-greenBg text-greenTx',
+      'Rejected': 'bg-redBg text-redTx',
+      'Low stock': 'bg-redBg text-redTx',
+      'In stock': 'bg-greenBg text-greenTx',
+    };
+    return `<span class="px-2.5 py-1 rounded-full text-[.72rem] font-semibold ${map[status] || 'bg-[#eef2f7] text-textMid'}">${status}</span>`;
+  }
+
+  /* ---------- render: inventory ---------- */
+  function itemStatus(it){ return it.current <= it.min ? 'Low stock' : 'In stock'; }
+
+  function renderInventory(filter){
+    filter = filter || 'all';
+    const tbody = document.getElementById('inventoryTableBody');
+    tbody.innerHTML = items.filter(it => filter === 'all' || itemStatus(it) === filter).map(it => `
+      <tr class="border-b border-line last:border-0">
+        <td class="py-3 pr-3 font-semibold text-textDark">${it.name}</td>
+        <td class="py-3 pr-3 text-textMid">${it.location}</td>
+        <td class="py-3 pr-3">${it.current}</td>
+        <td class="py-3 pr-3 text-textMid">${it.min}</td>
+        <td class="py-3 pr-3 text-textMid">${it.max}</td>
+        <td class="py-3 pr-3">${statusPill(itemStatus(it))}</td>
+        <td class="py-3 pr-3">${itemStatus(it)==='Low stock' ? `<button onclick="openRequestModal('${it.name}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : '<span class="text-textSoft text-[.8rem]">—</span>'}</td>
+      </tr>`).join('');
+  }
+
+  document.getElementById('inventoryFilters').addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-pill');
+    if(!btn) return;
+    document.querySelectorAll('#inventoryFilters .filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderInventory(btn.dataset.filter);
+  });
+
+  /* ---------- render: dashboard widgets ---------- */
+  function renderDashboard(){
+    document.getElementById('statTotalItems').textContent = items.length;
+    document.getElementById('statLowStock').textContent = items.filter(it => itemStatus(it)==='Low stock').length;
+    document.getElementById('statPending').textContent = requests.filter(r => r.status==='Pending').length;
+
+    document.getElementById('lowStockAlertList').innerHTML = items.filter(it => itemStatus(it)==='Low stock').map(it => `
+      <div class="flex items-center justify-between p-3 rounded-xl bg-[#fdf6f6] border border-[#f6dede]">
+        <div>
+          <div class="font-semibold text-[.88rem] text-textDark">${it.name}</div>
+          <div class="text-[.75rem] text-textMid">${it.current} left · minimum ${it.min} · ${it.location}</div>
+        </div>
+        <button onclick="openRequestModal('${it.name}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer shrink-0">Create request</button>
+      </div>`).join('');
+
+    document.getElementById('recentActivityList').innerHTML = documents.slice(0,5).map(d => `
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 rounded-lg bg-[#eaf1fb] flex items-center justify-center text-navy800 text-[.95rem] shrink-0"><i class='bx bx-file'></i></div>
+        <div class="flex-1">
+          <div class="text-[.84rem] font-semibold text-textDark">${d.type} <span class="text-textSoft font-normal">· ${d.ref}</span></div>
+          <div class="text-[.72rem] text-textSoft">${d.date}</div>
+        </div>
+        ${statusPill(d.status)}
+      </div>`).join('');
+  }
+
+  /* ---------- render: requests ---------- */
+  function renderRequests(){
+    const tbody = document.getElementById('requestsTableBody');
+    tbody.innerHTML = requests.map((r,i) => {
+      const best = pickBestSupplier(r.item);
+      const estimate = best ? `₱${(best.prices[r.item]*Number(r.qty)).toLocaleString()}` : '—';
+      return `
+      <tr class="border-b border-line last:border-0">
+        <td class="py-3 pr-3 font-semibold text-textDark">${r.id}</td>
+        <td class="py-3 pr-3">${r.employee}</td>
+        <td class="py-3 pr-3">${r.item}</td>
+        <td class="py-3 pr-3">${r.qty}</td>
+        <td class="py-3 pr-3">${estimate}${best ? '<div class="text-[.68rem] text-textSoft">est., based on lowest current price</div>' : ''}</td>
+        <td class="py-3 pr-3 text-textMid">${r.date}</td>
+        <td class="py-3 pr-3">${statusPill(r.status)}</td>
+        <td class="py-3 pr-3">${
+          r.status==='Pending' ? `
+          <div class="flex gap-2">
+            <button onclick="approveRequest(${i})" class="px-3 py-1.5 rounded-lg bg-greenTx text-white text-[.75rem] font-semibold border-none cursor-pointer">Approve</button>
+            <button onclick="rejectRequest(${i})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Reject</button>
+          </div>`
+          : (r.status==='Approved' && !orders.some(o => o.request === r.id)) ? `
+            <button onclick="openSupplierChoice(${i})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Create PO</button>`
+          : '<span class="text-textSoft text-[.8rem]">—</span>'
+        }</td>
+      </tr>`;
+    }).join('');
+  }
+
+  let pendingApprovalIndex = null;
+
+  // Step 1: approve or reject — a pure yes/no decision, no vendor involved yet.
+  window.approveRequest = function(i){
+    requests[i].status = 'Approved';
+    renderRequests(); renderDashboard();
+  };
+
+  window.rejectRequest = function(i){
+    requests[i].status = 'Rejected';
+    renderRequests(); renderDashboard();
+  };
+
+  // Step 2: for an already-approved request, compare vendors and create the PO.
+  window.openSupplierChoice = function(i){
+    const req = requests[i];
+    const top = pickTopSuppliers(req.item, 2);
+    pendingApprovalIndex = i;
+
+    document.getElementById('supplierChoiceSubtitle').textContent = `For: ${req.item} × ${req.qty} (already approved)`;
+
+    if(top.length === 0){
+      document.getElementById('supplierChoiceList').innerHTML = `
+        <p class="text-[.85rem] text-textMid">No supplier in the directory currently carries this item. You can still create the order without a suggested vendor.</p>
+        <button onclick="finalizeApproval(null, null)" class="px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-bold border-none cursor-pointer">Create PO without a vendor</button>`;
+    } else {
+      document.getElementById('supplierChoiceList').innerHTML = top.map((s, idx) => `
+        <button onclick="finalizeApproval('${s.name}', ${s.prices[req.item]})" class="text-left p-4 rounded-xl border ${idx===0 ? 'border-greenTx bg-greenBg/30' : 'border-line'} hover:border-navy800 cursor-pointer bg-transparent">
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-display font-bold text-[.95rem] text-textDark">${s.name}</span>
+            ${idx===0 ? '<span class="px-2 py-0.5 rounded-full bg-greenBg text-greenTx text-[.7rem] font-semibold">Lowest price</span>' : '<span class="px-2 py-0.5 rounded-full bg-[#eef2f7] text-textMid text-[.7rem] font-semibold">2nd lowest</span>'}
+          </div>
+          <div class="text-[.82rem] text-textMid">₱${s.prices[req.item]} / unit × ${req.qty} = <span class="font-semibold text-textDark">₱${(s.prices[req.item]*Number(req.qty)).toLocaleString()}</span></div>
+          <div class="text-[.72rem] text-textSoft mt-1 flex items-center gap-1"><i class='bx bxs-star text-[.8rem]'></i>${s.rating} rating · last purchase ${s.last}</div>
+        </button>`).join('');
+    }
+    openModal('supplierChoiceModalOverlay');
+  };
+
+  window.finalizeApproval = function(supplierName, unitPrice){
+    const i = pendingApprovalIndex;
+    if(i === null) return;
+    const req = requests[i];
+    poSeq++;
+    const amount = unitPrice != null ? `₱${(unitPrice * Number(req.qty)).toLocaleString()}` : '—';
+    const newPO = { id:`PO-2026-0${poSeq}`, request:req.id, supplier: supplierName || '—', amount, date:'Jul 25, 2026', status:'Pending' };
+    orders.unshift(newPO);
+    docSeq++;
+    documents.unshift({ id:`DOC-0${docSeq}`, type:'Purchase order', ref:newPO.id, date:'Jul 25, 2026', status:'Pending' });
+    pendingApprovalIndex = null;
+    closeModal('supplierChoiceModalOverlay');
+    renderRequests(); renderOrders(); renderDocuments(); renderDashboard();
+  };
+
+  window.cancelApproval = function(){
+    pendingApprovalIndex = null;
+    closeModal('supplierChoiceModalOverlay');
+  };
+
+  /* ---------- render: orders ---------- */
+  function renderOrders(){
+    const tbody = document.getElementById('ordersTableBody');
+    tbody.innerHTML = orders.map((o,i) => `
+      <tr class="border-b border-line last:border-0">
+        <td class="py-3 pr-3 font-semibold text-textDark">${o.id}</td>
+        <td class="py-3 pr-3 text-textMid">${o.request}</td>
+        <td class="py-3 pr-3">${o.supplier}</td>
+        <td class="py-3 pr-3">${o.amount}</td>
+        <td class="py-3 pr-3 text-textMid">${o.date}</td>
+        <td class="py-3 pr-3">${statusPill(o.status)}</td>
+        <td class="py-3 pr-3">${o.status==='Pending' ? `<button onclick="markPurchased(${i})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Mark purchased</button>` : '<span class="text-textSoft text-[.8rem]">—</span>'}</td>
+      </tr>`).join('');
+  }
+
+  window.markPurchased = function(i){
+    orders[i].status = 'Purchased';
+    docSeq++;
+    documents.unshift({ id:`DOC-0${docSeq}`, type:'Official receipt', ref:orders[i].id, date:'Jul 25, 2026', status:'Completed' });
+    renderOrders(); renderDocuments();
+  };
+
+  /* ---------- render: suppliers ---------- */
+  function renderSuppliers(){
+    document.getElementById('supplierGrid').innerHTML = suppliers.map(s => `
+      <div class="bg-card rounded-card shadow-panel border border-line p-5">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="font-display font-bold text-[.95rem] text-textDark">${s.name}</h4>
+          <span class="text-[.75rem] font-semibold text-amberTx flex items-center gap-1"><i class='bx bxs-star text-[.85rem]'></i>${s.rating}</span>
+        </div>
+        <div class="text-[.78rem] text-textMid mb-3">${s.contact}</div>
+        <div class="flex flex-wrap gap-1.5 mb-3">${Object.entries(s.prices).map(([item,price]) => {
+          const isBest = pickBestSupplier(item)?.name === s.name;
+          return `<span class="px-2 py-1 rounded-full text-[.7rem] font-medium ${isBest ? 'bg-greenBg text-greenTx' : 'bg-[#eef2f7] text-textMid'}">${item} — ₱${price}${isBest ? ' ★' : ''}</span>`;
+        }).join('')}</div>
+        <div class="text-[.72rem] text-textSoft">Last purchase: ${s.last}</div>
+      </div>`).join('');
+
+    // Pick whichever tracked item currently has the biggest price spread across
+    // suppliers, so the tip always cites a real, current saving instead of a
+    // fixed claim that could go stale as prices change.
+    const allItemNames = [...new Set(suppliers.flatMap(s => Object.keys(s.prices)))];
+    let bestTip = null;
+    allItemNames.forEach(item => {
+      const pricesForItem = suppliers.filter(s => s.prices[item] != null).map(s => s.prices[item]);
+      if(pricesForItem.length < 2) return;
+      const spread = Math.max(...pricesForItem) - Math.min(...pricesForItem);
+      if(!bestTip || spread > bestTip.spread) bestTip = { item, spread, winner: pickBestSupplier(item) };
+    });
+    document.getElementById('supplierTipText').innerHTML = bestTip
+      ? `<span class="font-bold">System tip:</span> ${bestTip.winner.name} has the lowest price for ${bestTip.item} at ₱${bestTip.winner.prices[bestTip.item]} — up to ₱${bestTip.spread} cheaper than other suppliers.`
+      : `<span class="font-bold">System tip:</span> Add more supplier prices to see savings comparisons.`;
+  }
+
+  /* ---------- render: documents ---------- */
+  function renderDocuments(){
+    document.getElementById('documentsTableBody').innerHTML = documents.map(d => `
+      <tr class="border-b border-line last:border-0">
+        <td class="py-3 pr-3 font-semibold text-textDark">${d.id}</td>
+        <td class="py-3 pr-3">${d.type}</td>
+        <td class="py-3 pr-3 text-textMid">${d.ref}</td>
+        <td class="py-3 pr-3 text-textMid">${d.date}</td>
+        <td class="py-3 pr-3">${statusPill(d.status)}</td>
+        <td class="py-3 pr-3"><button onclick="alert('Opening ${d.id}...')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View</button></td>
+      </tr>`).join('');
+  }
+
+  /* ---------- forecast (AI demand forecasting) ---------- */
+  const forecastData = {
+    bondpaper: { label:'Bond paper', unit:'reams', current:8, min:4,
+      months:["Jul '24","Aug '24","Sep '24","Oct '24","Nov '24","Dec '24","Jan '25","Feb '25","Mar '25","Apr '25","May '25","Jun '25","Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25","Jan '26","Feb '26","Mar '26","Apr '26","May '26","Jun '26"],
+      actual:[4,5,4,3,5,7,6,5,7,7,7,5,4,4,4,5,5,7,7,5,7,7,8,6], predicted:5.2 },
+    printerink: { label:'Printer ink', unit:'units', current:2, min:3,
+      months:["Jul '24","Aug '24","Sep '24","Oct '24","Nov '24","Dec '24","Jan '25","Feb '25","Mar '25","Apr '25","May '25","Jun '25","Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25","Jan '26","Feb '26","Mar '26","Apr '26","May '26","Jun '26"],
+      actual:[2,2,2,1,3,4,3,3,4,3,4,2,2,2,3,2,3,3,4,2,4,4,4,3], predicted:2.7 },
+    ballpointpens: { label:'Ballpoint pens', unit:'pcs', current:25, min:10,
+      months:["Jul '24","Aug '24","Sep '24","Oct '24","Nov '24","Dec '24","Jan '25","Feb '25","Mar '25","Apr '25","May '25","Jun '25","Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25","Jan '26","Feb '26","Mar '26","Apr '26","May '26","Jun '26"],
+      actual:[8,10,10,7,8,10,12,8,12,9,13,8,9,8,8,9,10,11,11,10,10,10,12,8], predicted:8.7 },
+    businesscards: { label:'Business cards', unit:'pcs', current:100, min:50,
+      months:["Jul '24","Aug '24","Sep '24","Oct '24","Nov '24","Dec '24","Jan '25","Feb '25","Mar '25","Apr '25","May '25","Jun '25","Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25","Jan '26","Feb '26","Mar '26","Apr '26","May '26","Jun '26"],
+      actual:[15,17,17,17,19,19,20,12,21,24,21,17,11,16,14,20,18,24,22,17,23,21,21,16], predicted:16.7 },
+    cleaningsupplies: { label:'Cleaning supplies', unit:'sets', current:5, min:3,
+      months:["Jul '24","Aug '24","Sep '24","Oct '24","Nov '24","Dec '24","Jan '25","Feb '25","Mar '25","Apr '25","May '25","Jun '25","Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25","Jan '26","Feb '26","Mar '26","Apr '26","May '26","Jun '26"],
+      actual:[4,1,4,3,4,4,5,3,3,4,4,3,3,4,4,3,3,2,5,3,4,4,5,4], predicted:3.5 },
+  };
+  let forecastChart;
+  const FORECAST_API = 'http://localhost:5050/api/forecast/';
+
+  function drawForecastChart(labels, actual, predicted, unitLabel){
+    const ctx = document.getElementById('forecastChart');
+    const dataVals = [...actual, predicted];
+    const colors = [...actual.map(()=>'#173868'), '#f5a524'];
+    if(forecastChart) forecastChart.destroy();
+    forecastChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: unitLabel + ' usage', data: dataVals, backgroundColor: colors, borderRadius: 6 }] },
+      options: {
+        plugins:{ legend:{ display:false } },
+        scales:{
+          y:{ beginAtZero:true, grid:{ color:'#e7ecf3' } },
+          x:{ grid:{ display:false }, ticks:{ autoSkip:true, maxRotation:60, minRotation:45, font:{ size:10 } } }
+        }
+      }
+    });
+  }
+
+  function setAlert(text, urgency){
+    const alertText = document.getElementById('fcAlert');
+    const colorClass = urgency === 'high' ? 'text-redTx' : urgency === 'medium' ? 'text-amberTx' : 'text-greenTx';
+    alertText.textContent = text;
+    alertText.className = 'font-display text-[1.15rem] font-extrabold mt-1 ' + colorClass;
+  }
+
+  function setSourceBadge(sourceText, isLive){
+    let badge = document.getElementById('fcSourceBadge');
+    if(!badge){
+      badge = document.createElement('span');
+      badge.id = 'fcSourceBadge';
+      badge.className = 'ml-2 align-middle px-2 py-0.5 rounded-full text-[.65rem] font-semibold';
+      document.querySelector('#page-forecast h1').appendChild(badge);
+    }
+    badge.textContent = sourceText;
+    badge.className = 'ml-2 align-middle px-2 py-0.5 rounded-full text-[.65rem] font-semibold ' + (isLive ? 'bg-greenBg text-greenTx' : 'bg-amberBg text-amberTx');
+  }
+
+  window.renderForecast = async function(key){
+    const fallback = forecastData[key];
+    const unit = fallback.unit;
+
+    // Render immediately from cached demo values so the UI never sits blank,
+    // then replace with a live Prophet prediction if the backend answers.
+    document.getElementById('fcCurrent').textContent = fallback.current + ' ' + unit;
+    document.getElementById('fcPredicted').textContent = fallback.predicted + ' ' + unit;
+    setAlert(fallback.current <= fallback.min ? 'Reorder now' : 'Reorder within 14 days', fallback.current <= fallback.min ? 'high' : 'medium');
+    drawForecastChart([...fallback.months, "Jul '26 (predicted)"], fallback.actual, fallback.predicted, fallback.label);
+    setSourceBadge('Cached demo values', false);
+
+    try {
+      const res = await fetch(FORECAST_API + key, { signal: AbortSignal.timeout(2500) });
+      if(!res.ok) throw new Error('bad response');
+      const d = await res.json();
+      document.getElementById('fcCurrent').textContent = d.current + ' ' + d.unit;
+      document.getElementById('fcPredicted').textContent = `${d.predicted} ${d.unit} (${d.interval_lower}–${d.interval_upper})`;
+      setAlert(d.action, d.urgency);
+      drawForecastChart(d.months, d.actual, d.predicted, d.label);
+      setSourceBadge('Live Prophet forecast', true);
+    } catch (err) {
+      // Backend not running (e.g. showing the demo without starting the Flask
+      // server) — the cached values rendered above stay on screen, so the
+      // demo still works, just without live Prophet computation.
+      console.info('Forecast backend unavailable, using cached demo values.', err);
+    }
+  };
+
+  /* ---------- modals ---------- */
+  window.openModal = function(id){ document.getElementById(id).classList.add('show'); };
+  window.closeModal = function(id){ document.getElementById(id).classList.remove('show'); };
+
+  function populateItemSelect(){
+    document.getElementById('reqItem').innerHTML = items.map(it => `<option value="${it.name}">${it.name}</option>`).join('');
+  }
+
+  window.openRequestModal = function(presetItem){
+    populateItemSelect();
+    if(presetItem) document.getElementById('reqItem').value = presetItem;
+    openModal('requestModalOverlay');
+  };
+  window.openItemModal = function(){ openModal('itemModalOverlay'); };
+
+  document.getElementById('requestForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    reqSeq++;
+    requests.unshift({
+      id:`PR-2026-0${reqSeq}`,
+      employee: document.getElementById('reqEmployee').value,
+      item: document.getElementById('reqItem').value,
+      qty: document.getElementById('reqQty').value,
+      date:'Jul 25, 2026',
+      status:'Pending'
+    });
+    docSeq++;
+    documents.unshift({ id:`DOC-0${docSeq}`, type:'Purchase request', ref:`PR-2026-0${reqSeq}`, date:'Jul 25, 2026', status:'Pending' });
+    closeModal('requestModalOverlay');
+    this.reset();
+    renderRequests(); renderDocuments(); renderDashboard();
+  });
+
+  document.getElementById('itemForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    itemSeq++;
+    items.push({
+      id:`ITM-${itemSeq}`,
+      name: document.getElementById('itmName').value,
+      location: document.getElementById('itmLocation').value,
+      current: Number(document.getElementById('itmCurrent').value),
+      min: Number(document.getElementById('itmMin').value),
+      max: Number(document.getElementById('itmMax').value),
+    });
+    closeModal('itemModalOverlay');
+    this.reset();
+    document.querySelectorAll('#inventoryFilters .filter-pill').forEach(b => b.classList.remove('active'));
+    document.querySelector('#inventoryFilters .filter-pill[data-filter="all"]').classList.add('active');
+    renderInventory('all'); renderDashboard();
+  });
+
+  /* ---------- init ---------- */
+  renderDashboard();
+  renderInventory('all');
+  renderRequests();
+  renderOrders();
+  renderSuppliers();
+  renderDocuments();
+  renderForecast('bondpaper');
+});
+</script>
+</body>
+</html>

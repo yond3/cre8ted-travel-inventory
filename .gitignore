@@ -1,0 +1,28 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Local secrets / env
+.env
+.env.*
+
+# Old SQLite demo (app uses MySQL now)
+inventory.db
+*.db
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.cursor/
+
+# Uploaded files (keep folder only)
+php/uploads/receipts/*
+!php/uploads/receipts/.gitkeep
+
+# Duplicate logo at repo root (use php/assets/logo.png instead)
+755349354_*.png
