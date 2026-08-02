@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submit supplier quotation — Cre8ted Travel</title>
+<link rel="icon" type="image/png" href="assets/logo-icon.png">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy800: '#0f2a52',
+          orange: '#f5a524',
+          orangeDark: '#e0930f',
+          bg: '#eef2f7',
+          card: '#ffffff',
+          textDark: '#0f2242',
+          textMid: '#5b6b85',
+          textSoft: '#94a3bb',
+          line: '#e7ecf3',
+          greenBg: '#e3f8ec',
+          greenTx: '#1a9b58',
+        },
+        fontFamily: {
+          sans: ['Inter', 'sans-serif'],
+          display: ['Plus Jakarta Sans', 'sans-serif'],
+        },
+        borderRadius: { card: '16px' },
+        boxShadow: {
+          panel: '0 4px 20px rgba(15,42,82,.06)',
+          btn: '0 8px 18px rgba(15,42,82,.25)',
+        },
+      }
+    }
+  }
+</script>
+</head>
+<body class="font-sans bg-bg text-textDark min-h-screen py-8 px-4">
+  <div class="max-w-2xl mx-auto">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm p-1">
+        <img src="assets/logo-icon.png" alt="Cre8ted Travel" class="w-full h-full object-contain">
+      </div>
+      <div>
+        <div class="font-display font-extrabold text-[1.15rem] text-textDark">Cre8ted Travel</div>
+        <div class="text-[.78rem] text-textMid">Supplier quotation form — no login required</div>
+      </div>
+    </div>
+
+    <div id="formPanel" class="bg-card rounded-card shadow-panel border border-line p-6 mb-4">
+      <h1 class="font-display font-extrabold text-[1.25rem] text-textDark mb-1">Submit your quotation</h1>
+      <p class="text-[.85rem] text-textMid mb-5">Tell us your company details and unit prices for the office items you can supply. Our team will review and add approved vendors to our supplier directory.</p>
+
+      <form id="quoteForm" class="flex flex-col gap-4">
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Company name</label>
+          <input id="companyName" required maxlength="150" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. ABC Office Supply">
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Contact (phone or email)</label>
+          <input id="contact" required maxlength="150" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. 0917-123-4567 or sales@abc.com">
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-2">How can we buy from you?</label>
+          <div class="flex flex-wrap gap-3 text-[.85rem]">
+            <label class="flex items-center gap-2"><input type="checkbox" name="method" value="walk_in" checked> Walk-in</label>
+            <label class="flex items-center gap-2"><input type="checkbox" name="method" value="pickup"> Pick-up</label>
+            <label class="flex items-center gap-2"><input type="checkbox" name="method" value="delivery"> Delivery</label>
+            <label class="flex items-center gap-2"><input type="checkbox" name="method" value="online"> Online</label>
+          </div>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-2">Item prices</label>
+          <p class="text-[.72rem] text-textSoft mb-3">Check each item you supply and enter your unit price in pesos. Leave unchecked if you don't carry it.</p>
+          <div id="itemPriceList" class="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1">
+            <p class="text-[.85rem] text-textMid">Loading items…</p>
+          </div>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
+          <textarea id="notes" rows="2" maxlength="255" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. minimum order 10 pcs, prices valid 30 days"></textarea>
+        </div>
+        <button type="submit" id="submitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Submit quotation</button>
+      </form>
+    </div>
+
+    <div id="successPanel" class="hidden bg-card rounded-card shadow-panel border border-greenTx/30 p-6 text-center">
+      <div class="w-14 h-14 rounded-full bg-greenBg text-greenTx flex items-center justify-center text-[1.8rem] mx-auto mb-3"><i class='bx bx-check'></i></div>
+      <h2 class="font-display font-extrabold text-[1.15rem] text-textDark mb-2">Quotation submitted</h2>
+      <p class="text-[.85rem] text-textMid mb-1">Reference: <span id="successCode" class="font-semibold text-textDark"></span></p>
+      <p class="text-[.82rem] text-textSoft">Cre8ted Travel will review your prices. If approved, you'll be added to our supplier directory.</p>
+    </div>
+  </div>
+
+<script>
+const API = 'api/';
+
+async function loadQuotableItems(){
+  const res = await fetch(API + 'vendor_applications.php?quotable=1');
+  if(!res.ok) throw new Error('Could not load items');
+  return res.json();
+}
+
+function renderItemRows(items){
+  const list = document.getElementById('itemPriceList');
+  if(!items.length){
+    list.innerHTML = '<p class="text-[.85rem] text-redTx">No quotable items found.</p>';
+    return;
+  }
+  list.innerHTML = items.map(it => `
+    <div class="flex items-center gap-3 p-3 rounded-xl border border-line bg-[#f8fafc] quote-row" data-key="${it.item_key}">
+      <input type="checkbox" class="quote-check shrink-0" data-key="${it.item_key}">
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-[.85rem] text-textDark truncate">${it.label}</div>
+        <div class="text-[.72rem] text-textSoft">per ${it.unit}</div>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <span class="text-[.8rem] text-textMid">₱</span>
+        <input type="number" min="0" step="0.01" disabled
+          class="quote-price w-24 px-2 py-1.5 rounded-lg border border-line bg-white text-[.85rem] text-right"
+          data-key="${it.item_key}" placeholder="0">
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('.quote-check').forEach(cb => {
+    cb.addEventListener('change', function(){
+      const price = list.querySelector(`.quote-price[data-key="${this.dataset.key}"]`);
+      price.disabled = !this.checked;
+      if(this.checked) price.focus();
+      else price.value = '';
+    });
+  });
+}
+
+function selectedMethods(){
+  return [...document.querySelectorAll('input[name="method"]:checked')].map(el => el.value);
+}
+
+function collectPrices(){
+  const prices = [];
+  document.querySelectorAll('.quote-check:checked').forEach(cb => {
+    const priceEl = document.querySelector(`.quote-price[data-key="${cb.dataset.key}"]`);
+    const price = Number(priceEl.value);
+    if(price > 0) prices.push({ item_key: cb.dataset.key, price });
+  });
+  return prices;
+}
+
+document.getElementById('quoteForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const prices = collectPrices();
+  if(!prices.length){
+    alert('Check at least one item and enter a unit price greater than zero.');
+    return;
+  }
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  try {
+    const res = await fetch(API + 'vendor_applications.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        company_name: document.getElementById('companyName').value.trim(),
+        contact: document.getElementById('contact').value.trim(),
+        procurement_methods: selectedMethods(),
+        notes: document.getElementById('notes').value.trim() || null,
+        prices,
+      }),
+    });
+    const data = await res.json();
+    if(!res.ok) throw data;
+    document.getElementById('formPanel').classList.add('hidden');
+    document.getElementById('successPanel').classList.remove('hidden');
+    document.getElementById('successCode').textContent = data.application_code;
+  } catch (err) {
+    alert(err.error || 'Could not submit quotation. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Submit quotation';
+  }
+});
+
+(async function init(){
+  try {
+    const items = await loadQuotableItems();
+    renderItemRows(items);
+  } catch {
+    document.getElementById('itemPriceList').innerHTML =
+      '<p class="text-[.85rem] text-textMid">Could not load items — is the server running?</p>';
+  }
+})();
+</script>
+</body>
+</html>

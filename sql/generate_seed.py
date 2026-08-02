@@ -125,7 +125,8 @@ sql.append("CREATE DATABASE IF NOT EXISTS wayfarer_inventory CHARACTER SET utf8m
 sql.append("USE wayfarer_inventory;")
 sql.append("")
 sql.append("SET FOREIGN_KEY_CHECKS = 0;")
-for t in ["tour_vouchers", "documents", "purchase_orders", "purchase_requests", "supplier_prices", "suppliers",
+for t in ["tour_vouchers", "documents", "purchase_orders", "purchase_requests", "vendor_application_prices",
+          "vendor_applications", "supplier_prices", "suppliers",
           "usage_log", "items", "locations"]:
     sql.append(f"DROP TABLE IF EXISTS {t};")
 sql.append("SET FOREIGN_KEY_CHECKS = 1;")
@@ -181,6 +182,31 @@ sql.append("""CREATE TABLE supplier_prices (
     last_purchase_date DATE NULL,
     PRIMARY KEY (supplier_id, item_key),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+    FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
+) ENGINE=InnoDB;""")
+sql.append("")
+
+# --- vendor quotation applications (public link, no login) ---
+sql.append("""CREATE TABLE vendor_applications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    application_code VARCHAR(20) NOT NULL UNIQUE,
+    company_name VARCHAR(150) NOT NULL,
+    contact VARCHAR(150) NULL,
+    procurement_methods VARCHAR(100) NOT NULL DEFAULT 'walk_in',
+    notes VARCHAR(255) NULL,
+    status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
+    supplier_id INT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at DATETIME NULL,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
+) ENGINE=InnoDB;""")
+sql.append("")
+sql.append("""CREATE TABLE vendor_application_prices (
+    application_id INT NOT NULL,
+    item_key VARCHAR(50) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    PRIMARY KEY (application_id, item_key),
+    FOREIGN KEY (application_id) REFERENCES vendor_applications(id) ON DELETE CASCADE,
     FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
 ) ENGINE=InnoDB;""")
 sql.append("")
