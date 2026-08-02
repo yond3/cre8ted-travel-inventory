@@ -125,16 +125,13 @@ Inventory, requests, orders, vouchers, and documents work without the forecast s
 ```
 php/                    Main app (index.html + api/)
 sql/                    schema.sql + small migration scripts
+archive/                Old Flask/SQLite prototype (not used)
 forecast_service.py     Prophet forecast microservice
 requirements.txt        Python dependencies
 venv/                   Created locally (not in git)
 ```
 
-**Legacy (not used by the current app):**
-
-- `app.py` — old Flask + SQLite backend
-- `inventory.db` — old SQLite database
-- `wayfarer-inventory-system-prototype.html` — original HTML prototype
+**Legacy files** live in `archive/` — old Flask app, SQLite DB, and original HTML prototype. Safe to ignore for day-to-day use.
 
 ---
 

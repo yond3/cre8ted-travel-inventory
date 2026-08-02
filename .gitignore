@@ -11,6 +11,7 @@ __pycache__/
 
 # Old SQLite demo (app uses MySQL now)
 inventory.db
+archive/inventory.db
 *.db
 
 # OS / editor
@@ -23,6 +24,3 @@ Thumbs.db
 # Uploaded files (keep folder only)
 php/uploads/receipts/*
 !php/uploads/receipts/.gitkeep
-
-# Duplicate logo at repo root (use php/assets/logo.png instead)
-755349354_*.png
