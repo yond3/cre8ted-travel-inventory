@@ -43,12 +43,14 @@ const ORDER_SELECT = "SELECT po.*, pr.request_code, pr.item_key, pr.qty, i.label
     LEFT JOIN suppliers s ON s.id = po.supplier_id";
 
 if ($method === 'GET') {
+    require_auth();
     $rows = $pdo->query(ORDER_SELECT . ' ORDER BY po.created_at DESC, po.id DESC')->fetchAll();
     echo json_encode(array_map('format_order', $rows));
     exit;
 }
 
 if ($method === 'POST') {
+    require_manager_or_above();
     $body = read_json_body();
     $requestId = (int) ($body['request_id'] ?? 0);
     if (!$requestId) {
@@ -63,6 +65,14 @@ if ($method === 'POST') {
     }
     if ($req['status'] !== 'Approved') {
         json_error("request is '{$req['status']}', not Approved — approve it before creating a PO", 409);
+    }
+
+    $openPo = $pdo->prepare(
+        "SELECT COUNT(*) FROM purchase_orders WHERE request_id = ? AND status = 'Placed'"
+    );
+    $openPo->execute([$requestId]);
+    if ((int) $openPo->fetchColumn() > 0) {
+        json_error('this request already has an open purchase order', 409);
     }
 
     $method_ = $body['procurement_method'] ?? 'walk_in';
@@ -108,6 +118,14 @@ if ($method === 'PUT') {
     }
     $body = read_json_body();
     $action = $body['action'] ?? '';
+
+    if ($action === 'receive') {
+        require_staff_or_above();
+    } elseif ($action === 'cancel') {
+        require_super_admin();
+    } else {
+        json_error("action must be 'receive' or 'cancel'");
+    }
 
     $row = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
     if (!$row) {

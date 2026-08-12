@@ -95,6 +95,8 @@ if ($method === 'GET') {
         exit;
     }
 
+    require_auth();
+
     $id = (int) ($_GET['id'] ?? 0);
     if ($id) {
         $app = fetch_application($pdo, $id);
@@ -206,6 +208,7 @@ if ($method === 'PUT') {
         json_error("application is '{$row['status']}', not Pending", 409);
     }
 
+    require_manager_or_above();
     $body = read_json_body();
     $action = $body['action'] ?? '';
 

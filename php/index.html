@@ -181,8 +181,8 @@
         <div class="profile-menu-header flex items-center gap-3 px-4 pt-4 pb-3 border-b border-[rgba(14,27,60,.08)]">
           <div class="profile-menu-avatar w-10 h-10 rounded-xl flex items-center justify-center bg-[#eaf1fb] text-textMid text-[1.25rem]"><i class='bx bx-user-circle'></i></div>
           <div>
-            <div class="profile-menu-name font-bold text-textDark">Maria Santos</div>
-            <div class="profile-menu-role text-[.8rem] text-textSoft">Office Administrator</div>
+            <div class="profile-menu-name font-bold text-textDark" id="profileMenuName">—</div>
+            <div class="profile-menu-role text-[.8rem] text-textSoft" id="profileMenuRole">—</div>
           </div>
         </div>
         <button class="w-full px-4 py-[.95rem] bg-transparent border-none flex items-center gap-3 text-textDark text-[.95rem] cursor-pointer text-left hover:bg-[rgba(14,27,60,.05)]" id="profileViewBtn" title="Profile"><i class='bx bx-user text-[1.1rem]'></i>Profile</button>
@@ -271,11 +271,11 @@
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
     <div class="flex items-center gap-2 mb-4 flex-wrap" id="inventoryFilters">
-      <button class="filter-pill active px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="all">All items</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Low stock">Low stock</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="In stock">In stock</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Not tracked">Equipment</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="vouchers">Vouchers</button>
+      <button class="filter-pill active px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="all" data-slug="all">All items</button>
+      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Low stock" data-slug="low-stock">Low stock</button>
+      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="In stock" data-slug="in-stock">In stock</button>
+      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Not tracked" data-slug="equipment">Equipment</button>
+      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="vouchers" data-slug="vouchers">Vouchers</button>
       <label class="ml-auto flex items-center gap-2 text-[.8rem] text-textMid cursor-pointer select-none">
         <input type="checkbox" id="showInactiveInventory" class="rounded border-line">
         Show inactive
@@ -507,11 +507,7 @@
     <form id="requestForm" class="flex flex-col gap-4">
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Employee</label>
-        <select id="reqEmployee" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
-          <option>Maria Santos</option>
-          <option>Juan Dela Cruz</option>
-          <option>Ana Reyes</option>
-        </select>
+        <div id="reqEmployeeDisplay" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark">—</div>
       </div>
       <div id="reqItemSelectWrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item</label>
@@ -647,7 +643,7 @@
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="closeMonthModalTitle">Close month</h3>
       <button onclick="closeModal('closeMonthModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
     </div>
-    <p class="text-[.8rem] text-textMid mb-4" id="closeMonthSubtitle">After a physical count — logs usage for the AI forecast.</p>
+    <p class="text-[.8rem] text-textMid mb-4" id="closeMonthSubtitle">Count what's on the shelf — starting stock and deliveries come from the system.</p>
     <form id="closeMonthForm" class="flex flex-col gap-4">
       <input type="hidden" id="closeMonthItemKey" value="">
       <div>
@@ -655,26 +651,82 @@
         <input id="closeMonthPick" type="month" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
         <p class="text-[.72rem] text-textSoft mt-1">Usually the month that just ended (e.g. July if today is August).</p>
       </div>
-      <div class="grid grid-cols-3 gap-3">
+      <div class="rounded-xl border border-line bg-[#f8fafc] p-4 flex flex-col gap-3">
         <div>
-          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Opening</label>
-          <input id="closeOpening" type="number" min="0" step="any" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
-          <p class="text-[.68rem] text-textSoft mt-1">Start of month</p>
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <label class="text-[.78rem] font-semibold text-textMid">Starting stock</label>
+            <button type="button" id="closeOpeningOverrideBtn" class="text-[.68rem] font-semibold text-navy800 bg-transparent border-none cursor-pointer hidden">Adjust</button>
+          </div>
+          <input id="closeOpening" type="number" min="0" step="any" required readonly class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold">
+          <p class="text-[.68rem] text-textSoft mt-1" id="closeOpeningNote">Loaded from system…</p>
         </div>
         <div>
-          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Received</label>
-          <input id="closeReceived" type="number" min="0" step="any" required value="0" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
-          <p class="text-[.68rem] text-textSoft mt-1">Deliveries (0 if none)</p>
-        </div>
-        <div>
-          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Closing</label>
-          <input id="closeClosing" type="number" min="0" step="any" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
-          <p class="text-[.68rem] text-textSoft mt-1">Counted on shelf</p>
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <label class="text-[.78rem] font-semibold text-textMid">Received this month</label>
+            <button type="button" id="closeReceivedOverrideBtn" class="text-[.68rem] font-semibold text-navy800 bg-transparent border-none cursor-pointer hidden">Adjust</button>
+          </div>
+          <input id="closeReceived" type="number" min="0" step="any" required readonly value="0" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold">
+          <p class="text-[.68rem] text-textSoft mt-1" id="closeReceivedNote">From purchase orders marked received</p>
+          <div id="closeReceivedHint" class="hidden mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[.72rem] text-amber-900"></div>
         </div>
       </div>
-      <p class="text-[.82rem] font-semibold text-navy800 bg-[#eaf1fb] rounded-xl px-3 py-2.5" id="closeMonthPreview">Usage = opening + received − closing</p>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Counted on shelf (you enter this)</label>
+        <input id="closeClosing" type="number" min="0" step="any" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Physical count right now">
+        <p class="text-[.68rem] text-textSoft mt-1">Walk to the shelf and enter what you actually count.</p>
+      </div>
+      <p class="text-[.82rem] font-semibold text-navy800 bg-[#eaf1fb] rounded-xl px-3 py-2.5" id="closeMonthPreview">Usage = starting stock + received − your count</p>
       <span class="hidden" id="closeMonthUnit"></span>
       <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Close month &amp; save usage</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: EDIT SUPPLIER ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2150] items-center justify-center p-4" id="supplierEditModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="supplierEditModalTitle">Edit supplier</h3>
+      <button type="button" onclick="closeModal('supplierEditModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4">Update contact details and the price list for this vendor.</p>
+    <form id="supplierEditForm" class="flex flex-col gap-4">
+      <input type="hidden" id="supEditId" value="">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Contact</label>
+          <input id="supEditContact" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Phone / Viber / email">
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Rating (0–5)</label>
+          <input id="supEditRating" type="number" min="0" max="5" step="0.1" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        </div>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Procurement methods</label>
+        <div class="flex flex-wrap gap-3" id="supEditMethods">
+          <label class="flex items-center gap-1.5 text-[.8rem] text-textMid"><input type="checkbox" value="walk_in" class="supEditMethodChk rounded border-line"> Walk-in</label>
+          <label class="flex items-center gap-1.5 text-[.8rem] text-textMid"><input type="checkbox" value="pickup" class="supEditMethodChk rounded border-line"> Pick-up</label>
+          <label class="flex items-center gap-1.5 text-[.8rem] text-textMid"><input type="checkbox" value="delivery" class="supEditMethodChk rounded border-line"> Delivery</label>
+          <label class="flex items-center gap-1.5 text-[.8rem] text-textMid"><input type="checkbox" value="online" class="supEditMethodChk rounded border-line"> Online</label>
+        </div>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes</label>
+        <textarea id="supEditNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-none"></textarea>
+      </div>
+      <div class="rounded-xl border border-line bg-[#f8fafc] p-4">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-2">Price list</label>
+        <div id="supEditPriceRows" class="flex flex-col gap-2 mb-3"></div>
+        <div class="flex items-center gap-2">
+          <select id="supEditNewItem" class="flex-1 px-3 py-2 rounded-xl border border-line bg-white text-[.85rem]">
+            <option value="">Add item…</option>
+          </select>
+          <input id="supEditNewPrice" type="number" min="0.01" step="0.01" placeholder="Price" class="w-28 px-3 py-2 rounded-xl border border-line bg-white text-[.85rem]">
+          <button type="button" id="supEditAddPriceBtn" class="px-3 py-2 rounded-xl bg-navy800 text-white text-[.8rem] font-semibold border-none cursor-pointer">Add</button>
+        </div>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Save changes</button>
     </form>
   </div>
 </div>
@@ -814,10 +866,32 @@ document.addEventListener('DOMContentLoaded', function(){
   const PAGE_IDS = ['page-dashboard','page-inventory','page-requests','page-orders','page-suppliers','page-forecast','page-documents'];
 
   function pageIdFromHash(hash){
-    const slug = (hash || '').replace(/^#/, '');
+    const slug = (hash || '').replace(/^#/, '').split('/')[0];
     if(!slug || slug === 'dashboard') return 'page-dashboard';
     const id = 'page-' + slug;
     return PAGE_IDS.includes(id) ? id : 'page-dashboard';
+  }
+
+  function inventoryTabSlugFromHash(hash){
+    const parts = (hash || '').replace(/^#/, '').split('/');
+    return (parts[0] === 'inventory' && parts[1]) ? parts[1] : 'all';
+  }
+
+  function hashForInventoryTab(slug){
+    return slug === 'all' ? 'inventory' : `inventory/${slug}`;
+  }
+
+  function activateInventoryTab(slug){
+    const btn = document.querySelector(`#inventoryFilters .filter-pill[data-slug="${slug}"]`)
+      || document.querySelector('#inventoryFilters .filter-pill[data-slug="all"]');
+    if(!btn) return;
+    document.querySelectorAll('#inventoryFilters .filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if(btn.dataset.view === 'vouchers'){
+      showVoucherPanel();
+    } else {
+      showInventoryPanel(btn.dataset.filter);
+    }
   }
 
   function hashFromPageId(pageId){
@@ -855,6 +929,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
   window.addEventListener('hashchange', function(){
     navigateToPage(pageIdFromHash(location.hash));
+    if(pageIdFromHash(location.hash) === 'page-inventory'){
+      activateInventoryTab(inventoryTabSlugFromHash(location.hash));
+    }
   });
 
   navigateToPage(pageIdFromHash(location.hash));
@@ -878,8 +955,15 @@ document.addEventListener('DOMContentLoaded', function(){
   const profileBtn = document.getElementById('profileBtn');
   const profileMenu = document.getElementById('profileMenu');
   profileBtn.addEventListener('click', () => profileMenu.classList.toggle('show'));
-  document.getElementById('profileViewBtn').addEventListener('click', () => { alert('Opening profile settings...'); profileMenu.classList.remove('show'); });
-  document.getElementById('logoutBtn').addEventListener('click', () => { alert('Logging out...'); profileMenu.classList.remove('show'); });
+  document.getElementById('profileViewBtn').addEventListener('click', () => {
+    alert(`${state.user?.name || 'User'}\nRole: ${ROLE_LABELS[state.user?.role] || '—'}`);
+    profileMenu.classList.remove('show');
+  });
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    profileMenu.classList.remove('show');
+    await fetch('api/auth.php', { method: 'DELETE', credentials: 'include' });
+    location.href = 'login.html';
+  });
   document.addEventListener('click', (e) => {
     if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) profileMenu.classList.remove('show');
   });
@@ -890,23 +974,96 @@ document.addEventListener('DOMContentLoaded', function(){
   /* ---------- API helpers ---------- */
   const API = 'api/';
   async function apiGet(path){
-    const res = await fetch(API + path);
+    const res = await fetch(API + path, { credentials: 'include' });
+    if(res.status === 401){ location.href = 'login.html'; throw { error: 'authentication required' }; }
     if(!res.ok) throw await res.json().catch(() => ({ error: 'request failed' }));
     return res.json();
   }
   async function apiSend(path, method, body){
     const res = await fetch(API + path, {
       method,
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: body != null ? JSON.stringify(body) : undefined,
     });
+    if(res.status === 401){ location.href = 'login.html'; throw { error: 'authentication required' }; }
     const data = await res.json().catch(() => ({}));
     if(!res.ok) throw data;
     return data;
   }
 
+  /* ---------- auth / RBAC ---------- */
+  const ROLE_RANK = { staff: 1, manager: 2, super_admin: 3 };
+  const ROLE_LABELS = { staff: 'Staff', manager: 'Manager', super_admin: 'Super Admin' };
+
+  function roleAtLeast(minRole){
+    if(!state.user) return false;
+    return (ROLE_RANK[state.user.role] || 0) >= (ROLE_RANK[minRole] || 99);
+  }
+
+  async function ensureAuth(){
+    const res = await fetch('api/auth.php', { credentials: 'include' });
+    const data = await res.json();
+    if(!data.authenticated){
+      location.href = 'login.html';
+      return false;
+    }
+    state.user = data.user;
+    return true;
+  }
+
+  function updateProfileUI(){
+    if(!state.user) return;
+    document.getElementById('profileMenuName').textContent = state.user.name;
+    document.getElementById('profileMenuRole').textContent = ROLE_LABELS[state.user.role] || state.user.role;
+    const empDisplay = document.getElementById('reqEmployeeDisplay');
+    if(empDisplay) empDisplay.textContent = state.user.name;
+  }
+
+  function applyRoleUI(){
+    const managerUp = roleAtLeast('manager');
+    ['showInactiveInventory','showInactiveSuppliers','showInactiveLocations'].forEach(id => {
+      const el = document.getElementById(id);
+      const wrap = el?.closest('label');
+      if(wrap) wrap.classList.toggle('hidden', !managerUp);
+    });
+    if(!managerUp){
+      state.showInactiveInventory = false;
+      state.showInactiveSuppliers = false;
+      state.showInactiveLocations = false;
+    }
+    const onVouchers = document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view === 'vouchers';
+    setInventoryHeaderAction(onVouchers);
+  }
+
+  function setInventoryHeaderAction(showVouchers){
+    const itemBtn = document.getElementById('inventoryAddItemBtn');
+    const voucherBtn = document.getElementById('inventoryAddVoucherBtn');
+    const managerUp = roleAtLeast('manager');
+
+    if(!managerUp){
+      itemBtn.classList.add('hidden');
+      itemBtn.classList.remove('flex');
+      voucherBtn.classList.add('hidden');
+      voucherBtn.classList.remove('flex');
+      return;
+    }
+
+    if(showVouchers){
+      itemBtn.classList.add('hidden');
+      itemBtn.classList.remove('flex');
+      voucherBtn.classList.remove('hidden');
+      voucherBtn.classList.add('flex');
+    } else {
+      itemBtn.classList.remove('hidden');
+      itemBtn.classList.add('flex');
+      voucherBtn.classList.add('hidden');
+      voucherBtn.classList.remove('flex');
+    }
+  }
+
   /* ---------- live state (loaded from MySQL via PHP) ---------- */
-  const state = { locations: [], inventory: [], vouchers: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
+  const state = { user: null, locations: [], inventory: [], vouchers: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
 
   const PROCUREMENT_LABELS = {
     walk_in: 'Walk-in', pickup: 'Pick-up', delivery: 'Delivery', online: 'Online',
@@ -944,7 +1101,8 @@ document.addEventListener('DOMContentLoaded', function(){
 
   /* ---------- locations ---------- */
   async function loadLocations(){
-    state.locations = await apiGet('locations.php?include_inactive=1');
+    const path = roleAtLeast('manager') ? 'locations.php?include_inactive=1' : 'locations.php';
+    state.locations = await apiGet(path);
     populateLocationSelect();
     renderLocationManageList();
   }
@@ -980,7 +1138,7 @@ document.addEventListener('DOMContentLoaded', function(){
           <div class="font-semibold text-[.84rem] text-textDark truncate">${escapeHtml(l.name)}</div>
           <div class="text-[.72rem] text-textSoft">${l.location_type === 'storage' ? 'Storage' : 'In use'} · ${l.item_count} item${l.item_count === 1 ? '' : 's'}</div>
         </div>
-        <button type="button" onclick="setLocationActive(${l.id}, ${l.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${l.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.72rem] font-semibold border-none cursor-pointer shrink-0">${l.active ? 'Mark inactive' : 'Reactivate'}</button>
+        ${roleAtLeast('super_admin') ? `<button type="button" onclick="setLocationActive(${l.id}, ${l.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${l.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.72rem] font-semibold border-none cursor-pointer shrink-0">${l.active ? 'Mark inactive' : 'Reactivate'}</button>` : ''}
       </div>`).join('');
   }
 
@@ -1035,7 +1193,8 @@ document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('input[name="itmType"]').forEach(r => r.addEventListener('change', itemTypeToggle));
 
   async function loadInventory(){
-    state.inventory = await apiGet('inventory.php?include_inactive=1');
+    const path = roleAtLeast('manager') ? 'inventory.php?include_inactive=1' : 'inventory.php';
+    state.inventory = await apiGet(path);
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
     if(active?.dataset.view !== 'vouchers'){
       renderInventory(active?.dataset.filter || 'all');
@@ -1085,9 +1244,9 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
             ${it.active && it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
-            ${it.active && it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
-            <button onclick="openEditItemModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>
-            <button onclick="setItemActive('${it.item_key}', ${it.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${it.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${it.active ? 'Mark inactive' : 'Reactivate'}</button>
+            ${roleAtLeast('manager') && it.active && it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
+            ${roleAtLeast('manager') ? `<button onclick="openEditItemModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>` : ''}
+            ${roleAtLeast('super_admin') ? `<button onclick="setItemActive('${it.item_key}', ${it.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${it.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${it.active ? 'Mark inactive' : 'Reactivate'}</button>` : ''}
           </div>
         </td>
       </tr>`).join('');
@@ -1095,24 +1254,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
   document.getElementById('inventoryFilters').addEventListener('click', (e) => {
     const btn = e.target.closest('.filter-pill');
-    if(!btn) return;
-    document.querySelectorAll('#inventoryFilters .filter-pill').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    if(btn.dataset.view === 'vouchers'){
-      showVoucherPanel();
-    } else {
-      showInventoryPanel(btn.dataset.filter);
-    }
+    if(!btn || btn.classList.contains('active')) return;
+    const slug = btn.dataset.slug || 'all';
+    location.hash = hashForInventoryTab(slug);
   });
-
-  function setInventoryHeaderAction(showVouchers){
-    const itemBtn = document.getElementById('inventoryAddItemBtn');
-    const voucherBtn = document.getElementById('inventoryAddVoucherBtn');
-    itemBtn.classList.toggle('hidden', showVouchers);
-    itemBtn.classList.toggle('flex', !showVouchers);
-    voucherBtn.classList.toggle('hidden', !showVouchers);
-    voucherBtn.classList.toggle('flex', showVouchers);
-  }
 
   function showInventoryPanel(filter){
     document.getElementById('inventoryTableWrap').classList.remove('hidden');
@@ -1153,8 +1298,8 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
             ${v.current_qty > 0 ? `<button onclick="useVoucher(${v.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Use 1</button>` : ''}
-            <button onclick="openVoucherRestockModal(${v.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Restock</button>
-            <button onclick="openEditVoucherModal(${v.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>
+            ${roleAtLeast('manager') ? `<button onclick="openVoucherRestockModal(${v.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Restock</button>` : ''}
+            ${roleAtLeast('super_admin') ? `<button onclick="openEditVoucherModal(${v.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>` : ''}
           </div>
         </td>
       </tr>`).join('');
@@ -1279,12 +1424,50 @@ document.addEventListener('DOMContentLoaded', function(){
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
-  function receivedQtyForMonth(itemKey, yearMonth){
-    if(!yearMonth || !state.orders.length) return 0;
-    return state.orders
-      .filter(o => o.item_key === itemKey && o.status === 'Received' && o.received_at)
-      .filter(o => o.received_at.replace(' ', 'T').slice(0, 7) === yearMonth)
-      .reduce((sum, o) => sum + o.qty, 0);
+  function setCloseMonthFieldReadonly(fieldId, readonly){
+    const el = document.getElementById(fieldId);
+    el.readOnly = readonly;
+    el.classList.toggle('bg-[#eef2f7]', readonly);
+    el.classList.toggle('font-semibold', readonly);
+    el.classList.toggle('bg-[#f8fafc]', !readonly);
+  }
+
+  async function refreshCloseMonthFromServer(){
+    const itemKey = document.getElementById('closeMonthItemKey').value;
+    const yearMonth = document.getElementById('closeMonthPick').value;
+    if(!itemKey || !yearMonth) return;
+    const hintEl = document.getElementById('closeReceivedHint');
+    try {
+      const data = await apiGet(`close_month.php?item=${encodeURIComponent(itemKey)}&month=${yearMonth}`);
+      document.getElementById('closeOpening').value = data.opening_qty;
+      document.getElementById('closeOpeningNote').textContent = data.opening_note;
+      document.getElementById('closeReceived').value = data.received_qty;
+      document.getElementById('closeReceivedNote').textContent = data.received_note;
+      setCloseMonthFieldReadonly('closeOpening', true);
+      setCloseMonthFieldReadonly('closeReceived', true);
+      document.getElementById('closeOpeningOverrideBtn').classList.remove('hidden');
+      document.getElementById('closeReceivedOverrideBtn').classList.toggle('hidden', data.received_qty === 0);
+      if(data.received_hint && Array.isArray(data.received_elsewhere) && data.received_elsewhere.length){
+        const top = data.received_elsewhere[0];
+        hintEl.innerHTML = `${data.received_hint} <button type="button" class="font-bold text-navy800 underline bg-transparent border-none cursor-pointer p-0 ml-1" data-switch-month="${top.month}">Switch to ${top.label}</button>`;
+        hintEl.classList.remove('hidden');
+        hintEl.querySelector('[data-switch-month]')?.addEventListener('click', function(){
+          document.getElementById('closeMonthPick').value = this.getAttribute('data-switch-month');
+          refreshCloseMonthFromServer();
+        });
+      } else {
+        hintEl.classList.add('hidden');
+        hintEl.innerHTML = '';
+      }
+      if(data.already_closed && data.existing_closing_qty != null){
+        document.getElementById('closeClosing').value = data.existing_closing_qty;
+      }
+      updateCloseMonthPreview();
+    } catch (err) {
+      hintEl.classList.add('hidden');
+      hintEl.innerHTML = '';
+      alert(err.error || 'Could not load month close data.');
+    }
   }
 
   function updateCloseMonthPreview(){
@@ -1294,39 +1477,42 @@ document.addEventListener('DOMContentLoaded', function(){
     const unit = document.getElementById('closeMonthUnit').textContent || '';
     const preview = document.getElementById('closeMonthPreview');
     if(closingRaw === ''){
-      preview.textContent = `Usage will be: ${opening} + ${received} − (enter closing count)${unit ? ' ' + unit : ''}`;
+      preview.textContent = `Usage will be: ${opening} + ${received} − (enter your shelf count)${unit ? ' ' + unit : ''}`;
       return;
     }
     const closing = Number(closingRaw);
     const usage = Math.max(0, opening + received - closing);
-    preview.textContent = `Usage for this month: ${usage}${unit ? ' ' + unit : ''} · new stock on hand: ${closing}${unit ? ' ' + unit : ''}`;
+    preview.textContent = `Usage for this month: ${usage}${unit ? ' ' + unit : ''} · stock on hand after close: ${closing}${unit ? ' ' + unit : ''}`;
   }
 
-  function refreshCloseMonthReceived(){
-    const itemKey = document.getElementById('closeMonthItemKey').value;
-    const yearMonth = document.getElementById('closeMonthPick').value;
-    if(!itemKey || !yearMonth) return;
-    document.getElementById('closeReceived').value = receivedQtyForMonth(itemKey, yearMonth);
-    updateCloseMonthPreview();
-  }
-
-  window.openCloseMonthModal = function(itemKey){
+  window.openCloseMonthModal = async function(itemKey){
     const it = state.inventory.find(i => i.item_key === itemKey);
     if(!it || it.item_type !== 'consumable') return;
     document.getElementById('closeMonthItemKey').value = it.item_key;
     document.getElementById('closeMonthUnit').textContent = it.unit;
     document.getElementById('closeMonthModalTitle').textContent = `Close month — ${it.label}`;
     document.getElementById('closeMonthPick').value = defaultCloseMonthPick();
-    document.getElementById('closeOpening').value = it.current_qty;
     document.getElementById('closeClosing').value = '';
-    refreshCloseMonthReceived();
     openModal('closeMonthModalOverlay');
+    await refreshCloseMonthFromServer();
+    document.getElementById('closeClosing').focus();
   };
+
+  document.getElementById('closeOpeningOverrideBtn').addEventListener('click', function(){
+    setCloseMonthFieldReadonly('closeOpening', false);
+    this.classList.add('hidden');
+    document.getElementById('closeOpening').focus();
+  });
+  document.getElementById('closeReceivedOverrideBtn').addEventListener('click', function(){
+    setCloseMonthFieldReadonly('closeReceived', false);
+    this.classList.add('hidden');
+    document.getElementById('closeReceived').focus();
+  });
 
   ['closeOpening', 'closeReceived', 'closeClosing'].forEach(id => {
     document.getElementById(id).addEventListener('input', updateCloseMonthPreview);
   });
-  document.getElementById('closeMonthPick').addEventListener('change', refreshCloseMonthReceived);
+  document.getElementById('closeMonthPick').addEventListener('change', refreshCloseMonthFromServer);
 
   document.getElementById('closeMonthForm').addEventListener('submit', async function(e){
     e.preventDefault();
@@ -1433,13 +1619,15 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3 text-textMid">${fmtDate(r.created_at)}</td>
         <td class="py-3 pr-3">${statusPill(r.status)}</td>
         <td class="py-3 pr-3">${
-          r.status === 'Pending' ? `
+          r.status === 'Pending' ? (roleAtLeast('manager') ? `
           <div class="flex gap-2">
             <button onclick="approveRequest(${r.id})" class="px-3 py-1.5 rounded-lg bg-greenTx text-white text-[.75rem] font-semibold border-none cursor-pointer">Approve</button>
             <button onclick="rejectRequest(${r.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Reject</button>
-          </div>`
-          : (r.status === 'Approved' && !r.has_po) ? `
-            <button onclick="openSupplierChoice(${r.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Create PO</button>`
+          </div>` : '<span class="text-textSoft text-[.8rem]">Awaiting manager</span>')
+          : (r.status === 'Approved' && !r.has_po) ? (roleAtLeast('manager') ? `
+            <button onclick="openSupplierChoice(${r.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Create PO</button>` : '<span class="text-textSoft text-[.8rem]">Awaiting manager</span>')
+          : r.status === 'Ordered' ? '<span class="text-textSoft text-[.8rem]">Open Purchase Orders → Mark received</span>'
+          : r.status === 'Completed' ? '<span class="text-textSoft text-[.8rem]">Done</span>'
           : '<span class="text-textSoft text-[.8rem]">—</span>'
         }</td>
       </tr>`).join('');
@@ -1494,6 +1682,11 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     document.getElementById('poAssignedLabel').textContent = "Who's buying / receiving?";
+    const assignedSelect = document.getElementById('poAssignedTo');
+    if(state.user?.name){
+      const match = [...assignedSelect.options].find(o => o.value === state.user.name);
+      assignedSelect.value = match ? match.value : assignedSelect.options[0]?.value;
+    }
     openModal('supplierChoiceModalOverlay');
   };
 
@@ -1557,6 +1750,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">
           <div class="flex gap-2">
             ${o.status === 'Placed' ? `<button onclick="markReceived(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Mark received</button>` : ''}
+            ${o.status === 'Placed' && roleAtLeast('super_admin') ? `<button onclick="cancelOrder(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Cancel</button>` : ''}
             <button onclick="openOrderSlip(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Slip</button>
           </div>
         </td>
@@ -1574,6 +1768,19 @@ document.addEventListener('DOMContentLoaded', function(){
       alert(`${result.qty_added} ${result.unit} of ${result.item_label} added to inventory. Stock is now ${result.new_stock}.`);
     } catch (err) {
       alert(err.error || 'Could not mark as received.');
+    }
+  };
+
+  window.cancelOrder = async function(id){
+    const order = state.orders.find(o => o.id === id);
+    if(!order) return;
+    if(!confirm(`Cancel ${order.po_code}? The purchase request will go back to Approved so a new PO can be created.`)) return;
+    try {
+      await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'cancel' });
+      await Promise.all([loadOrders(), loadRequests(), loadDocuments()]);
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not cancel order.');
     }
   };
 
@@ -1713,10 +1920,10 @@ document.addEventListener('DOMContentLoaded', function(){
           `<span class="px-2 py-1 rounded-full text-[.7rem] font-medium bg-[#eef2f7] text-textMid">${escapeHtml(p.label)} — ₱${p.price}/${p.unit}</span>`
         ).join('')}</div>
         ${a.notes ? `<p class="text-[.78rem] text-textMid mb-3">${escapeHtml(a.notes)}</p>` : ''}
-        <div class="flex flex-wrap gap-2">
+        ${roleAtLeast('manager') ? `<div class="flex flex-wrap gap-2">
           <button onclick="approveVendorApplication(${a.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Approve &amp; add to directory</button>
           <button onclick="rejectVendorApplication(${a.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Reject</button>
-        </div>
+        </div>` : '<span class="text-textSoft text-[.8rem]">Awaiting manager review</span>'}
       </div>`).join('') : `<p class="text-[.85rem] text-textMid">No pending quotations. Share the vendor quote link to collect prices from new suppliers.</p>`;
   }
 
@@ -1746,7 +1953,8 @@ document.addEventListener('DOMContentLoaded', function(){
   };
 
   async function loadSuppliers(){
-    state.suppliers = await apiGet('suppliers.php?include_inactive=1');
+    const path = roleAtLeast('manager') ? 'suppliers.php?include_inactive=1' : 'suppliers.php';
+    state.suppliers = await apiGet(path);
     renderSuppliers();
   }
 
@@ -1805,7 +2013,10 @@ document.addEventListener('DOMContentLoaded', function(){
           return `<span class="px-2 py-1 rounded-full text-[.7rem] font-medium ${isBest ? 'bg-greenBg text-greenTx' : 'bg-[#eef2f7] text-textMid'}">${escapeHtml(p.label)} — ₱${p.price}${isBest ? ' ★' : ''}</span>`;
         }).join('')}</div>
         <div class="text-[.72rem] text-textSoft mb-3">Last purchase: ${s.prices[0]?.last_purchase_date ? fmtDate(s.prices[0].last_purchase_date) : '—'}</div>
-        <button type="button" onclick="setSupplierActive(${s.id}, ${s.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${s.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${s.active ? 'Mark inactive' : 'Reactivate'}</button>
+        <div class="flex flex-wrap gap-2">
+          ${roleAtLeast('manager') ? `<button type="button" onclick="openEditSupplierModal(${s.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>` : ''}
+          ${roleAtLeast('super_admin') ? `<button type="button" onclick="setSupplierActive(${s.id}, ${s.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${s.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${s.active ? 'Mark inactive' : 'Reactivate'}</button>` : ''}
+        </div>
       </div>`).join('');
     }
 
@@ -1824,6 +2035,100 @@ document.addEventListener('DOMContentLoaded', function(){
       ? `<span class="font-bold">System tip:</span> ${bestTip.winner.supplier.name} has the lowest price for ${bestTip.label} at ₱${bestTip.winner.price} — up to ₱${bestTip.spread} cheaper than other suppliers.`
       : `<span class="font-bold">System tip:</span> Add more supplier prices to see savings comparisons.`;
   }
+
+  /* ---------- edit supplier (contact + price list) ---------- */
+  let editingSupplierId = null;
+  let supEditPrices = [];
+  let supEditRemoved = [];
+
+  function renderSupEditPriceRows(){
+    const rows = document.getElementById('supEditPriceRows');
+    rows.innerHTML = supEditPrices.length ? supEditPrices.map((p, idx) => `
+      <div class="flex items-center gap-2">
+        <span class="flex-1 text-[.82rem] text-textDark">${escapeHtml(p.label)}</span>
+        <input type="number" min="0.01" step="0.01" value="${p.price}" data-price-idx="${idx}" class="sup-edit-price-input w-28 px-3 py-2 rounded-xl border border-line bg-white text-[.85rem]">
+        <button type="button" data-remove-idx="${idx}" class="sup-edit-remove-price w-8 h-8 rounded-lg flex items-center justify-center text-red-600 hover:bg-red-50 border-none bg-transparent cursor-pointer"><i class='bx bx-trash'></i></button>
+      </div>`).join('') : `<p class="text-[.78rem] text-textSoft">No items priced yet — add one below.</p>`;
+
+    rows.querySelectorAll('.sup-edit-price-input').forEach(el => {
+      el.addEventListener('input', function(){
+        const idx = Number(this.dataset.priceIdx);
+        supEditPrices[idx].price = this.value;
+      });
+    });
+    rows.querySelectorAll('.sup-edit-remove-price').forEach(el => {
+      el.addEventListener('click', function(){
+        const idx = Number(this.dataset.removeIdx);
+        const [removed] = supEditPrices.splice(idx, 1);
+        if(removed) supEditRemoved.push(removed.item_key);
+        renderSupEditPriceRows();
+        populateSupEditNewItemSelect();
+      });
+    });
+  }
+
+  function populateSupEditNewItemSelect(){
+    const select = document.getElementById('supEditNewItem');
+    const pricedKeys = new Set(supEditPrices.map(p => p.item_key));
+    const consumables = state.inventory.filter(i => i.item_type === 'consumable' && i.active !== false && !pricedKeys.has(i.item_key));
+    select.innerHTML = `<option value="">Add item…</option>` +
+      consumables.map(i => `<option value="${i.item_key}" data-label="${escapeHtml(i.label)}">${escapeHtml(i.label)}</option>`).join('');
+  }
+
+  window.openEditSupplierModal = function(id){
+    const s = state.suppliers.find(x => x.id === id);
+    if(!s) return;
+    editingSupplierId = id;
+    supEditPrices = s.prices.map(p => ({ item_key: p.item_key, label: p.label, price: p.price }));
+    supEditRemoved = [];
+    document.getElementById('supplierEditModalTitle').textContent = `Edit — ${s.name}`;
+    document.getElementById('supEditContact').value = s.contact || '';
+    document.getElementById('supEditRating').value = s.rating ?? '';
+    document.getElementById('supEditNotes').value = s.notes || '';
+    document.querySelectorAll('.supEditMethodChk').forEach(chk => {
+      chk.checked = (s.procurement_methods || []).includes(chk.value);
+    });
+    renderSupEditPriceRows();
+    populateSupEditNewItemSelect();
+    document.getElementById('supEditNewPrice').value = '';
+    openModal('supplierEditModalOverlay');
+  };
+
+  document.getElementById('supEditAddPriceBtn').addEventListener('click', function(){
+    const select = document.getElementById('supEditNewItem');
+    const priceInput = document.getElementById('supEditNewPrice');
+    const itemKey = select.value;
+    const price = Number(priceInput.value);
+    if(!itemKey){ alert('Pick an item to add.'); return; }
+    if(!price || price <= 0){ alert('Enter a price greater than 0.'); return; }
+    const label = select.selectedOptions[0]?.dataset.label || itemKey;
+    supEditPrices.push({ item_key: itemKey, label, price });
+    supEditRemoved = supEditRemoved.filter(k => k !== itemKey);
+    priceInput.value = '';
+    renderSupEditPriceRows();
+    populateSupEditNewItemSelect();
+  });
+
+  document.getElementById('supplierEditForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    if(!editingSupplierId) return;
+    const body = {
+      contact: document.getElementById('supEditContact').value.trim() || null,
+      rating: document.getElementById('supEditRating').value !== '' ? Number(document.getElementById('supEditRating').value) : null,
+      notes: document.getElementById('supEditNotes').value.trim() || null,
+      procurement_methods: Array.from(document.querySelectorAll('.supEditMethodChk:checked')).map(c => c.value),
+      prices: supEditPrices.map(p => ({ item_key: p.item_key, price: Number(p.price) })),
+      remove_item_keys: supEditRemoved,
+    };
+    try {
+      await apiSend(`suppliers.php?id=${editingSupplierId}`, 'PUT', body);
+      closeModal('supplierEditModalOverlay');
+      await loadSuppliers();
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not save supplier.');
+    }
+  });
 
   /* ---------- documents ---------- */
   async function loadDocuments(){
@@ -2010,7 +2315,6 @@ document.addEventListener('DOMContentLoaded', function(){
     try {
       const lockedKey = document.getElementById('reqItemLockedKey').value;
       await apiSend('purchase_requests.php', 'POST', {
-        employee: document.getElementById('reqEmployee').value,
         item_key: lockedKey || document.getElementById('reqItem').value,
         qty: Number(document.getElementById('reqQty').value),
         notes: document.getElementById('reqNotes').value || null,
@@ -2044,9 +2348,15 @@ document.addEventListener('DOMContentLoaded', function(){
 
   /* ---------- init ---------- */
   (async function init(){
+    if(!(await ensureAuth())) return;
+    updateProfileUI();
+    applyRoleUI();
     await loadLocations();
     await Promise.all([loadInventory(), loadVouchers(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments()]);
     renderDashboard();
+    if(pageIdFromHash(location.hash) === 'page-inventory'){
+      activateInventoryTab(inventoryTabSlugFromHash(location.hash));
+    }
     const consumables = await populateForecastSelect();
     if(consumables.length) renderForecast(consumables[0].item_key);
   })();

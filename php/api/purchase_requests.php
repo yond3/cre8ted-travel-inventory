@@ -33,6 +33,7 @@ function format_request(array $row): array
 }
 
 if ($method === 'GET') {
+    require_auth();
     $rows = $pdo->query(
         "SELECT r.*, i.label, i.unit,
                 (SELECT sp.price FROM supplier_prices sp
@@ -40,7 +41,8 @@ if ($method === 'GET') {
                     WHERE sp.item_key = r.item_key ORDER BY sp.price ASC LIMIT 1) AS best_price,
                 (SELECT s.name FROM supplier_prices sp JOIN suppliers s ON s.id = sp.supplier_id AND s.active = 1
                     WHERE sp.item_key = r.item_key ORDER BY sp.price ASC LIMIT 1) AS best_supplier,
-                (SELECT COUNT(*) FROM purchase_orders po WHERE po.request_id = r.id) AS has_po
+                (SELECT COUNT(*) FROM purchase_orders po
+                    WHERE po.request_id = r.id AND po.status = 'Placed') AS has_po
          FROM purchase_requests r
          JOIN items i ON i.item_key = r.item_key
          ORDER BY r.created_at DESC, r.id DESC"
@@ -50,8 +52,9 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    $user = require_staff_or_above();
     $body = read_json_body();
-    $employee = trim($body['employee'] ?? '');
+    $employee = $user['name'];
     $itemKey = $body['item_key'] ?? '';
     $qty = $body['qty'] ?? null;
 
@@ -77,6 +80,7 @@ if ($method === 'POST') {
 }
 
 if ($method === 'PUT') {
+    require_manager_or_above();
     $id = (int) ($_GET['id'] ?? 0);
     if (!$id) {
         json_error('missing required query param: id');

@@ -9,10 +9,15 @@ header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Credentials: true');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
+}
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
 }
 
 const DB_HOST = '127.0.0.1';
@@ -23,6 +28,109 @@ const DB_PASSWORD = '';
 // Python forecast microservice — kept off the public internet; only this
 // PHP layer is expected to reach it.
 const FORECAST_SERVICE_URL = 'http://127.0.0.1:5050';
+
+/**
+ * Temporary RBAC — demo accounts only. Lead programmer will replace this
+ * with the central super-admin login later; when that happens, swap
+ * authenticate_user()/get_session_user() to read from his auth source and
+ * every require_role() call below keeps working unchanged.
+ */
+const AUTH_USERS = [
+    'juan' => [
+        'password' => 'staff123',
+        'name' => 'Juan Dela Cruz',
+        'role' => 'staff',
+    ],
+    'maria' => [
+        'password' => 'manager123',
+        'name' => 'Maria Santos',
+        'role' => 'manager',
+    ],
+    'admin' => [
+        'password' => 'admin123',
+        'name' => 'System Administrator',
+        'role' => 'super_admin',
+    ],
+];
+
+const ROLE_RANK = [
+    'staff' => 1,
+    'manager' => 2,
+    'super_admin' => 3,
+];
+
+function public_user(array $user): array
+{
+    return [
+        'username' => $user['username'],
+        'name' => $user['name'],
+        'role' => $user['role'],
+    ];
+}
+
+function get_session_user(): ?array
+{
+    return isset($_SESSION['user']) && is_array($_SESSION['user']) ? $_SESSION['user'] : null;
+}
+
+function authenticate_user(string $username, string $password): ?array
+{
+    $key = strtolower(trim($username));
+    if (!isset(AUTH_USERS[$key]) || AUTH_USERS[$key]['password'] !== $password) {
+        return null;
+    }
+    return [
+        'username' => $key,
+        'name' => AUTH_USERS[$key]['name'],
+        'role' => AUTH_USERS[$key]['role'],
+    ];
+}
+
+function login_user(array $user): void
+{
+    $_SESSION['user'] = $user;
+}
+
+function logout_user(): void
+{
+    $_SESSION = [];
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_destroy();
+    }
+}
+
+function require_auth(): array
+{
+    $user = get_session_user();
+    if (!$user) {
+        json_error('authentication required', 401);
+    }
+    return $user;
+}
+
+function require_role(string ...$roles): array
+{
+    $user = require_auth();
+    if (!in_array($user['role'], $roles, true)) {
+        json_error('insufficient permissions', 403);
+    }
+    return $user;
+}
+
+function require_staff_or_above(): array
+{
+    return require_role('staff', 'manager', 'super_admin');
+}
+
+function require_manager_or_above(): array
+{
+    return require_role('manager', 'super_admin');
+}
+
+function require_super_admin(): array
+{
+    return require_role('super_admin');
+}
 
 function get_pdo(): PDO
 {

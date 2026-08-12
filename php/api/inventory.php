@@ -54,6 +54,7 @@ function format_item(array $row): array
 }
 
 if ($method === 'GET') {
+    require_auth();
     $itemKey = $_GET['item'] ?? null;
     if ($itemKey !== null) {
         $row = fetch_item_row($pdo, $itemKey);
@@ -65,6 +66,9 @@ if ($method === 'GET') {
     }
 
     $includeInactive = isset($_GET['include_inactive']) && $_GET['include_inactive'] !== '0';
+    if ($includeInactive) {
+        require_manager_or_above();
+    }
     $sql = 'SELECT i.*, l.name AS location_name, l.location_type
          FROM items i
          LEFT JOIN locations l ON l.id = i.location_id';
@@ -78,6 +82,7 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    require_manager_or_above();
     $body = read_json_body();
     $label = trim($body['label'] ?? '');
     $unit = trim($body['unit'] ?? '');
@@ -114,6 +119,7 @@ if ($method === 'POST') {
 }
 
 if ($method === 'PUT') {
+    require_auth();
     $itemKey = $_GET['item'] ?? '';
     if ($itemKey === '') {
         json_error('missing required query param: item');
@@ -124,6 +130,11 @@ if ($method === 'PUT') {
     }
 
     $body = read_json_body();
+    if (array_key_exists('active', $body)) {
+        require_super_admin();
+    } else {
+        require_manager_or_above();
+    }
     $itemType = $body['item_type'] ?? $existing['item_type'];
 
     $fields = [];

@@ -8,6 +8,8 @@
  */
 require __DIR__ . '/config.php';
 
+require_auth();
+
 $itemKey = $_GET['item'] ?? '';
 if ($itemKey === '') {
     json_error('missing required query param: item');

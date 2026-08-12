@@ -43,7 +43,11 @@ function format_supplier(PDO $pdo, array $row): array
 }
 
 if ($method === 'GET') {
+    require_auth();
     $includeInactive = isset($_GET['include_inactive']) && $_GET['include_inactive'] !== '0';
+    if ($includeInactive) {
+        require_manager_or_above();
+    }
     $sql = 'SELECT * FROM suppliers';
     if (!$includeInactive) {
         $sql .= ' WHERE active = 1';
@@ -55,6 +59,7 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    require_manager_or_above();
     $body = read_json_body();
     $name = trim($body['name'] ?? '');
     if ($name === '') {
@@ -94,6 +99,11 @@ if ($method === 'PUT') {
         json_error('missing required query param: id');
     }
     $body = read_json_body();
+    if (array_key_exists('active', $body)) {
+        require_super_admin();
+    } else {
+        require_manager_or_above();
+    }
 
     $fields = [];
     $values = [];
@@ -125,6 +135,42 @@ if ($method === 'PUT') {
              ON DUPLICATE KEY UPDATE price = VALUES(price), last_purchase_date = VALUES(last_purchase_date)'
         );
         $priceStmt->execute([$id, $body['item_key'], $body['price']]);
+    }
+
+    if (array_key_exists('prices', $body) && is_array($body['prices'])) {
+        require_manager_or_above();
+        $validItems = $pdo->query(
+            "SELECT item_key FROM items WHERE item_type = 'consumable' AND active = 1"
+        )->fetchAll(PDO::FETCH_COLUMN);
+        $validSet = array_flip($validItems);
+
+        $priceStmt = $pdo->prepare(
+            'INSERT INTO supplier_prices (supplier_id, item_key, price, last_purchase_date)
+             VALUES (?, ?, ?, CURDATE())
+             ON DUPLICATE KEY UPDATE price = VALUES(price), last_purchase_date = VALUES(last_purchase_date)'
+        );
+        foreach ($body['prices'] as $line) {
+            $itemKey = $line['item_key'] ?? '';
+            $price = $line['price'] ?? null;
+            if ($itemKey === '' || !isset($validSet[$itemKey])) {
+                continue;
+            }
+            if ($price === null || $price === '' || (float) $price <= 0) {
+                continue;
+            }
+            $priceStmt->execute([$id, $itemKey, (float) $price]);
+        }
+    }
+
+    if (array_key_exists('remove_item_keys', $body) && is_array($body['remove_item_keys'])) {
+        require_manager_or_above();
+        $delStmt = $pdo->prepare('DELETE FROM supplier_prices WHERE supplier_id = ? AND item_key = ?');
+        foreach ($body['remove_item_keys'] as $itemKey) {
+            if ($itemKey === '' || $itemKey === null) {
+                continue;
+            }
+            $delStmt->execute([$id, $itemKey]);
+        }
     }
 
     $row = $pdo->query("SELECT * FROM suppliers WHERE id = $id")->fetch();

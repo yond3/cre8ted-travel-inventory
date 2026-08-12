@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — Cre8ted Travel</title>
+<link rel="icon" type="image/png" href="assets/logo-icon.png">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-[#eef2f7] flex items-center justify-center p-4 font-[Inter]">
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-[#e7ecf3] p-8">
+    <div class="flex items-center gap-3 mb-6">
+      <img src="assets/logo-icon.png" alt="" class="w-11 h-11 object-contain">
+      <div>
+        <div class="font-[Plus_Jakarta_Sans] font-extrabold text-[#0f2242] text-lg">Cre8ted Travel</div>
+        <div class="text-[.78rem] text-[#5b6b85]">Supply Chain &amp; Inventory</div>
+      </div>
+    </div>
+    <h1 class="font-[Plus_Jakarta_Sans] font-extrabold text-[1.35rem] text-[#0f2242] mb-1">Sign in</h1>
+    <p class="text-[.85rem] text-[#5b6b85] mb-6">Use your assigned role account. Vendor quote forms stay public — no login there.</p>
+    <form id="loginForm" class="flex flex-col gap-4">
+      <div>
+        <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Username</label>
+        <input id="username" autocomplete="username" required class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]" placeholder="juan, maria, or admin">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]">
+      </div>
+      <p id="loginError" class="text-[.82rem] text-[#d5362f] hidden"></p>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#f5a524] to-[#e0930f] text-[#3a2306] text-[.88rem] font-bold border-none cursor-pointer">Sign in</button>
+    </form>
+    <div class="mt-6 pt-5 border-t border-[#e7ecf3] text-[.75rem] text-[#94a3bb] leading-relaxed">
+      <div class="font-semibold text-[#5b6b85] mb-1">Demo accounts</div>
+      <div><strong>juan</strong> / staff123 — Staff</div>
+      <div><strong>maria</strong> / manager123 — Manager</div>
+      <div><strong>admin</strong> / admin123 — Super Admin</div>
+    </div>
+  </div>
+<script>
+(async function(){
+  const res = await fetch('api/auth.php', { credentials: 'include' });
+  const data = await res.json();
+  if(data.authenticated) location.href = 'index.html';
+
+  document.getElementById('loginForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const errEl = document.getElementById('loginError');
+    errEl.classList.add('hidden');
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    try {
+      const res = await fetch('api/auth.php', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw data;
+      location.href = 'index.html';
+    } catch (err) {
+      errEl.textContent = err.error || 'Sign in failed.';
+      errEl.classList.remove('hidden');
+    }
+  });
+})();
+</script>
+</body>
+</html>

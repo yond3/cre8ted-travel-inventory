@@ -10,6 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     json_error('method not allowed', 405);
 }
 
+require_auth();
+
 $limit = isset($_GET['limit']) ? max(1, (int) $_GET['limit']) : 200;
 
 $stmt = get_pdo()->prepare('SELECT * FROM documents ORDER BY created_at DESC, id DESC LIMIT ' . $limit);

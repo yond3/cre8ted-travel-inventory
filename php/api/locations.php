@@ -23,7 +23,11 @@ function format_location(array $row): array
 }
 
 if ($method === 'GET') {
+    require_auth();
     $includeInactive = isset($_GET['include_inactive']) && $_GET['include_inactive'] !== '0';
+    if ($includeInactive) {
+        require_manager_or_above();
+    }
     $sql = 'SELECT l.*, COUNT(i.item_key) AS item_count
          FROM locations l
          LEFT JOIN items i ON i.location_id = l.id';
@@ -37,6 +41,7 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    require_manager_or_above();
     $body = read_json_body();
     $name = trim($body['name'] ?? '');
     $type = $body['location_type'] ?? 'storage';
@@ -82,6 +87,11 @@ if ($method === 'PUT') {
     }
 
     $body = read_json_body();
+    if (array_key_exists('active', $body)) {
+        require_super_admin();
+    } else {
+        require_manager_or_above();
+    }
 
     if (array_key_exists('active', $body)) {
         $active = filter_var($body['active'], FILTER_VALIDATE_BOOLEAN) || (int) $body['active'] === 1 ? 1 : 0;

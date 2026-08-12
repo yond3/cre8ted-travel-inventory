@@ -103,8 +103,30 @@ cd php
 ## 6. Open in browser
 
 ```
-http://localhost:8000/index.html
+http://localhost:8000/login.html
 ```
+
+Sign in with one of the demo accounts:
+
+| Username | Password | Role | Can do |
+|----------|----------|------|--------|
+| `juan` | `staff123` | Staff | View everything, create purchase requests, use vouchers, mark orders received |
+| `maria` | `manager123` | Manager | Staff + approve/reject requests, create POs, edit stock, close month, restock vouchers, approve vendor quotes |
+| `admin` | `admin123` | Super Admin | Manager + mark items/suppliers/locations inactive, edit voucher quantities, cancel POs |
+
+The vendor quote form (`vendor-apply.html`) stays **public** — no login required, by design.
+
+---
+
+## RBAC — how it works and where to swap it later
+
+Authentication is session-based PHP, defined entirely in `php/api/config.php`:
+
+- `AUTH_USERS` — the demo account list (username → password, name, role). **This is the only place with hardcoded credentials.**
+- `authenticate_user()` / `get_session_user()` — look up and read the logged-in user.
+- `require_auth()`, `require_role()`, `require_staff_or_above()`, `require_manager_or_above()`, `require_super_admin()` — guards called at the top of each API endpoint.
+
+**When the lead programmer's central/super-admin login is ready:** replace `authenticate_user()` (and how `login_user()`/`get_session_user()` store the user) to read from his auth system instead of the `AUTH_USERS` array — for example, verifying his token/session and mapping his user to `{ username, name, role }`. Every `require_role()` call across the API files keeps working unchanged, since they only depend on that shape.
 
 ---
 
