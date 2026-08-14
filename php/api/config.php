@@ -29,6 +29,34 @@ const DB_PASSWORD = '';
 // PHP layer is expected to reach it.
 const FORECAST_SERVICE_URL = 'http://127.0.0.1:5050';
 
+// Purchase order receipt uploads (proof of purchase, required before an
+// order can be marked Received). Files are stored outside web-served paths
+// in spirit — access is only via receipts.php, which checks login first.
+const RECEIPT_UPLOAD_DIR = __DIR__ . '/../uploads/receipts/';
+const RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
+const RECEIPT_ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+const RECEIPT_ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+
+/**
+ * Financial Management integration (see finance_client.php).
+ *
+ * 'stub' — no real Finance API needed. Disbursement requests auto-approve
+ *          and expense submissions auto-record immediately; every call is
+ *          still written to finance_integration_log so the flow is visible
+ *          and demoable end-to-end.
+ * 'live' — POSTs to FINANCE_API_BASE_URL with FINANCE_API_KEY. Switch to
+ *          this once the Finance team shares real (or staging) endpoints —
+ *          no other code changes are needed.
+ */
+const FINANCE_MODE = 'stub';
+const FINANCE_API_BASE_URL = 'http://127.0.0.1:9090/finance/api';
+const FINANCE_API_KEY = '';
+// Shared secret Finance must send back as X-Finance-Secret on webhooks to
+// finance_integration.php. Change before going live.
+const FINANCE_WEBHOOK_SECRET = 'dev-finance-webhook-secret';
+// Used to build the receipt file URL sent to Finance in expense payloads.
+const APP_BASE_URL = 'http://127.0.0.1:8000';
+
 /**
  * Temporary RBAC — demo accounts only. Lead programmer will replace this
  * with the central super-admin login later; when that happens, swap

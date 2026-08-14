@@ -43,10 +43,13 @@ If MySQL is not on your PATH, use the full path, for example:
 Get-Content ".\sql\schema.sql" | & "C:\xampp\mysql\bin\mysql.exe" -u root -p
 ```
 
-**Already have a database from before?** `schema.sql` now includes `stock_issues` (Issue log), but rebuilding from scratch drops all data. To add just the new table to an existing database instead, run:
+**Already have a database from before?** `schema.sql` now includes `stock_issues` (Issue log), receipt columns, and Financial Management columns/`finance_integration_log` on `purchase_orders`, but rebuilding from scratch drops all data. To add just the new pieces to an existing database instead, run each migration once:
 
 ```powershell
 Get-Content ".\sql\migration_stock_issues.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_po_receipts.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_po_finance_status.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_po_receipt_waiver.sql" | mysql -u root wayfarer_inventory
 ```
 
 (Also run `migration_month_closes.sql` the same way if you haven't already — Close month needs it too.)
@@ -118,8 +121,8 @@ Sign in with one of the demo accounts:
 
 | Username | Password | Role | Can do |
 |----------|----------|------|--------|
-| `juan` | `staff123` | Staff | View everything, create purchase requests, use vouchers, issue stock to a department, mark orders received |
-| `maria` | `manager123` | Manager | Staff + approve/reject requests, create POs, edit stock, close month, restock vouchers, approve vendor quotes, void a stock issue |
+| `juan` | `staff123` | Staff | View everything, create purchase requests, use vouchers, issue stock to a department, upload a purchase order receipt, mark orders received |
+| `maria` | `manager123` | Manager | Staff + approve/reject requests, create POs, resend a PO to Financial Management, record lost receipt on an order, edit stock, close month, restock vouchers, approve vendor quotes, void a stock issue |
 | `admin` | `admin123` | Super Admin | Manager + mark items/suppliers/locations inactive, edit voucher quantities, cancel POs |
 
 The vendor quote form (`vendor-apply.html`) stays **public** — no login required, by design.
@@ -135,6 +138,65 @@ Authentication is session-based PHP, defined entirely in `php/api/config.php`:
 - `require_auth()`, `require_role()`, `require_staff_or_above()`, `require_manager_or_above()`, `require_super_admin()` — guards called at the top of each API endpoint.
 
 **When the lead programmer's central/super-admin login is ready:** replace `authenticate_user()` (and how `login_user()`/`get_session_user()` store the user) to read from his auth system instead of the `AUTH_USERS` array — for example, verifying his token/session and mapping his user to `{ username, name, role }`. Every `require_role()` call across the API files keeps working unchanged, since they only depend on that shape.
+
+---
+
+## Purchase order receipts
+
+Once a purchase order is **Placed** and **funded** (see Financial Management below), it can't be marked **Received** until a receipt is attached:
+
+1. Staff or manager clicks **Upload receipt** on the order — attaches a JPG/PNG/PDF (max 5 MB), the amount on the receipt, and optionally an OR/receipt number and notes.
+2. The file is saved under `php/uploads/receipts/` (git-ignored) and served only through `GET /api/receipts.php?po_id=<id>`, which requires login.
+3. Once uploaded, **Mark received** becomes available; stock still only increases at that step, same as before.
+
+**Lost receipt (manager only):** if proof of purchase truly cannot be attached, a manager can click **Lost receipt** on a funded order, enter the actual amount spent and a note (min. 10 characters). This is forwarded to Financial Management instead of a file, and **Mark received** becomes available the same way. Staff cannot use this — only managers and above.
+
+---
+
+## Financial Management integration
+
+Every purchase order now flows through a budget-disbursement / expense-recording state machine (`purchase_orders.finance_status`), separate from the procurement `status` column:
+
+```
+not_sent → pending_disbursement → funded → (receipt uploaded) → expense_pending → expense_recorded
+                    ↘ disbursement_rejected
+```
+
+**The flow:**
+
+1. **PO created** → SCIM automatically sends a disbursement request to Finance (`finance_send_disbursement()` in `php/api/finance_client.php`). The order can't have a receipt uploaded until Finance funds it.
+2. **Finance funds it** → `finance_status` becomes `funded`. **Upload receipt** now appears (this is a hard gate — see `receipts.php`).
+3. **Receipt uploaded** → SCIM automatically forwards it to Finance as an expense/AP record (`finance_send_expense()`). `finance_status` moves to `expense_pending`, then `expense_recorded` once Finance confirms.
+4. If Finance rejects the disbursement, a manager sees a **Resend to Finance** button on the order (`PUT purchase_orders.php?id=<id> { action: 'resend_finance' }`).
+
+Every outbound call and inbound response is written to `finance_integration_log` (payload, HTTP status, response body) for audit/debugging.
+
+### Stub mode (default) — no real Finance API needed
+
+`FINANCE_MODE` in `php/api/config.php` is `'stub'` by default: disbursement requests auto-approve and expense submissions auto-record **immediately, in-process** — no network call is made, but everything is still logged to `finance_integration_log` exactly as it would be for a real call. This means the whole PO → funded → receipt → expense-recorded flow is demoable end-to-end today, with no dependency on the Finance team's endpoints being ready.
+
+### Testing without a real Finance API
+
+Two layers, from easiest to most realistic:
+
+1. **Stub mode (already on)** — just use the app. Create a PO and watch `finance_status` go straight to `funded`; upload a receipt and watch it go to `expense_recorded`. Check `finance_integration_log` in the database to see every "call" that was made.
+2. **Contract check** — `GET /api/finance_integration.php` returns the full integration contract: exact outbound URLs/payloads SCIM will send, and the inbound webhook shape Finance needs to call back with. Share this endpoint's response with the Finance team so they can build against the real shape before URLs are finalized.
+
+### Going live
+
+Once Finance shares real (or staging) URLs, flip these in `php/api/config.php` — no other code changes needed:
+
+```php
+const FINANCE_MODE = 'live';
+const FINANCE_API_BASE_URL = 'https://finance.example.com/api'; // real base URL
+const FINANCE_API_KEY = '...';                                  // real API key
+const FINANCE_WEBHOOK_SECRET = '...';                            // shared secret, given to Finance
+const APP_BASE_URL = 'https://scim.example.com';                 // SCIM's public URL, for receipt links
+```
+
+In live mode, SCIM POSTs to `{FINANCE_API_BASE_URL}/disbursement-requests` and `/expenses`, and Finance calls back `POST /api/finance_integration.php` (header `X-Finance-Secret`) with `disbursement.approved`, `disbursement.rejected`, or `expense.recorded` events to move `finance_status` forward. See `GET /api/finance_integration.php` for exact payload shapes.
+
+A Finance-side hiccup (network error, timeout) never blocks creating a PO or uploading a receipt — it's logged and a manager can retry via **Resend to Finance**.
 
 ---
 

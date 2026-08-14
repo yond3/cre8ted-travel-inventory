@@ -5,6 +5,7 @@ CREATE DATABASE IF NOT EXISTS wayfarer_inventory CHARACTER SET utf8mb4 COLLATE u
 USE wayfarer_inventory;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS finance_integration_log;
 DROP TABLE IF EXISTS stock_issues;
 DROP TABLE IF EXISTS tour_vouchers;
 DROP TABLE IF EXISTS documents;
@@ -112,10 +113,57 @@ CREATE TABLE purchase_orders (
     assigned_to VARCHAR(100) NULL,
     amount DECIMAL(10,2) NULL,
     status ENUM('Placed','Received','Cancelled') NOT NULL DEFAULT 'Placed',
+    -- Financial Management integration state (see finance_client.php).
+    -- Separate from `status` above: `status` tracks procurement/receiving,
+    -- `finance_status` tracks budget disbursement + expense recording.
+    finance_status ENUM(
+        'not_sent',
+        'pending_disbursement',
+        'funded',
+        'disbursement_rejected',
+        'expense_pending',
+        'expense_recorded'
+    ) NOT NULL DEFAULT 'not_sent',
+    finance_disbursement_id VARCHAR(64) NULL,
+    finance_expense_id VARCHAR(64) NULL,
+    expense_category VARCHAR(50) NULL,
+    finance_sent_at DATETIME NULL,
+    finance_funded_at DATETIME NULL,
+    finance_expense_sent_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     received_at DATETIME NULL,
+    -- A receipt must be attached (see purchase_orders.php) before a Placed
+    -- order can be marked Received; kept on file for audits and, later,
+    -- handoff to Financial Management.
+    receipt_filename VARCHAR(255) NULL,
+    receipt_original_name VARCHAR(255) NULL,
+    receipt_mime VARCHAR(100) NULL,
+    receipt_amount DECIMAL(10,2) NULL,
+    receipt_number VARCHAR(80) NULL,
+    receipt_notes VARCHAR(255) NULL,
+    receipt_uploaded_at DATETIME NULL,
+    receipt_uploaded_by VARCHAR(100) NULL,
+    -- Manager-only exception when proof of purchase cannot be attached
+    -- (lost receipt). Unlocks mark-received and notifies Finance with the note.
+    receipt_waived TINYINT(1) NOT NULL DEFAULT 0,
+    receipt_waiver_note VARCHAR(500) NULL,
+    receipt_waived_at DATETIME NULL,
+    receipt_waived_by VARCHAR(100) NULL,
     FOREIGN KEY (request_id) REFERENCES purchase_requests(id),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE finance_integration_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    po_id INT NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    direction ENUM('outbound', 'inbound') NOT NULL,
+    payload JSON NULL,
+    response_status INT NULL,
+    response_body TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+    INDEX idx_finance_log_po (po_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE documents (

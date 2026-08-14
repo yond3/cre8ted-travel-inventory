@@ -8,8 +8,17 @@
  *         PO -> Received, request -> Completed, and inventory.current_qty
  *         increases by the requested quantity automatically. This is the
  *         only place stock goes up from a purchase.
+ *         Requires proof of purchase — a receipt upload via receipts.php or a
+ *         manager-only lost-receipt declaration (declare_receipt_lost).
+ *
+ * A PO is automatically sent to Financial Management for disbursement when
+ * created; PUT ?id=<id> { action: 'resend_finance' } (manager+) retries it.
+ * PUT ?id=<id> { action: 'declare_receipt_lost', actual_amount, note }
+ * (manager+) records a lost receipt and forwards the note to Finance.
+ * See finance_client.php.
  */
 require __DIR__ . '/config.php';
+require __DIR__ . '/finance_client.php';
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -33,6 +42,23 @@ function format_order(array $row): array
         'status' => $row['status'],
         'created_at' => $row['created_at'],
         'received_at' => $row['received_at'],
+        'receipt_uploaded' => $row['receipt_filename'] !== null,
+        'receipt_amount' => $row['receipt_amount'] !== null ? (float) $row['receipt_amount'] : null,
+        'receipt_number' => $row['receipt_number'],
+        'receipt_notes' => $row['receipt_notes'],
+        'receipt_uploaded_at' => $row['receipt_uploaded_at'],
+        'receipt_uploaded_by' => $row['receipt_uploaded_by'],
+        'receipt_waived' => !empty($row['receipt_waived']),
+        'receipt_waiver_note' => $row['receipt_waiver_note'],
+        'receipt_waived_at' => $row['receipt_waived_at'],
+        'receipt_waived_by' => $row['receipt_waived_by'],
+        'finance_status' => $row['finance_status'],
+        'finance_disbursement_id' => $row['finance_disbursement_id'],
+        'finance_expense_id' => $row['finance_expense_id'],
+        'expense_category' => $row['expense_category'],
+        'finance_sent_at' => $row['finance_sent_at'],
+        'finance_funded_at' => $row['finance_funded_at'],
+        'finance_expense_sent_at' => $row['finance_expense_sent_at'],
     ];
 }
 
@@ -107,6 +133,16 @@ if ($method === 'POST') {
     }
 
     $row = $pdo->query(ORDER_SELECT . " WHERE po.po_code = " . $pdo->quote($poCode))->fetch();
+
+    try {
+        finance_send_disbursement($pdo, $row);
+    } catch (Exception $e) {
+        // A Finance hiccup should never block creating the PO itself — the
+        // manager can retry with PUT ?action=resend_finance.
+        error_log('finance_send_disbursement failed: ' . $e->getMessage());
+    }
+
+    $row = $pdo->query(ORDER_SELECT . " WHERE po.po_code = " . $pdo->quote($poCode))->fetch();
     echo json_encode(format_order($row));
     exit;
 }
@@ -123,8 +159,12 @@ if ($method === 'PUT') {
         require_staff_or_above();
     } elseif ($action === 'cancel') {
         require_super_admin();
+    } elseif ($action === 'resend_finance') {
+        require_manager_or_above();
+    } elseif ($action === 'declare_receipt_lost') {
+        require_manager_or_above();
     } else {
-        json_error("action must be 'receive' or 'cancel'");
+        json_error("action must be 'receive', 'cancel', 'resend_finance', or 'declare_receipt_lost'");
     }
 
     $row = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
@@ -133,6 +173,64 @@ if ($method === 'PUT') {
     }
     if ($row['status'] !== 'Placed') {
         json_error("order is '{$row['status']}', not Placed", 409);
+    }
+
+    if ($action === 'resend_finance') {
+        try {
+            finance_send_disbursement($pdo, $row);
+        } catch (Exception $e) {
+            json_error('failed to resend to Finance: ' . $e->getMessage(), 500);
+        }
+        $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
+        echo json_encode(format_order($updated));
+        exit;
+    }
+
+    if ($action === 'declare_receipt_lost') {
+        if ($row['finance_status'] !== 'funded') {
+            json_error("purchase order is not funded yet (finance status: {$row['finance_status']})", 409);
+        }
+        if ($row['receipt_filename']) {
+            json_error('a receipt is already uploaded for this order', 409);
+        }
+        if (!empty($row['receipt_waived'])) {
+            json_error('lost receipt was already recorded for this order', 409);
+        }
+
+        $amount = $body['actual_amount'] ?? null;
+        if ($amount === null || $amount === '' || !is_numeric($amount) || (float) $amount <= 0) {
+            json_error('actual_amount is required');
+        }
+        $note = trim($body['note'] ?? '');
+        if (strlen($note) < 10) {
+            json_error('note is required (at least 10 characters — explain what was purchased and why the receipt is missing)');
+        }
+
+        $user = get_session_user();
+        $pdo->prepare(
+            'UPDATE purchase_orders SET
+                receipt_waived = 1,
+                receipt_waiver_note = ?,
+                receipt_waived_at = NOW(),
+                receipt_waived_by = ?,
+                receipt_amount = ?
+             WHERE id = ?'
+        )->execute([$note, $user['name'], (float) $amount, $id]);
+
+        $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
+        try {
+            finance_send_expense($pdo, $updated);
+        } catch (Exception $e) {
+            error_log('finance_send_expense failed after declare_receipt_lost: ' . $e->getMessage());
+        }
+        $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
+        echo json_encode(format_order($updated));
+        exit;
+    }
+
+    $hasProof = $row['receipt_filename'] || !empty($row['receipt_waived']);
+    if ($action === 'receive' && !$hasProof) {
+        json_error('upload the purchase receipt or record a lost receipt (manager) before marking this order received', 409);
     }
 
     if ($action === 'receive') {

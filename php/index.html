@@ -387,6 +387,10 @@
       </div>
     </div>
   </div>
+  <div class="bg-blueBg border border-[#c6d7fb] rounded-card p-4 mb-5 flex items-start gap-3">
+    <i class='bx bx-bulb text-blueTx text-[1.3rem] mt-0.5'></i>
+    <p class="text-[.85rem] text-blueTx"><span class="font-bold">System tip:</span> Orders are sent to Financial Management automatically for budget disbursement. Once Finance marks it funded, upload the purchase receipt before marking the order received — it's forwarded to Finance too.</p>
+  </div>
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
     <div class="overflow-x-auto">
@@ -398,6 +402,8 @@
             <th class="py-3 pr-3 font-semibold">Supplier</th>
             <th class="py-3 pr-3 font-semibold">Method</th>
             <th class="py-3 pr-3 font-semibold">Amount</th>
+            <th class="py-3 pr-3 font-semibold">Finance</th>
+            <th class="py-3 pr-3 font-semibold">Receipt</th>
             <th class="py-3 pr-3 font-semibold">Date</th>
             <th class="py-3 pr-3 font-semibold">Status</th>
             <th class="py-3 pr-3 font-semibold">Action</th>
@@ -901,6 +907,86 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: UPLOAD RECEIPT ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="receiptModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Upload receipt</h3>
+      <button type="button" onclick="closeModal('receiptModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="receiptModalPoLabel">Attach proof of purchase before marking this order received.</p>
+    <form id="receiptForm" class="flex flex-col gap-4">
+      <input type="hidden" id="receiptPoId" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Receipt file (JPG, PNG, or PDF)</label>
+        <input id="receiptFile" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf" required class="w-full px-3 py-2 rounded-xl border border-line bg-[#f8fafc] text-[.85rem]">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Amount on receipt</label>
+        <input id="receiptAmount" type="number" min="0.01" step="0.01" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. 415.00">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Receipt / OR number <span class="text-textSoft font-normal">(optional)</span></label>
+        <input id="receiptNumber" maxlength="80" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. OR-123456">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes <span class="text-textSoft font-normal">(optional)</span></label>
+        <input id="receiptNotes" maxlength="255" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Paid via petty cash">
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Upload receipt</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: LOST RECEIPT (manager only) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="lostReceiptModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Lost receipt</h3>
+      <button type="button" onclick="closeModal('lostReceiptModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="lostReceiptModalPoLabel">Record that proof of purchase is unavailable. This is forwarded to Financial Management and allows marking the order received.</p>
+    <form id="lostReceiptForm" class="flex flex-col gap-4">
+      <input type="hidden" id="lostReceiptPoId" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Actual amount spent</label>
+        <input id="lostReceiptAmount" type="number" min="0.01" step="0.01" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. 415.00">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Manager note</label>
+        <textarea id="lostReceiptNote" maxlength="500" rows="4" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="What was purchased, when, how paid, and why the receipt is missing (min. 10 characters)."></textarea>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-amberTx text-[.88rem] font-bold cursor-pointer border border-amberTx/20 shadow-btn">Record lost receipt</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: VIEW LOST RECEIPT NOTE (read-only) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="lostReceiptViewModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Lost receipt</h3>
+      <button type="button" onclick="closeModal('lostReceiptViewModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="lostReceiptViewPoLabel"></p>
+    <dl class="flex flex-col gap-3 text-[.85rem]">
+      <div>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Actual amount spent</dt>
+        <dd class="text-textDark font-semibold" id="lostReceiptViewAmount">—</dd>
+      </div>
+      <div>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Manager note</dt>
+        <dd class="text-textDark whitespace-pre-wrap bg-[#f8fafc] border border-line rounded-xl px-3 py-2.5" id="lostReceiptViewNote">—</dd>
+      </div>
+      <div>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Recorded by</dt>
+        <dd class="text-textMid" id="lostReceiptViewMeta">—</dd>
+      </div>
+    </dl>
+    <button type="button" onclick="closeModal('lostReceiptViewModalOverlay')" class="mt-5 w-full px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none">Close</button>
+  </div>
+</div>
+
 </div>
 </div>
 </div>
@@ -1162,6 +1248,28 @@ document.addEventListener('DOMContentLoaded', function(){
       'Voided': 'bg-redBg text-redTx',
     };
     return `<span class="px-2.5 py-1 rounded-full text-[.72rem] font-semibold ${map[status] || 'bg-[#eef2f7] text-textMid'}">${status}</span>`;
+  }
+
+  const FINANCE_STATUS_LABELS = {
+    not_sent: 'Not sent',
+    pending_disbursement: 'Awaiting disbursement',
+    funded: 'Funded',
+    disbursement_rejected: 'Rejected',
+    expense_pending: 'Sending to Finance',
+    expense_recorded: 'Expense recorded',
+  };
+  const FINANCE_STATUS_CLASSES = {
+    not_sent: 'bg-[#eef2f7] text-textMid',
+    pending_disbursement: 'bg-amberBg text-amberTx',
+    funded: 'bg-blueBg text-blueTx',
+    disbursement_rejected: 'bg-redBg text-redTx',
+    expense_pending: 'bg-amberBg text-amberTx',
+    expense_recorded: 'bg-greenBg text-greenTx',
+  };
+  function financeStatusPill(status){
+    const label = FINANCE_STATUS_LABELS[status] || status;
+    const cls = FINANCE_STATUS_CLASSES[status] || 'bg-[#eef2f7] text-textMid';
+    return `<span class="px-2.5 py-1 rounded-full text-[.72rem] font-semibold ${cls}">${label}</span>`;
   }
 
   /* ---------- locations ---------- */
@@ -1903,24 +2011,135 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderOrders(){
     const tbody = document.getElementById('ordersTableBody');
-    tbody.innerHTML = state.orders.map(o => `
+    tbody.innerHTML = state.orders.map(o => {
+      const receiptCell = o.receipt_uploaded
+        ? `<button onclick="viewReceipt(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View receipt</button>`
+        : (o.receipt_waived
+            ? `<button onclick="viewLostReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
+            : (o.status === 'Placed'
+                ? `<span class="text-amberTx text-[.75rem] font-semibold">Not uploaded</span>`
+                : `<span class="text-textSoft text-[.75rem]">—</span>`));
+      const canUploadReceipt = o.status === 'Placed' && o.finance_status === 'funded' && !o.receipt_uploaded && !o.receipt_waived;
+      const canDeclareLostReceipt = o.status === 'Placed' && o.finance_status === 'funded' && !o.receipt_uploaded && !o.receipt_waived && roleAtLeast('manager');
+      const canMarkReceived = o.status === 'Placed' && (o.receipt_uploaded || o.receipt_waived);
+      const awaitingFinance = o.status === 'Placed' && !o.receipt_uploaded && !o.receipt_waived && o.finance_status !== 'funded' && o.finance_status !== 'disbursement_rejected';
+      const canResendFinance = o.status === 'Placed' && roleAtLeast('manager') && (o.finance_status === 'not_sent' || o.finance_status === 'disbursement_rejected');
+      return `
       <tr class="border-b border-line last:border-0">
         <td class="py-3 pr-3 font-semibold text-textDark">${o.po_code}</td>
         <td class="py-3 pr-3 text-textMid">${o.request_code}</td>
         <td class="py-3 pr-3">${o.supplier_name || '—'}</td>
         <td class="py-3 pr-3 text-textMid">${PROCUREMENT_LABELS[o.procurement_method] || o.procurement_method}</td>
         <td class="py-3 pr-3">${peso(o.amount)}</td>
+        <td class="py-3 pr-3">${financeStatusPill(o.finance_status)}</td>
+        <td class="py-3 pr-3">${receiptCell}</td>
         <td class="py-3 pr-3 text-textMid">${fmtDate(o.created_at)}</td>
         <td class="py-3 pr-3">${statusPill(o.status)}</td>
         <td class="py-3 pr-3">
-          <div class="flex gap-2">
-            ${o.status === 'Placed' ? `<button onclick="markReceived(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Mark received</button>` : ''}
+          <div class="flex gap-2 flex-wrap">
+            ${canUploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.75rem] font-bold border-none cursor-pointer">Upload receipt</button>` : ''}
+            ${canDeclareLostReceipt ? `<button onclick="openLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Lost receipt</button>` : ''}
+            ${awaitingFinance ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for Finance</span>` : ''}
+            ${canMarkReceived ? `<button onclick="markReceived(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Mark received</button>` : ''}
+            ${canResendFinance ? `<button onclick="resendFinance(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Resend to Finance</button>` : ''}
             ${o.status === 'Placed' && roleAtLeast('super_admin') ? `<button onclick="cancelOrder(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Cancel</button>` : ''}
             <button onclick="openOrderSlip(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Slip</button>
           </div>
         </td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
   }
+
+  window.resendFinance = async function(id){
+    try {
+      await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'resend_finance' });
+      await loadOrders();
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not resend to Finance.');
+    }
+  };
+
+  window.openUploadReceiptModal = function(id){
+    const order = state.orders.find(o => o.id === id);
+    if(!order) return;
+    document.getElementById('receiptForm').reset();
+    document.getElementById('receiptPoId').value = id;
+    document.getElementById('receiptModalPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}${order.amount != null ? ` (estimated ${peso(order.amount)})` : ''}.`;
+    openModal('receiptModalOverlay');
+  };
+
+  document.getElementById('receiptForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const id = document.getElementById('receiptPoId').value;
+    const fileInput = document.getElementById('receiptFile');
+    if(!fileInput.files.length){ alert('Choose a receipt file.'); return; }
+    const formData = new FormData();
+    formData.append('receipt', fileInput.files[0]);
+    formData.append('amount', document.getElementById('receiptAmount').value);
+    formData.append('receipt_number', document.getElementById('receiptNumber').value.trim());
+    formData.append('notes', document.getElementById('receiptNotes').value.trim());
+    try {
+      const res = await fetch(`${API}receipts.php?po_id=${id}`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if(!res.ok) throw data;
+      closeModal('receiptModalOverlay');
+      await Promise.all([loadOrders(), loadDocuments()]);
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not upload receipt.');
+    }
+  });
+
+  window.viewReceipt = function(id){
+    window.open(`${API}receipts.php?po_id=${id}`, '_blank');
+  };
+
+  window.viewLostReceiptNote = function(id){
+    const order = state.orders.find(o => o.id === id);
+    if(!order || !order.receipt_waived) return;
+    document.getElementById('lostReceiptViewPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}`;
+    document.getElementById('lostReceiptViewAmount').textContent = order.receipt_amount != null ? peso(order.receipt_amount) : '—';
+    document.getElementById('lostReceiptViewNote').textContent = order.receipt_waiver_note || '—';
+    const when = order.receipt_waived_at ? fmtDate(order.receipt_waived_at) : '—';
+    const who = order.receipt_waived_by || '—';
+    document.getElementById('lostReceiptViewMeta').textContent = `${who} · ${when}`;
+    openModal('lostReceiptViewModalOverlay');
+  };
+
+  window.openLostReceiptModal = function(id){
+    const order = state.orders.find(o => o.id === id);
+    if(!order) return;
+    document.getElementById('lostReceiptForm').reset();
+    document.getElementById('lostReceiptPoId').value = id;
+    document.getElementById('lostReceiptModalPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}${order.amount != null ? ` (estimated ${peso(order.amount)})` : ''}. Manager only — explain why proof is missing.`;
+    if(order.amount != null) document.getElementById('lostReceiptAmount').value = order.amount;
+    openModal('lostReceiptModalOverlay');
+  };
+
+  document.getElementById('lostReceiptForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const id = document.getElementById('lostReceiptPoId').value;
+    const note = document.getElementById('lostReceiptNote').value.trim();
+    if(note.length < 10){ alert('Manager note must be at least 10 characters.'); return; }
+    if(!confirm('Record this as a lost receipt? The note will be sent to Financial Management.')) return;
+    try {
+      await apiSend(`purchase_orders.php?id=${id}`, 'PUT', {
+        action: 'declare_receipt_lost',
+        actual_amount: document.getElementById('lostReceiptAmount').value,
+        note,
+      });
+      closeModal('lostReceiptModalOverlay');
+      await Promise.all([loadOrders(), loadDocuments()]);
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not record lost receipt.');
+    }
+  });
 
   window.markReceived = async function(id){
     const order = state.orders.find(o => o.id === id);
