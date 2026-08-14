@@ -43,6 +43,14 @@ If MySQL is not on your PATH, use the full path, for example:
 Get-Content ".\sql\schema.sql" | & "C:\xampp\mysql\bin\mysql.exe" -u root -p
 ```
 
+**Already have a database from before?** `schema.sql` now includes `stock_issues` (Issue log), but rebuilding from scratch drops all data. To add just the new table to an existing database instead, run:
+
+```powershell
+Get-Content ".\sql\migration_stock_issues.sql" | mysql -u root wayfarer_inventory
+```
+
+(Also run `migration_month_closes.sql` the same way if you haven't already — Close month needs it too.)
+
 ---
 
 ## 3. Configure database login (if needed)
@@ -110,8 +118,8 @@ Sign in with one of the demo accounts:
 
 | Username | Password | Role | Can do |
 |----------|----------|------|--------|
-| `juan` | `staff123` | Staff | View everything, create purchase requests, use vouchers, mark orders received |
-| `maria` | `manager123` | Manager | Staff + approve/reject requests, create POs, edit stock, close month, restock vouchers, approve vendor quotes |
+| `juan` | `staff123` | Staff | View everything, create purchase requests, use vouchers, issue stock to a department, mark orders received |
+| `maria` | `manager123` | Manager | Staff + approve/reject requests, create POs, edit stock, close month, restock vouchers, approve vendor quotes, void a stock issue |
 | `admin` | `admin123` | Super Admin | Manager + mark items/suppliers/locations inactive, edit voucher quantities, cancel POs |
 
 The vendor quote form (`vendor-apply.html`) stays **public** — no login required, by design.

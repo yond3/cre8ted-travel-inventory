@@ -276,6 +276,7 @@
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="In stock" data-slug="in-stock">In stock</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Not tracked" data-slug="equipment">Equipment</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="vouchers" data-slug="vouchers">Vouchers</button>
+      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="issues" data-slug="issue-log">Issue log</button>
       <label class="ml-auto flex items-center gap-2 text-[.8rem] text-textMid cursor-pointer select-none">
         <input type="checkbox" id="showInactiveInventory" class="rounded border-line">
         Show inactive
@@ -287,7 +288,7 @@
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
             <th class="py-3 pr-3 font-semibold">Item</th>
             <th class="py-3 pr-3 font-semibold">Type</th>
-            <th class="py-3 pr-3 font-semibold">Location</th>
+            <th class="py-3 pr-3 font-semibold">Storage</th>
             <th class="py-3 pr-3 font-semibold">Current qty</th>
             <th class="py-3 pr-3 font-semibold">Min</th>
             <th class="py-3 pr-3 font-semibold">Max</th>
@@ -313,6 +314,26 @@
             </tr>
           </thead>
           <tbody id="voucherTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="hidden" id="issuePanel">
+      <p class="text-[.78rem] text-textMid mb-4">Every checkout is logged here with the department and person that took it — count on shelf goes down right away, separate from month-end reconciliation.</p>
+      <div class="overflow-x-auto">
+        <table class="gl-table w-full text-[.85rem] border-collapse">
+          <thead>
+            <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+              <th class="py-3 pr-3 font-semibold">Date</th>
+              <th class="py-3 pr-3 font-semibold">Item</th>
+              <th class="py-3 pr-3 font-semibold">Qty</th>
+              <th class="py-3 pr-3 font-semibold">Department</th>
+              <th class="py-3 pr-3 font-semibold">Issued to</th>
+              <th class="py-3 pr-3 font-semibold">Recorded by</th>
+              <th class="py-3 pr-3 font-semibold">Status</th>
+              <th class="py-3 pr-3 font-semibold">Action</th>
+            </tr>
+          </thead>
+          <tbody id="issueTableBody"></tbody>
         </table>
       </div>
     </div>
@@ -532,6 +553,49 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: ISSUE STOCK (checkout) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000] items-center justify-center p-4" id="issueModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Issue stock</h3>
+      <button type="button" onclick="closeModal('issueModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4">Record who took this from storage — stock updates right away.</p>
+    <form id="issueForm" class="flex flex-col gap-4">
+      <input type="hidden" id="issueItemKey" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item</label>
+        <div id="issueItemLabel" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark"></div>
+        <p class="text-[.72rem] text-textSoft mt-1" id="issueStockHint"></p>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity</label>
+        <input id="issueQty" type="number" min="0.01" step="any" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Department</label>
+        <select id="issueDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <option value="Marketing">Marketing</option>
+          <option value="Operations">Operations</option>
+          <option value="Finance">Finance</option>
+          <option value="Admin / General">Admin / General</option>
+          <option value="__other__">Other…</option>
+        </select>
+        <input id="issueDepartmentOther" class="hidden mt-2 w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Type department name">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Issued to (optional)</label>
+        <input id="issueIssuedTo" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Juan Dela Cruz">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
+        <textarea id="issueNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. for client folders"></textarea>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Record issue</button>
+    </form>
+  </div>
+</div>
+
 <!-- ===================== MODAL: ADD / EDIT ITEM ===================== -->
 <div class="modal-overlay fixed inset-0 bg-black/45 z-[2000] items-center justify-center p-4" id="itemModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
@@ -563,8 +627,8 @@
       </div>
       <div>
         <div class="flex items-center justify-between mb-1">
-          <label class="text-[.78rem] font-semibold text-textMid">Location</label>
-          <button type="button" onclick="openLocationModal()" class="text-[.72rem] font-semibold text-navy800 bg-transparent border-none cursor-pointer">+ Add new location</button>
+          <label class="text-[.78rem] font-semibold text-textMid">Storage</label>
+          <button type="button" onclick="openLocationModal()" class="text-[.72rem] font-semibold text-navy800 bg-transparent border-none cursor-pointer">+ Add new storage</button>
         </div>
         <select id="itmLocationId" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
       </div>
@@ -889,6 +953,8 @@ document.addEventListener('DOMContentLoaded', function(){
     btn.classList.add('active');
     if(btn.dataset.view === 'vouchers'){
       showVoucherPanel();
+    } else if(btn.dataset.view === 'issues'){
+      showIssuePanel();
     } else {
       showInventoryPanel(btn.dataset.filter);
     }
@@ -1032,38 +1098,35 @@ document.addEventListener('DOMContentLoaded', function(){
       state.showInactiveSuppliers = false;
       state.showInactiveLocations = false;
     }
-    const onVouchers = document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view === 'vouchers';
-    setInventoryHeaderAction(onVouchers);
+    const activeView = document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view;
+    setInventoryHeaderAction(activeView === 'vouchers' ? 'vouchers' : activeView === 'issues' ? 'issues' : 'items');
   }
 
-  function setInventoryHeaderAction(showVouchers){
+  function setInventoryHeaderAction(mode){
     const itemBtn = document.getElementById('inventoryAddItemBtn');
     const voucherBtn = document.getElementById('inventoryAddVoucherBtn');
     const managerUp = roleAtLeast('manager');
 
-    if(!managerUp){
-      itemBtn.classList.add('hidden');
-      itemBtn.classList.remove('flex');
-      voucherBtn.classList.add('hidden');
-      voucherBtn.classList.remove('flex');
+    itemBtn.classList.add('hidden');
+    itemBtn.classList.remove('flex');
+    voucherBtn.classList.add('hidden');
+    voucherBtn.classList.remove('flex');
+
+    if(!managerUp || mode === 'issues'){
       return;
     }
 
-    if(showVouchers){
-      itemBtn.classList.add('hidden');
-      itemBtn.classList.remove('flex');
+    if(mode === 'vouchers'){
       voucherBtn.classList.remove('hidden');
       voucherBtn.classList.add('flex');
     } else {
       itemBtn.classList.remove('hidden');
       itemBtn.classList.add('flex');
-      voucherBtn.classList.add('hidden');
-      voucherBtn.classList.remove('flex');
     }
   }
 
   /* ---------- live state (loaded from MySQL via PHP) ---------- */
-  const state = { user: null, locations: [], inventory: [], vouchers: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
+  const state = { user: null, locations: [], inventory: [], vouchers: [], stockIssues: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
 
   const PROCUREMENT_LABELS = {
     walk_in: 'Walk-in', pickup: 'Pick-up', delivery: 'Delivery', online: 'Online',
@@ -1095,6 +1158,8 @@ document.addEventListener('DOMContentLoaded', function(){
       'In stock': 'bg-greenBg text-greenTx',
       'Not tracked': 'bg-[#eef2f7] text-textMid',
       'Inactive': 'bg-[#eef2f7] text-textMid',
+      'Active': 'bg-greenBg text-greenTx',
+      'Voided': 'bg-redBg text-redTx',
     };
     return `<span class="px-2.5 py-1 rounded-full text-[.72rem] font-semibold ${map[status] || 'bg-[#eef2f7] text-textMid'}">${status}</span>`;
   }
@@ -1196,7 +1261,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const path = roleAtLeast('manager') ? 'inventory.php?include_inactive=1' : 'inventory.php';
     state.inventory = await apiGet(path);
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
-    if(active?.dataset.view !== 'vouchers'){
+    if(active?.dataset.view !== 'vouchers' && active?.dataset.view !== 'issues'){
       renderInventory(active?.dataset.filter || 'all');
     }
   }
@@ -1244,6 +1309,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
             ${it.active && it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
+            ${it.active && it.item_type === 'consumable' && it.current_qty > 0 ? `<button onclick="openIssueModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#fff3e0] text-orangeDark text-[.75rem] font-semibold border-none cursor-pointer">Issue</button>` : ''}
             ${roleAtLeast('manager') && it.active && it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
             ${roleAtLeast('manager') ? `<button onclick="openEditItemModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>` : ''}
             ${roleAtLeast('super_admin') ? `<button onclick="setItemActive('${it.item_key}', ${it.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${it.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${it.active ? 'Mark inactive' : 'Reactivate'}</button>` : ''}
@@ -1262,15 +1328,25 @@ document.addEventListener('DOMContentLoaded', function(){
   function showInventoryPanel(filter){
     document.getElementById('inventoryTableWrap').classList.remove('hidden');
     document.getElementById('voucherPanel').classList.add('hidden');
-    setInventoryHeaderAction(false);
+    document.getElementById('issuePanel').classList.add('hidden');
+    setInventoryHeaderAction('items');
     renderInventory(filter || 'all');
   }
 
   function showVoucherPanel(){
     document.getElementById('inventoryTableWrap').classList.add('hidden');
     document.getElementById('voucherPanel').classList.remove('hidden');
-    setInventoryHeaderAction(true);
+    document.getElementById('issuePanel').classList.add('hidden');
+    setInventoryHeaderAction('vouchers');
     renderVouchers();
+  }
+
+  function showIssuePanel(){
+    document.getElementById('inventoryTableWrap').classList.add('hidden');
+    document.getElementById('voucherPanel').classList.add('hidden');
+    document.getElementById('issuePanel').classList.remove('hidden');
+    setInventoryHeaderAction('issues');
+    renderStockIssues();
   }
 
   async function loadVouchers(){
@@ -1304,6 +1380,95 @@ document.addEventListener('DOMContentLoaded', function(){
         </td>
       </tr>`).join('');
   }
+
+  /* ---------- stock issues (department checkout log) ---------- */
+  async function loadStockIssues(){
+    state.stockIssues = await apiGet('stock_issues.php');
+    if(document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view === 'issues'){
+      renderStockIssues();
+    }
+  }
+
+  function renderStockIssues(){
+    const tbody = document.getElementById('issueTableBody');
+    if(!state.stockIssues.length){
+      tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-textMid">No stock issued yet. Use the Issue button on an item to record a checkout.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = state.stockIssues.map(iss => `
+      <tr class="border-b border-line last:border-0 ${iss.status === 'Voided' ? 'opacity-60' : ''}">
+        <td class="py-3 pr-3 text-textMid">${fmtDate(iss.created_at)}</td>
+        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(iss.item_label)}</td>
+        <td class="py-3 pr-3">${iss.qty} ${iss.unit}</td>
+        <td class="py-3 pr-3">${escapeHtml(iss.department)}</td>
+        <td class="py-3 pr-3 text-textMid">${escapeHtml(iss.issued_to || '—')}</td>
+        <td class="py-3 pr-3 text-textMid">${escapeHtml(iss.recorded_by)}</td>
+        <td class="py-3 pr-3">${statusPill(iss.status)}</td>
+        <td class="py-3 pr-3">
+          ${iss.status === 'Active' && roleAtLeast('manager') ? `<button onclick="voidIssue(${iss.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Void</button>` : (iss.status === 'Voided' ? `<span class="text-textSoft text-[.78rem]">${escapeHtml(iss.voided_reason || 'Voided')}</span>` : '—')}
+        </td>
+      </tr>`).join('');
+  }
+
+  window.openIssueModal = function(itemKey){
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    if(!it) return;
+    document.getElementById('issueForm').reset();
+    document.getElementById('issueItemKey').value = it.item_key;
+    document.getElementById('issueItemLabel').textContent = it.label;
+    document.getElementById('issueStockHint').textContent = `${it.current_qty} ${it.unit} currently on hand.`;
+    document.getElementById('issueQty').max = it.current_qty;
+    document.getElementById('issueQty').value = 1;
+    document.getElementById('issueDepartment').value = 'Marketing';
+    document.getElementById('issueDepartmentOther').classList.add('hidden');
+    document.getElementById('issueDepartmentOther').value = '';
+    openModal('issueModalOverlay');
+  };
+
+  document.getElementById('issueDepartment').addEventListener('change', function(){
+    document.getElementById('issueDepartmentOther').classList.toggle('hidden', this.value !== '__other__');
+  });
+
+  document.getElementById('issueForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const itemKey = document.getElementById('issueItemKey').value;
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    const qty = Number(document.getElementById('issueQty').value);
+    const deptSelect = document.getElementById('issueDepartment').value;
+    const department = deptSelect === '__other__'
+      ? document.getElementById('issueDepartmentOther').value.trim()
+      : deptSelect;
+    if(!department){ alert('Enter a department.'); return; }
+    if(!confirm(`Issue ${qty} ${it?.unit || ''} of ${it?.label || itemKey} to ${department}?`)) return;
+    try {
+      await apiSend('stock_issues.php', 'POST', {
+        item_key: itemKey,
+        qty,
+        department,
+        issued_to: document.getElementById('issueIssuedTo').value.trim() || null,
+        notes: document.getElementById('issueNotes').value.trim() || null,
+      });
+      closeModal('issueModalOverlay');
+      await Promise.all([loadInventory(), loadStockIssues()]);
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not record issue.');
+    }
+  });
+
+  window.voidIssue = async function(id){
+    const iss = state.stockIssues.find(i => i.id === id);
+    if(!iss) return;
+    const reason = prompt(`Void issue ${iss.issue_code}? ${iss.qty} ${iss.unit} of ${iss.item_label} will be added back to stock.\n\nOptional reason:`, '');
+    if(reason === null) return;
+    try {
+      await apiSend(`stock_issues.php?id=${id}`, 'PUT', { action: 'void', reason });
+      await Promise.all([loadInventory(), loadStockIssues()]);
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not void issue.');
+    }
+  };
 
   window.openVoucherModal = function(){
     document.getElementById('voucherForm').reset();
@@ -2336,7 +2501,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('showInactiveInventory').addEventListener('change', function(){
     state.showInactiveInventory = this.checked;
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
-    if(active?.dataset.view !== 'vouchers'){
+    if(active?.dataset.view !== 'vouchers' && active?.dataset.view !== 'issues'){
       renderInventory(active?.dataset.filter || 'all');
     }
   });
@@ -2352,7 +2517,7 @@ document.addEventListener('DOMContentLoaded', function(){
     updateProfileUI();
     applyRoleUI();
     await loadLocations();
-    await Promise.all([loadInventory(), loadVouchers(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments()]);
+    await Promise.all([loadInventory(), loadVouchers(), loadStockIssues(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments()]);
     renderDashboard();
     if(pageIdFromHash(location.hash) === 'page-inventory'){
       activateInventoryTab(inventoryTabSlugFromHash(location.hash));
