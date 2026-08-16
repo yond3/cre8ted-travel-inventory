@@ -4,6 +4,19 @@ Office inventory, purchase requests/orders, supplier directory, tour discount vo
 
 **Stack:** PHP (API + UI) · MySQL · Python (Prophet forecast microservice)
 
+### Quick start (group handoff)
+
+```powershell
+git clone https://github.com/yond3/cre8ted-travel-inventory.git
+cd cre8ted-travel-inventory
+git checkout cursor/rbac-procurement-and-po-fixes
+Get-Content ".\sql\schema.sql" | mysql -u root -p
+cd php
+php -S localhost:8000
+```
+
+Open `http://localhost:8000/login.html` — demo logins are in [section 6](#6-open-in-browser). Add the Python forecast service (section 4) only if you need the **AI Demand Forecast** page.
+
 ---
 
 ## What you need installed
@@ -20,9 +33,12 @@ Windows: [XAMPP](https://www.apachefriends.org/) is fine for PHP. Use its PHP pa
 
 ## 1. Clone the repo
 
+Use the **`cursor/rbac-procurement-and-po-fixes`** branch — it has the latest procurement, receipt review, and Finance stub work. `main` is older.
+
 ```powershell
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO
+git clone https://github.com/yond3/cre8ted-travel-inventory.git
+cd cre8ted-travel-inventory
+git checkout cursor/rbac-procurement-and-po-fixes
 ```
 
 ---
@@ -43,16 +59,21 @@ If MySQL is not on your PATH, use the full path, for example:
 Get-Content ".\sql\schema.sql" | & "C:\xampp\mysql\bin\mysql.exe" -u root -p
 ```
 
-**Already have a database from before?** `schema.sql` now includes `stock_issues` (Issue log), receipt columns, and Financial Management columns/`finance_integration_log` on `purchase_orders`, but rebuilding from scratch drops all data. To add just the new pieces to an existing database instead, run each migration once:
+**Already have a database from before?** `schema.sql` is the full current schema (receipts, Finance integration, receipt reject/reupload, vendor applications, etc.). Rebuilding from scratch **drops all data**. To upgrade an existing `wayfarer_inventory` database instead, run each migration below **once**, in order, skipping any you already applied:
 
 ```powershell
+Get-Content ".\sql\migration_vendor_applications.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_stock_issues.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_month_closes.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_supplier_active.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_items_locations_active.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_po_receipts.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_po_finance_status.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_po_receipt_waiver.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_po_receipt_rejection.sql" | mysql -u root wayfarer_inventory
 ```
 
-(Also run `migration_month_closes.sql` the same way if you haven't already — Close month needs it too.)
+If a migration fails with “duplicate column” or “table already exists”, that file was already applied — skip it and continue.
 
 ---
 
@@ -75,6 +96,8 @@ $env:DB_NAME = "wayfarer_inventory"
 ---
 
 ## 4. Python forecast service (optional but needed for AI Forecast page)
+
+Requires **Python 3.10+**. If `pip install prophet` fails (common on very new Python such as 3.14), use **3.11 or 3.12** for the venv instead.
 
 ```powershell
 python -m venv venv
