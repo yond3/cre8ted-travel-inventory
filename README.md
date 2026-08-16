@@ -121,8 +121,8 @@ Sign in with one of the demo accounts:
 
 | Username | Password | Role | Can do |
 |----------|----------|------|--------|
-| `juan` | `staff123` | Staff | View everything, create purchase requests, use vouchers, issue stock to a department, upload a purchase order receipt, mark orders received |
-| `maria` | `manager123` | Manager | Staff + approve/reject requests, create POs, resend a PO to Financial Management, record lost receipt on an order, edit stock, close month, restock vouchers, approve vendor quotes, void a stock issue |
+| `juan` | `staff123` | Staff | View everything, create purchase requests, use vouchers, issue stock to a department, upload a purchase order receipt |
+| `maria` | `manager123` | Manager | Staff + approve/reject requests, create POs, resend a PO to Financial Management, record lost receipt on an order, **mark orders received**, edit stock, close month, restock vouchers, approve vendor quotes, void a stock issue |
 | `admin` | `admin123` | Super Admin | Manager + mark items/suppliers/locations inactive, edit voucher quantities, cancel POs |
 
 The vendor quote form (`vendor-apply.html`) stays **public** — no login required, by design.
@@ -147,9 +147,18 @@ Once a purchase order is **Placed** and **funded** (see Financial Management bel
 
 1. Staff or manager clicks **Upload receipt** on the order — attaches a JPG/PNG/PDF (max 5 MB), the amount on the receipt, and optionally an OR/receipt number and notes.
 2. The file is saved under `php/uploads/receipts/` (git-ignored) and served only through `GET /api/receipts.php?po_id=<id>`, which requires login.
-3. Once uploaded, **Mark received** becomes available; stock still only increases at that step, same as before.
+3. Once uploaded, the order shows **Waiting for manager to verify & receive** to staff. **Mark received is manager-and-above only** — a manager checks the receipt against the PO before confirming; stock only increases at that step.
+
+**Reject receipt (manager only):** if the receipt is wrong — blurry, wrong amount, wrong supplier, etc. — a manager clicks **Reject receipt** and leaves a required note (min. 10 characters) explaining the problem. This:
+- Blocks **Mark received** until a corrected receipt is uploaded.
+- Shows staff a **Rejected — view note** state instead of the normal receipt view, with the manager's note and a **Reupload receipt** button.
+- Lets staff upload a replacement the same way as the first upload; the new file replaces the old one on disk, clears the rejection, and re-sends the expense to Financial Management. The order then goes back to **Waiting for manager to verify & receive**.
+
+A receipt can only be replaced this way — a second upload is rejected by the API unless the current receipt was rejected first. This keeps the loop explicit: **upload → manager review → reject with note (if needed) → reupload → receive**, instead of a silent, unaudited replace.
 
 **Lost receipt (manager only):** if proof of purchase truly cannot be attached, a manager can click **Lost receipt** on a funded order, enter the actual amount spent and a note (min. 10 characters). This is forwarded to Financial Management instead of a file, and **Mark received** becomes available the same way. Staff cannot use this — only managers and above.
+
+**Why manager-only receive:** upload and receive used to both be staff actions, so a wrong receipt upload followed immediately by Mark received could lock in bad Finance data and inventory with no second check. Requiring a manager to receive adds a verification step between "proof attached" and "stock/Finance finalized," without blocking staff from doing the legwork of buying and uploading. Reject-with-note turns that check into an actual feedback loop instead of a silent rubber stamp.
 
 ---
 

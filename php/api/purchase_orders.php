@@ -15,6 +15,10 @@
  * created; PUT ?id=<id> { action: 'resend_finance' } (manager+) retries it.
  * PUT ?id=<id> { action: 'declare_receipt_lost', actual_amount, note }
  * (manager+) records a lost receipt and forwards the note to Finance.
+ * PUT ?id=<id> { action: 'reject_receipt', note }
+ * (manager+) rejects an uploaded receipt (wrong file, wrong amount, unreadable,
+ * etc.) with a required note. Blocks 'receive' until the order gets a fresh
+ * upload via receipts.php, which clears the rejection.
  * See finance_client.php.
  */
 require __DIR__ . '/config.php';
@@ -52,6 +56,10 @@ function format_order(array $row): array
         'receipt_waiver_note' => $row['receipt_waiver_note'],
         'receipt_waived_at' => $row['receipt_waived_at'],
         'receipt_waived_by' => $row['receipt_waived_by'],
+        'receipt_rejected' => !empty($row['receipt_rejected']),
+        'receipt_rejection_note' => $row['receipt_rejection_note'],
+        'receipt_rejected_at' => $row['receipt_rejected_at'],
+        'receipt_rejected_by' => $row['receipt_rejected_by'],
         'finance_status' => $row['finance_status'],
         'finance_disbursement_id' => $row['finance_disbursement_id'],
         'finance_expense_id' => $row['finance_expense_id'],
@@ -156,15 +164,20 @@ if ($method === 'PUT') {
     $action = $body['action'] ?? '';
 
     if ($action === 'receive') {
-        require_staff_or_above();
+        // Manager sign-off required: staff upload the receipt, but a second
+        // pair of eyes must verify it against the PO before stock/finance
+        // are finalized — prevents a wrong-receipt-then-receive mistake.
+        require_manager_or_above();
     } elseif ($action === 'cancel') {
         require_super_admin();
     } elseif ($action === 'resend_finance') {
         require_manager_or_above();
     } elseif ($action === 'declare_receipt_lost') {
         require_manager_or_above();
+    } elseif ($action === 'reject_receipt') {
+        require_manager_or_above();
     } else {
-        json_error("action must be 'receive', 'cancel', 'resend_finance', or 'declare_receipt_lost'");
+        json_error("action must be 'receive', 'cancel', 'resend_finance', 'declare_receipt_lost', or 'reject_receipt'");
     }
 
     $row = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
@@ -228,9 +241,41 @@ if ($method === 'PUT') {
         exit;
     }
 
-    $hasProof = $row['receipt_filename'] || !empty($row['receipt_waived']);
+    if ($action === 'reject_receipt') {
+        if (!$row['receipt_filename']) {
+            json_error('no receipt has been uploaded for this order yet', 409);
+        }
+        if (!empty($row['receipt_rejected'])) {
+            json_error('this receipt was already rejected — waiting for a new upload', 409);
+        }
+        $note = trim($body['note'] ?? '');
+        if (strlen($note) < 10) {
+            json_error('note is required (at least 10 characters — explain what is wrong so staff can fix it)');
+        }
+
+        $user = get_session_user();
+        $pdo->prepare(
+            'UPDATE purchase_orders SET
+                receipt_rejected = 1,
+                receipt_rejection_note = ?,
+                receipt_rejected_at = NOW(),
+                receipt_rejected_by = ?
+             WHERE id = ?'
+        )->execute([$note, $user['name'], $id]);
+
+        $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
+        echo json_encode(format_order($updated));
+        exit;
+    }
+
+    // A rejected receipt no longer counts as proof — the order must get a
+    // fresh upload (which clears the rejection) before it can be received.
+    $hasProof = ($row['receipt_filename'] && empty($row['receipt_rejected'])) || !empty($row['receipt_waived']);
     if ($action === 'receive' && !$hasProof) {
-        json_error('upload the purchase receipt or record a lost receipt (manager) before marking this order received', 409);
+        $reason = !empty($row['receipt_rejected'])
+            ? 'the uploaded receipt was rejected — wait for a corrected upload before marking this order received'
+            : 'upload the purchase receipt or record a lost receipt (manager) before marking this order received';
+        json_error($reason, 409);
     }
 
     if ($action === 'receive') {

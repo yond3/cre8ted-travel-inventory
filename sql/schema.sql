@@ -149,6 +149,13 @@ CREATE TABLE purchase_orders (
     receipt_waiver_note VARCHAR(500) NULL,
     receipt_waived_at DATETIME NULL,
     receipt_waived_by VARCHAR(100) NULL,
+    -- A manager can reject an uploaded receipt (wrong file, wrong amount,
+    -- unreadable, etc.) with a required note. While rejected the order
+    -- cannot be marked Received; the next successful upload clears this.
+    receipt_rejected TINYINT(1) NOT NULL DEFAULT 0,
+    receipt_rejection_note VARCHAR(500) NULL,
+    receipt_rejected_at DATETIME NULL,
+    receipt_rejected_by VARCHAR(100) NULL,
     FOREIGN KEY (request_id) REFERENCES purchase_requests(id),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
 ) ENGINE=InnoDB;

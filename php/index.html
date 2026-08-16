@@ -389,7 +389,7 @@
   </div>
   <div class="bg-blueBg border border-[#c6d7fb] rounded-card p-4 mb-5 flex items-start gap-3">
     <i class='bx bx-bulb text-blueTx text-[1.3rem] mt-0.5'></i>
-    <p class="text-[.85rem] text-blueTx"><span class="font-bold">System tip:</span> Orders are sent to Financial Management automatically for budget disbursement. Once Finance marks it funded, upload the purchase receipt before marking the order received — it's forwarded to Finance too.</p>
+    <p class="text-[.85rem] text-blueTx"><span class="font-bold">System tip:</span> Orders are sent to Financial Management automatically for budget disbursement. Once Finance marks it funded, upload the purchase receipt — it's forwarded to Finance too. A manager reviews it: reject with a note if something's wrong (staff reuploads), or mark the order received once it checks out.</p>
   </div>
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
@@ -907,14 +907,15 @@
   </div>
 </div>
 
-<!-- ===================== MODAL: UPLOAD RECEIPT ===================== -->
+<!-- ===================== MODAL: UPLOAD / REUPLOAD RECEIPT ===================== -->
 <div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="receiptModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-1">
-      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Upload receipt</h3>
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="receiptModalTitle">Upload receipt</h3>
       <button type="button" onclick="closeModal('receiptModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
     </div>
-    <p class="text-[.8rem] text-textMid mb-4" id="receiptModalPoLabel">Attach proof of purchase before marking this order received.</p>
+    <p class="text-[.8rem] text-textMid mb-2" id="receiptModalPoLabel">Attach proof of purchase before marking this order received.</p>
+    <div class="hidden mb-3 bg-redBg border border-redTx/20 rounded-xl px-3 py-2.5 text-[.8rem] text-redTx" id="receiptModalRejectionNote"></div>
     <form id="receiptForm" class="flex flex-col gap-4">
       <input type="hidden" id="receiptPoId" value="">
       <div>
@@ -933,8 +934,49 @@
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes <span class="text-textSoft font-normal">(optional)</span></label>
         <input id="receiptNotes" maxlength="255" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Paid via petty cash">
       </div>
-      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Upload receipt</button>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn" id="receiptSubmitBtn">Upload receipt</button>
     </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: REJECT RECEIPT (manager only) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="rejectReceiptModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Reject receipt</h3>
+      <button type="button" onclick="closeModal('rejectReceiptModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="rejectReceiptModalPoLabel">Send this receipt back to staff with a note explaining what's wrong. The order cannot be marked received until a corrected receipt is uploaded.</p>
+    <form id="rejectReceiptForm" class="flex flex-col gap-4">
+      <input type="hidden" id="rejectReceiptPoId" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Note to staff</label>
+        <textarea id="rejectReceiptNote" maxlength="500" rows="4" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="What's wrong and what to fix (min. 10 characters) — e.g. blurry photo, wrong amount, wrong supplier receipt."></textarea>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border border-redTx/20 shadow-btn">Reject receipt</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: VIEW REJECTED RECEIPT (read-only) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="rejectReceiptViewModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Receipt rejected</h3>
+      <button type="button" onclick="closeModal('rejectReceiptViewModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="rejectReceiptViewPoLabel"></p>
+    <dl class="flex flex-col gap-3 text-[.85rem]">
+      <div>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Manager note</dt>
+        <dd class="text-redTx whitespace-pre-wrap bg-redBg border border-redTx/20 rounded-xl px-3 py-2.5" id="rejectReceiptViewNote">—</dd>
+      </div>
+      <div class="text-[.72rem] text-textSoft" id="rejectReceiptViewMeta">—</div>
+    </dl>
+    <div class="flex gap-2 mt-4">
+      <button type="button" id="rejectReceiptViewOldFileBtn" onclick="viewRejectedReceiptFile()" class="flex-1 px-4 py-2.5 rounded-xl bg-[#eef2f7] text-textMid text-[.85rem] font-semibold cursor-pointer border-none">View rejected file</button>
+      <button type="button" onclick="closeModal('rejectReceiptViewModalOverlay')" class="flex-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-semibold cursor-pointer border-none">Close</button>
+    </div>
   </div>
 </div>
 
@@ -2012,16 +2054,24 @@ document.addEventListener('DOMContentLoaded', function(){
   function renderOrders(){
     const tbody = document.getElementById('ordersTableBody');
     tbody.innerHTML = state.orders.map(o => {
-      const receiptCell = o.receipt_uploaded
-        ? `<button onclick="viewReceipt(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View receipt</button>`
-        : (o.receipt_waived
-            ? `<button onclick="viewLostReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
-            : (o.status === 'Placed'
-                ? `<span class="text-amberTx text-[.75rem] font-semibold">Not uploaded</span>`
-                : `<span class="text-textSoft text-[.75rem]">—</span>`));
+      const receiptCell = o.receipt_rejected
+        ? `<button onclick="viewRejectedReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Rejected — view note</button>`
+        : (o.receipt_uploaded
+            ? `<button onclick="viewReceipt(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View receipt</button>`
+            : (o.receipt_waived
+                ? `<button onclick="viewLostReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
+                : (o.status === 'Placed'
+                    ? `<span class="text-amberTx text-[.75rem] font-semibold">Not uploaded</span>`
+                    : `<span class="text-textSoft text-[.75rem]">—</span>`)));
       const canUploadReceipt = o.status === 'Placed' && o.finance_status === 'funded' && !o.receipt_uploaded && !o.receipt_waived;
+      const canReuploadReceipt = o.status === 'Placed' && ['funded', 'expense_pending', 'expense_recorded'].includes(o.finance_status) && o.receipt_rejected;
       const canDeclareLostReceipt = o.status === 'Placed' && o.finance_status === 'funded' && !o.receipt_uploaded && !o.receipt_waived && roleAtLeast('manager');
-      const canMarkReceived = o.status === 'Placed' && (o.receipt_uploaded || o.receipt_waived);
+      const pendingReview = o.receipt_uploaded && !o.receipt_rejected;
+      const canRejectReceipt = o.status === 'Placed' && pendingReview && roleAtLeast('manager');
+      const hasProof = pendingReview || o.receipt_waived;
+      const canMarkReceived = o.status === 'Placed' && hasProof && roleAtLeast('manager');
+      const awaitingManagerReceive = o.status === 'Placed' && hasProof && !roleAtLeast('manager');
+      const awaitingReupload = o.status === 'Placed' && o.receipt_rejected && roleAtLeast('manager');
       const awaitingFinance = o.status === 'Placed' && !o.receipt_uploaded && !o.receipt_waived && o.finance_status !== 'funded' && o.finance_status !== 'disbursement_rejected';
       const canResendFinance = o.status === 'Placed' && roleAtLeast('manager') && (o.finance_status === 'not_sent' || o.finance_status === 'disbursement_rejected');
       return `
@@ -2038,9 +2088,13 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">
           <div class="flex gap-2 flex-wrap">
             ${canUploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.75rem] font-bold border-none cursor-pointer">Upload receipt</button>` : ''}
+            ${canReuploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.75rem] font-bold border-none cursor-pointer">Reupload receipt</button>` : ''}
             ${canDeclareLostReceipt ? `<button onclick="openLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Lost receipt</button>` : ''}
+            ${canRejectReceipt ? `<button onclick="openRejectReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Reject receipt</button>` : ''}
             ${awaitingFinance ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for Finance</span>` : ''}
             ${canMarkReceived ? `<button onclick="markReceived(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Mark received</button>` : ''}
+            ${awaitingManagerReceive ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for manager to verify &amp; receive</span>` : ''}
+            ${awaitingReupload ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for staff to reupload</span>` : ''}
             ${canResendFinance ? `<button onclick="resendFinance(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Resend to Finance</button>` : ''}
             ${o.status === 'Placed' && roleAtLeast('super_admin') ? `<button onclick="cancelOrder(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Cancel</button>` : ''}
             <button onclick="openOrderSlip(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Slip</button>
@@ -2066,6 +2120,17 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('receiptForm').reset();
     document.getElementById('receiptPoId').value = id;
     document.getElementById('receiptModalPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}${order.amount != null ? ` (estimated ${peso(order.amount)})` : ''}.`;
+    const rejectionBox = document.getElementById('receiptModalRejectionNote');
+    if(order.receipt_rejected){
+      document.getElementById('receiptModalTitle').textContent = 'Reupload receipt';
+      document.getElementById('receiptSubmitBtn').textContent = 'Reupload receipt';
+      rejectionBox.textContent = `Rejected by ${order.receipt_rejected_by || 'manager'}: ${order.receipt_rejection_note || ''}`;
+      rejectionBox.classList.remove('hidden');
+    } else {
+      document.getElementById('receiptModalTitle').textContent = 'Upload receipt';
+      document.getElementById('receiptSubmitBtn').textContent = 'Upload receipt';
+      rejectionBox.classList.add('hidden');
+    }
     openModal('receiptModalOverlay');
   };
 
@@ -2141,10 +2206,53 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 
+  window.openRejectReceiptModal = function(id){
+    const order = state.orders.find(o => o.id === id);
+    if(!order) return;
+    document.getElementById('rejectReceiptForm').reset();
+    document.getElementById('rejectReceiptPoId').value = id;
+    document.getElementById('rejectReceiptModalPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}. Send this receipt back to staff with a note explaining what's wrong.`;
+    openModal('rejectReceiptModalOverlay');
+  };
+
+  document.getElementById('rejectReceiptForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const id = document.getElementById('rejectReceiptPoId').value;
+    const note = document.getElementById('rejectReceiptNote').value.trim();
+    if(note.length < 10){ alert('Note must be at least 10 characters.'); return; }
+    if(!confirm('Reject this receipt? Staff will need to upload a corrected one before the order can be received.')) return;
+    try {
+      await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'reject_receipt', note });
+      closeModal('rejectReceiptModalOverlay');
+      await Promise.all([loadOrders(), loadDocuments()]);
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not reject receipt.');
+    }
+  });
+
+  let rejectReceiptViewOrderId = null;
+
+  window.viewRejectedReceiptNote = function(id){
+    const order = state.orders.find(o => o.id === id);
+    if(!order || !order.receipt_rejected) return;
+    rejectReceiptViewOrderId = id;
+    document.getElementById('rejectReceiptViewPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}`;
+    document.getElementById('rejectReceiptViewNote').textContent = order.receipt_rejection_note || '—';
+    const when = order.receipt_rejected_at ? fmtDate(order.receipt_rejected_at) : '—';
+    const who = order.receipt_rejected_by || '—';
+    document.getElementById('rejectReceiptViewMeta').textContent = `${who} · ${when}`;
+    openModal('rejectReceiptViewModalOverlay');
+  };
+
+  window.viewRejectedReceiptFile = function(){
+    if(rejectReceiptViewOrderId != null) viewReceipt(rejectReceiptViewOrderId);
+  };
+
   window.markReceived = async function(id){
     const order = state.orders.find(o => o.id === id);
     if(!order) return;
-    if(!confirm(`Confirm ${order.qty} ${order.unit} of ${order.item_label} were received?`)) return;
+    if(!confirm(`Confirm ${order.qty} ${order.unit} of ${order.item_label} were received, and that the receipt/lost-receipt note matches this order?`)) return;
     try {
       const result = await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'receive' });
       await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory()]);

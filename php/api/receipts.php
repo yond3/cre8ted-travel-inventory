@@ -5,6 +5,9 @@
  *         Management has already funded. Required before that order can be
  *         marked Received (see purchase_orders.php). Automatically forwards
  *         the receipt to Finance as an expense once saved (finance_client.php).
+ *         A second upload is only allowed after a manager rejects the first
+ *         one (PUT purchase_orders.php action=reject_receipt); it replaces
+ *         the file and clears the rejection.
  * GET  /api/receipts.php?po_id=<id>   -> streams the stored receipt file (auth required).
  */
 require __DIR__ . '/config.php';
@@ -54,12 +57,22 @@ if ($method === 'POST') {
         json_error("order is '{$po['status']}', not Placed — a receipt can only be attached before receiving", 409);
     }
 
-    if ($po['finance_status'] !== 'funded') {
+    // A first upload requires 'funded'. A reupload (after rejection) happens
+    // once the expense has already been sent, so finance_status has since
+    // moved on to expense_pending/expense_recorded — that still counts as
+    // funded for this check, it's just further along.
+    $fundedOrBeyond = ['funded', 'expense_pending', 'expense_recorded'];
+    if (!in_array($po['finance_status'], $fundedOrBeyond, true)) {
         json_error("purchase order is not funded yet (finance status: {$po['finance_status']}) — wait for Financial Management to release the budget before uploading a receipt", 409);
     }
 
     if (!empty($po['receipt_waived'])) {
         json_error('this order was marked as lost receipt by a manager — upload a file is not allowed', 409);
+    }
+
+    $isReupload = (bool) $po['receipt_filename'];
+    if ($isReupload && empty($po['receipt_rejected'])) {
+        json_error('a receipt is already on file for this order — ask a manager to review or reject it before uploading a replacement', 409);
     }
 
     if (empty($_FILES['receipt']) || $_FILES['receipt']['error'] === UPLOAD_ERR_NO_FILE) {
@@ -99,17 +112,22 @@ if ($method === 'POST') {
         json_error('failed to save receipt file', 500);
     }
 
-    // Remove a previous file if this PO somehow already had one (shouldn't
-    // happen since upload is only allowed pre-receive, but keeps disk clean).
+    // On a reupload (after rejection), the old file is superseded — remove
+    // it from disk. Only the latest receipt is kept; the rejection note is
+    // cleared in the same update since it no longer applies.
     if ($po['receipt_filename'] && is_file(RECEIPT_UPLOAD_DIR . $po['receipt_filename'])) {
         @unlink(RECEIPT_UPLOAD_DIR . $po['receipt_filename']);
     }
 
+    // A reupload replaces the file/metadata and clears any prior rejection —
+    // it's a fresh receipt awaiting the manager's review again.
     $stmt = $pdo->prepare(
         'UPDATE purchase_orders SET
             receipt_filename = ?, receipt_original_name = ?, receipt_mime = ?,
             receipt_amount = ?, receipt_number = ?, receipt_notes = ?,
-            receipt_uploaded_at = NOW(), receipt_uploaded_by = ?
+            receipt_uploaded_at = NOW(), receipt_uploaded_by = ?,
+            receipt_rejected = 0, receipt_rejection_note = NULL,
+            receipt_rejected_at = NULL, receipt_rejected_by = NULL
          WHERE id = ?'
     );
     $stmt->execute([
@@ -125,6 +143,8 @@ if ($method === 'POST') {
 
     $freshPo = fetch_po_or_404($pdo, $poId);
     try {
+        // Reupload after a rejection still corrects the same expense record
+        // Finance already has; stub mode simply resends with the new amount.
         finance_send_expense($pdo, $freshPo);
     } catch (Exception $e) {
         // A Finance hiccup should never block the receipt upload itself —
@@ -141,6 +161,7 @@ if ($method === 'POST') {
         'receipt_uploaded_at' => date('Y-m-d H:i:s'),
         'receipt_uploaded_by' => $user['name'],
         'finance_status' => $freshPo['finance_status'],
+        'was_reupload' => $isReupload,
     ]);
     exit;
 }
