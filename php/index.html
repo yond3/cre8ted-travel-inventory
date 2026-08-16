@@ -73,6 +73,23 @@
   .menu-toggle:active, .icon-btn:active{ background:#b9c2d1 !important; color:#0f2242 !important; }
   .profile-menu.show{ opacity:1; visibility:visible; transform:translateY(0); }
   .filter-pill.active{ background:linear-gradient(135deg,#173868,#0c1f3f); color:#fff; box-shadow:0 8px 18px rgba(15,42,82,.25); }
+  .nav-item{ position:relative; }
+  .nav-attention-badge{
+    position:absolute; top:10px; right:12px; min-width:18px; height:18px; padding:0 5px;
+    border-radius:999px; background:#fff; color:#c2410c; font-size:.62rem; font-weight:800;
+    display:flex; align-items:center; justify-content:center; line-height:1;
+    box-shadow:0 0 0 2px #f97316; pointer-events:none; z-index:1;
+  }
+  .nav-attention-badge.hidden{ display:none; }
+  .nav-item.needs-attention:not(.active){ background:rgba(255,252,246,.92); box-shadow:inset 3px 0 0 #fff; }
+  .filter-pill{ position:relative; }
+  .filter-pill.needs-attention:not(.active){ box-shadow:0 0 0 2px #f97316; }
+  .filter-pill .pill-attention-dot{
+    position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:999px;
+    background:#f97316; border:2px solid #fff; pointer-events:none;
+  }
+  .filter-pill .pill-attention-dot.hidden{ display:none; }
+  #notifBtn .dot.hidden{ display:none; }
   .gl-table tbody tr:hover{ background:#f7f9fc; }
   .page-section.hidden{ display:none; }
   .modal-overlay{ display:none; }
@@ -1041,6 +1058,14 @@ document.addEventListener('DOMContentLoaded', function(){
   const menuToggle = document.getElementById('menuToggle');
   const overlay = document.getElementById('overlay');
 
+  /* ---------- live state (loaded from MySQL via PHP) ----------
+     Declared early: navigateToPage() below runs once synchronously at
+     load time and touches attention-badge state, so both must exist
+     before that first call — otherwise it's a temporal-dead-zone error
+     that silently aborts the rest of this script. */
+  const state = { user: null, locations: [], inventory: [], vouchers: [], stockIssues: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
+  const attentionDismissed = { requests: null, orders: null, inventory: null, suppliers: null };
+
   function toggleSidebar(){
     if(window.innerWidth <= 900){
       sidebar.classList.toggle('show');
@@ -1112,6 +1137,7 @@ document.addEventListener('DOMContentLoaded', function(){
       sidebar.classList.remove('show');
       overlay.classList.remove('show');
     }
+    dismissAttentionForPage(pageId);
   }
 
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -1141,10 +1167,15 @@ document.addEventListener('DOMContentLoaded', function(){
   setInterval(updateTopbarTime, 1000);
 
   document.getElementById('notifBtn').addEventListener('click', () => {
-    const pendingCount = state.requests.filter(r => r.status === 'Pending').length;
-    alert(pendingCount > 0
-      ? `${pendingCount} purchase request${pendingCount === 1 ? '' : 's'} waiting for your approval.`
-      : 'No pending requests right now.');
+    const parts = [];
+    const c = computeAttentionCounts();
+    if(c.requests) parts.push(`${c.requests} purchase request${c.requests === 1 ? '' : 's'}`);
+    if(c.orders) parts.push(`${c.orders} purchase order${c.orders === 1 ? '' : 's'}`);
+    if(c.inventory) parts.push(`${c.inventory} low stock item${c.inventory === 1 ? '' : 's'}`);
+    if(c.suppliers) parts.push(`${c.suppliers} vendor quote${c.suppliers === 1 ? '' : 's'}`);
+    alert(parts.length
+      ? `Needs attention:\n\n• ${parts.join('\n• ')}`
+      : 'Nothing needs your attention right now.');
   });
   const profileBtn = document.getElementById('profileBtn');
   const profileMenu = document.getElementById('profileMenu');
@@ -1203,6 +1234,7 @@ document.addEventListener('DOMContentLoaded', function(){
       return false;
     }
     state.user = data.user;
+    loadAttentionDismissedFromStorage();
     return true;
   }
 
@@ -1228,6 +1260,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     const activeView = document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view;
     setInventoryHeaderAction(activeView === 'vouchers' ? 'vouchers' : activeView === 'issues' ? 'issues' : 'items');
+    updateAttentionBadges();
   }
 
   function setInventoryHeaderAction(mode){
@@ -1253,8 +1286,154 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  /* ---------- live state (loaded from MySQL via PHP) ---------- */
-  const state = { user: null, locations: [], inventory: [], vouchers: [], stockIssues: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
+  /* ---------- attention badges (sidebar + filter pills) ----------
+     "Dismissed" (seen) IDs persist in localStorage per user, so a page
+     refresh doesn't bring back a badge for something already looked at.
+     Only genuinely new items (not in the stored set) light the badge. */
+  function attentionStorageKey(){
+    return state.user?.name ? `scim_attention_dismissed_${state.user.name}` : null;
+  }
+
+  function loadAttentionDismissedFromStorage(){
+    const key = attentionStorageKey();
+    if(!key) return;
+    try {
+      const raw = localStorage.getItem(key);
+      if(!raw) return;
+      const parsed = JSON.parse(raw);
+      ['requests', 'orders', 'inventory', 'suppliers'].forEach(bucket => {
+        if(Array.isArray(parsed[bucket])) attentionDismissed[bucket] = new Set(parsed[bucket]);
+      });
+    } catch (e) {
+      // Corrupt/old storage format — ignore and start fresh.
+    }
+  }
+
+  function saveAttentionDismissedToStorage(){
+    const key = attentionStorageKey();
+    if(!key) return;
+    const serializable = {};
+    ['requests', 'orders', 'inventory', 'suppliers'].forEach(bucket => {
+      if(attentionDismissed[bucket]) serializable[bucket] = Array.from(attentionDismissed[bucket]);
+    });
+    try {
+      localStorage.setItem(key, JSON.stringify(serializable));
+    } catch (e) {
+      // Storage full/unavailable — badges just won't persist across refresh.
+    }
+  }
+
+  function orderNeedsAttention(o){
+    if(o.status !== 'Placed') return false;
+    const pendingReview = o.receipt_uploaded && !o.receipt_rejected;
+    const hasProof = pendingReview || o.receipt_waived;
+    if(roleAtLeast('manager')){
+      if(pendingReview || (hasProof && o.receipt_waived)) return true;
+      if(o.finance_status === 'not_sent' || o.finance_status === 'disbursement_rejected') return true;
+      return false;
+    }
+    if(o.receipt_rejected && ['funded', 'expense_pending', 'expense_recorded'].includes(o.finance_status)) return true;
+    if(o.finance_status === 'funded' && !o.receipt_uploaded && !o.receipt_waived) return true;
+    return false;
+  }
+
+  function requestNeedsAttention(r){
+    if(roleAtLeast('manager')){
+      return r.status === 'Pending' || (r.status === 'Approved' && !r.has_po);
+    }
+    return r.employee === state.user?.name && (r.status === 'Approved' || r.status === 'Rejected');
+  }
+
+  function lowStockItems(){
+    return activeItems().filter(it => it.status === 'Low stock');
+  }
+
+  function unseenCount(currentIds, dismissedSet){
+    if(!dismissedSet) return currentIds.length;
+    return currentIds.filter(id => !dismissedSet.has(id)).length;
+  }
+
+  function computeAttentionCounts(){
+    const requestIds = state.requests.filter(requestNeedsAttention).map(r => r.id);
+    const orderIds = state.orders.filter(orderNeedsAttention).map(o => o.id);
+    const lowStockKeys = lowStockItems().map(it => it.item_key);
+    const vendorIds = roleAtLeast('manager')
+      ? state.vendorApplications.filter(a => a.status === 'Pending').map(a => a.id)
+      : [];
+
+    return {
+      requests: unseenCount(requestIds, attentionDismissed.requests),
+      orders: unseenCount(orderIds, attentionDismissed.orders),
+      inventory: unseenCount(lowStockKeys, attentionDismissed.inventory),
+      suppliers: unseenCount(vendorIds, attentionDismissed.suppliers),
+    };
+  }
+
+  function dismissAttentionForPage(pageId){
+    if(pageId === 'page-requests'){
+      attentionDismissed.requests = new Set(
+        state.requests.filter(requestNeedsAttention).map(r => r.id)
+      );
+    } else if(pageId === 'page-orders'){
+      attentionDismissed.orders = new Set(
+        state.orders.filter(orderNeedsAttention).map(o => o.id)
+      );
+    } else if(pageId === 'page-inventory'){
+      attentionDismissed.inventory = new Set(
+        lowStockItems().map(it => it.item_key)
+      );
+    } else if(pageId === 'page-suppliers'){
+      attentionDismissed.suppliers = new Set(
+        state.vendorApplications.filter(a => a.status === 'Pending').map(a => a.id)
+      );
+    }
+    saveAttentionDismissedToStorage();
+    updateAttentionBadges();
+  }
+
+  function setNavAttention(pageId, count){
+    const navItem = document.querySelector(`.nav-item[data-target="${pageId}"]`);
+    if(!navItem) return;
+    let badge = navItem.querySelector('.nav-attention-badge');
+    if(!badge){
+      badge = document.createElement('span');
+      badge.className = 'nav-attention-badge hidden';
+      navItem.appendChild(badge);
+    }
+    if(count > 0){
+      badge.textContent = count > 9 ? '9+' : String(count);
+      badge.classList.remove('hidden');
+      navItem.classList.add('needs-attention');
+    } else {
+      badge.classList.add('hidden');
+      navItem.classList.remove('needs-attention');
+    }
+  }
+
+  function setFilterPillAttention(slug, show){
+    const pill = document.querySelector(`#inventoryFilters .filter-pill[data-slug="${slug}"]`);
+    if(!pill) return;
+    let dot = pill.querySelector('.pill-attention-dot');
+    if(!dot){
+      dot = document.createElement('span');
+      dot.className = 'pill-attention-dot hidden';
+      pill.appendChild(dot);
+    }
+    dot.classList.toggle('hidden', !show);
+    pill.classList.toggle('needs-attention', show);
+  }
+
+  function updateAttentionBadges(){
+    if(!state.user) return;
+    const c = computeAttentionCounts();
+    setNavAttention('page-requests', c.requests);
+    setNavAttention('page-orders', c.orders);
+    setNavAttention('page-inventory', c.inventory);
+    setNavAttention('page-suppliers', c.suppliers);
+    setFilterPillAttention('low-stock', c.inventory > 0);
+    const total = c.requests + c.orders + c.inventory + c.suppliers;
+    document.querySelector('#notifBtn .dot')?.classList.toggle('hidden', total === 0);
+  }
 
   const PROCUREMENT_LABELS = {
     walk_in: 'Walk-in', pickup: 'Pick-up', delivery: 'Delivery', online: 'Online',
@@ -1913,6 +2092,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
         ${statusPill(d.status)}
       </div>`).join('');
+    updateAttentionBadges();
   }
 
   /* ---------- requests ---------- */
@@ -2846,6 +3026,7 @@ document.addEventListener('DOMContentLoaded', function(){
     await loadLocations();
     await Promise.all([loadInventory(), loadVouchers(), loadStockIssues(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments()]);
     renderDashboard();
+    dismissAttentionForPage(pageIdFromHash(location.hash));
     if(pageIdFromHash(location.hash) === 'page-inventory'){
       activateInventoryTab(inventoryTabSlugFromHash(location.hash));
     }
