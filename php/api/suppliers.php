@@ -140,7 +140,7 @@ if ($method === 'PUT') {
     if (array_key_exists('prices', $body) && is_array($body['prices'])) {
         require_manager_or_above();
         $validItems = $pdo->query(
-            "SELECT item_key FROM items WHERE item_type = 'consumable' AND active = 1"
+            "SELECT item_key FROM items WHERE item_type IN ('consumable', 'equipment') AND active = 1"
         )->fetchAll(PDO::FETCH_COLUMN);
         $validSet = array_flip($validItems);
 

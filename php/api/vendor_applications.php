@@ -3,7 +3,7 @@
  * Vendor quotation submissions — no login; vendors use vendor-apply.html.
  *
  * GET  /api/vendor_applications.php?quotable=1
- *      -> consumable items vendors can quote (public form).
+ *      -> active catalog items vendors can quote (consumables + equipment).
  * GET  /api/vendor_applications.php
  * GET  /api/vendor_applications.php?status=Pending
  *      -> list applications with line-item prices (admin).
@@ -85,12 +85,17 @@ function normalize_methods($methods): string
 if ($method === 'GET') {
     if (isset($_GET['quotable'])) {
         $rows = $pdo->query(
-            "SELECT item_key, label, unit FROM items WHERE item_type = 'consumable' AND active = 1 ORDER BY label"
+            "SELECT item_key, label, unit, item_type FROM items
+             WHERE active = 1
+             AND (item_type = 'consumable'
+                  OR (item_type = 'equipment' AND (assigned_department IS NULL OR TRIM(assigned_department) = '')))
+             ORDER BY item_type, label"
         )->fetchAll();
         echo json_encode(array_map(fn($r) => [
             'item_key' => $r['item_key'],
             'label' => $r['label'],
             'unit' => $r['unit'],
+            'item_type' => $r['item_type'],
         ], $rows));
         exit;
     }
@@ -134,7 +139,9 @@ if ($method === 'POST') {
     }
 
     $validItems = $pdo->query(
-        "SELECT item_key FROM items WHERE item_type = 'consumable' AND active = 1"
+        "SELECT item_key FROM items WHERE active = 1
+         AND (item_type = 'consumable'
+              OR (item_type = 'equipment' AND (assigned_department IS NULL OR TRIM(assigned_department) = '')))"
     )->fetchAll(PDO::FETCH_COLUMN);
     $validSet = array_flip($validItems);
 

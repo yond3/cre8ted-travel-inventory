@@ -78,6 +78,9 @@ if ($method === 'POST') {
     if ($qty <= 0) {
         json_error('qty must be greater than 0');
     }
+    if (!is_valid_department($department)) {
+        json_error('invalid department — choose one of the official departments');
+    }
 
     $item = get_item_or_404($itemKey);
     if ((int) ($item['active'] ?? 1) !== 1) {
@@ -105,9 +108,29 @@ if ($method === 'POST') {
             $user['name'],
             'Active',
         ]);
+        $issueId = (int) $pdo->lastInsertId();
 
         $pdo->prepare('UPDATE items SET current_qty = current_qty - ? WHERE item_key = ?')
             ->execute([$qty, $itemKey]);
+
+        apply_equipment_checkout($pdo, $itemKey, $department, $qty);
+
+        if (($item['item_type'] ?? '') === 'equipment') {
+            log_equipment_movement(
+                $pdo,
+                $itemKey,
+                $qty,
+                'issue_from_storage',
+                $user['name'],
+                $department,
+                null,
+                trim($body['issued_to'] ?? '') ?: null,
+                trim($body['notes'] ?? '') ?: null,
+                'stock_issue',
+                $issueId,
+                $code
+            );
+        }
 
         $pdo->commit();
     } catch (Exception $e) {
@@ -149,6 +172,15 @@ if ($method === 'PUT') {
         // credited back — mirrors how cancelling a PO restores its request.
         $pdo->prepare('UPDATE items SET current_qty = current_qty + ? WHERE item_key = ?')
             ->execute([$row['qty'], $row['item_key']]);
+
+        reverse_equipment_checkout($pdo, $row['item_key'], $row['department'], (float) $row['qty']);
+
+        void_equipment_movements_for_reference(
+            $pdo,
+            'stock_issue',
+            $id,
+            trim($body['reason'] ?? '') ?: null
+        );
 
         $pdo->commit();
     } catch (Exception $e) {

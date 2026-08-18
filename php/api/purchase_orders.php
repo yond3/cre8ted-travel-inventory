@@ -36,8 +36,11 @@ function format_order(array $row): array
         'request_code' => $row['request_code'],
         'item_key' => $row['item_key'],
         'item_label' => $row['label'],
+        'item_type' => $row['item_type'] ?? null,
         'unit' => $row['unit'],
         'qty' => (float) $row['qty'],
+        'department' => $row['department'] ?? null,
+        'reason' => $row['reason'] ?? null,
         'supplier_id' => $row['supplier_id'] !== null ? (int) $row['supplier_id'] : null,
         'supplier_name' => $row['supplier_name'],
         'procurement_method' => $row['procurement_method'],
@@ -70,10 +73,11 @@ function format_order(array $row): array
     ];
 }
 
-const ORDER_SELECT = "SELECT po.*, pr.request_code, pr.item_key, pr.qty, i.label, i.unit, s.name AS supplier_name
+const ORDER_SELECT = "SELECT po.*, pr.request_code, pr.item_key, pr.requested_label, pr.qty, pr.department, pr.reason,
+        COALESCE(pr.requested_label, i.label) AS label, i.unit, i.item_type, s.name AS supplier_name
     FROM purchase_orders po
     JOIN purchase_requests pr ON pr.id = po.request_id
-    JOIN items i ON i.item_key = pr.item_key
+    LEFT JOIN items i ON i.item_key = pr.item_key
     LEFT JOIN suppliers s ON s.id = po.supplier_id";
 
 if ($method === 'GET') {
@@ -99,6 +103,16 @@ if ($method === 'POST') {
     }
     if ($req['status'] !== 'Approved') {
         json_error("request is '{$req['status']}', not Approved — approve it before creating a PO", 409);
+    }
+
+    if (empty($req['item_key'])) {
+        $linkKey = trim($body['item_key'] ?? '');
+        if ($linkKey === '') {
+            json_error('link this request to a catalog item before creating a PO — pick the inventory item that matches what staff asked for');
+        }
+        get_item_or_404($linkKey);
+        $pdo->prepare('UPDATE purchase_requests SET item_key = ? WHERE id = ?')->execute([$linkKey, $requestId]);
+        $req['item_key'] = $linkKey;
     }
 
     $openPo = $pdo->prepare(
@@ -281,14 +295,61 @@ if ($method === 'PUT') {
     if ($action === 'receive') {
         $pdo->beginTransaction();
         try {
+            $user = get_session_user();
             $pdo->prepare("UPDATE purchase_orders SET status = 'Received', received_at = NOW() WHERE id = ?")
                 ->execute([$id]);
             $pdo->prepare("UPDATE purchase_requests SET status = 'Completed' WHERE id = ?")
                 ->execute([$row['request_id']]);
-            // The automatic step the whole plan was built around: stock only
-            // increases here, when items are confirmed physically received.
-            $pdo->prepare('UPDATE items SET current_qty = current_qty + ? WHERE item_key = ?')
-                ->execute([$row['qty'], $row['item_key']]);
+
+            $receiveResult = null;
+            if (($row['item_type'] ?? '') === 'equipment') {
+                $receiveResult = receive_purchased_equipment($pdo, $row, $body);
+                $itemKey = $receiveResult['storage_item_key'] ?? $row['item_key'];
+                if ($receiveResult['received_to'] === 'department') {
+                    log_equipment_movement(
+                        $pdo,
+                        $itemKey,
+                        (float) $receiveResult['qty_added'],
+                        'deploy_from_purchase',
+                        $user['name'] ?? 'System',
+                        $receiveResult['deployed_to'],
+                        null,
+                        null,
+                        null,
+                        'purchase_order',
+                        $id,
+                        $row['po_code']
+                    );
+                } elseif ($receiveResult['received_to'] === 'storage') {
+                    log_equipment_movement(
+                        $pdo,
+                        $itemKey,
+                        (float) $receiveResult['qty_added'],
+                        'receive_to_storage',
+                        $user['name'] ?? 'System',
+                        null,
+                        $receiveResult['storage_location_id'] ?? null,
+                        null,
+                        null,
+                        'purchase_order',
+                        $id,
+                        $row['po_code']
+                    );
+                }
+            } else {
+                $pdo->prepare('UPDATE items SET current_qty = current_qty + ? WHERE item_key = ?')
+                    ->execute([$row['qty'], $row['item_key']]);
+                $newQty = $pdo->prepare('SELECT current_qty FROM items WHERE item_key = ?');
+                $newQty->execute([$row['item_key']]);
+                $receiveResult = [
+                    'qty_added' => (float) $row['qty'],
+                    'new_stock' => (float) $newQty->fetchColumn(),
+                    'deployed_to' => null,
+                    'received_to' => 'consumable',
+                    'storage_item_key' => $row['item_key'],
+                ];
+            }
+
             update_document('Purchase order', $row['po_code'], 'Received');
             update_document('Purchase request', $row['request_code'], 'Completed');
             $pdo->commit();
@@ -297,19 +358,19 @@ if ($method === 'PUT') {
             json_error('failed to mark received: ' . $e->getMessage(), 500);
         }
 
-        $newQty = $pdo->prepare('SELECT current_qty FROM items WHERE item_key = ?');
-        $newQty->execute([$row['item_key']]);
-        $updatedQty = (float) $newQty->fetchColumn();
-
         echo json_encode([
             'status' => 'ok',
             'id' => $id,
             'new_status' => 'Received',
-            'item_key' => $row['item_key'],
+            'item_key' => $receiveResult['storage_item_key'] ?? $row['item_key'],
             'item_label' => $row['label'],
+            'item_type' => $row['item_type'] ?? null,
             'unit' => $row['unit'],
-            'qty_added' => (float) $row['qty'],
-            'new_stock' => $updatedQty,
+            'qty_added' => $receiveResult['qty_added'],
+            'new_stock' => $receiveResult['new_stock'],
+            'deployed_to' => $receiveResult['deployed_to'],
+            'received_to' => $receiveResult['received_to'],
+            'department' => $row['department'] ?? null,
         ]);
         exit;
     }

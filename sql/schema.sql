@@ -6,6 +6,9 @@ USE wayfarer_inventory;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS finance_integration_log;
+DROP TABLE IF EXISTS equipment_movements;
+DROP TABLE IF EXISTS equipment_deployments;
+DROP TABLE IF EXISTS stock_requests;
 DROP TABLE IF EXISTS stock_issues;
 DROP TABLE IF EXISTS tour_vouchers;
 DROP TABLE IF EXISTS documents;
@@ -34,10 +37,41 @@ CREATE TABLE items (
     unit VARCHAR(20) NOT NULL,
     item_type ENUM('consumable','equipment') NOT NULL DEFAULT 'consumable',
     location_id INT NULL,
+    assigned_department VARCHAR(100) NULL,
     current_qty DECIMAL(10,2) NOT NULL DEFAULT 0,
     min_qty DECIMAL(10,2) NULL,
     max_qty DECIMAL(10,2) NULL,
     active TINYINT(1) NOT NULL DEFAULT 1,
+    FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE equipment_deployments (
+    item_key VARCHAR(50) NOT NULL,
+    department VARCHAR(100) NOT NULL,
+    qty DECIMAL(10,2) NOT NULL DEFAULT 0,
+    PRIMARY KEY (item_key, department),
+    FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE equipment_movements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    movement_code VARCHAR(20) NOT NULL UNIQUE,
+    item_key VARCHAR(50) NOT NULL,
+    qty DECIMAL(10,2) NOT NULL,
+    movement_type ENUM('issue_from_storage', 'receive_to_storage', 'deploy_from_purchase') NOT NULL,
+    department VARCHAR(100) NULL,
+    location_id INT NULL,
+    issued_to VARCHAR(100) NULL,
+    notes VARCHAR(255) NULL,
+    recorded_by VARCHAR(100) NOT NULL,
+    reference_type ENUM('stock_issue', 'purchase_order') NULL,
+    reference_id INT NULL,
+    reference_code VARCHAR(20) NULL,
+    status ENUM('Active', 'Voided') NOT NULL DEFAULT 'Active',
+    voided_reason VARCHAR(255) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    voided_at DATETIME NULL,
+    FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE,
     FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
@@ -96,9 +130,12 @@ CREATE TABLE purchase_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     request_code VARCHAR(20) NOT NULL UNIQUE,
     employee VARCHAR(100) NOT NULL,
-    item_key VARCHAR(50) NOT NULL,
+    department VARCHAR(100) NULL,
+    item_key VARCHAR(50) NULL,
+    requested_label VARCHAR(255) NULL,
     qty DECIMAL(10,2) NOT NULL,
     notes VARCHAR(255) NULL,
+    reason ENUM('replacement', 'new_need', 'other', 'stock_up') NULL,
     status ENUM('Pending','Approved','Rejected','Ordered','Completed') NOT NULL DEFAULT 'Pending',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_key) REFERENCES items(item_key)
@@ -212,6 +249,26 @@ CREATE TABLE stock_issues (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     voided_at DATETIME NULL,
     FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Department stock requests: formal ask-before-issue flow. Fulfill creates a
+-- stock_issues row and links fulfilled_issue_id back to this request.
+CREATE TABLE stock_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    request_code VARCHAR(20) NOT NULL UNIQUE,
+    department VARCHAR(100) NOT NULL,
+    item_key VARCHAR(50) NOT NULL,
+    qty DECIMAL(10,2) NOT NULL,
+    requested_by VARCHAR(100) NOT NULL,
+    notes VARCHAR(255) NULL,
+    status ENUM('Pending','Fulfilled','Cancelled') NOT NULL DEFAULT 'Pending',
+    fulfilled_issue_id INT NULL,
+    fulfilled_by VARCHAR(100) NULL,
+    fulfilled_at DATETIME NULL,
+    cancelled_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_key) REFERENCES items(item_key),
+    FOREIGN KEY (fulfilled_issue_id) REFERENCES stock_issues(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 INSERT INTO locations (name, location_type, description) VALUES

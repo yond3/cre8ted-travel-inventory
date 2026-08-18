@@ -17,8 +17,8 @@
           navy900: '#0c1f3f',
           navy800: '#0f2a52',
           navy700: '#173868',
-          orange: '#f5a524',
-          orangeDark: '#e0930f',
+          orange: '#FFF7E8',
+          orangeDark: '#FFF7E8',
           bg: '#eef2f7',
           card: '#ffffff',
           textDark: '#0f2242',
@@ -27,8 +27,9 @@
           line: '#e7ecf3',
           greenBg: '#e3f8ec',
           greenTx: '#1a9b58',
-          amberBg: '#fdf1dd',
+          amberBg: '#FFF7E8',
           amberTx: '#c07d10',
+          creamBorder: '#EDE5D4',
           redBg: '#fdeaea',
           redTx: '#d5362f',
           blueBg: '#e7eefc',
@@ -55,12 +56,12 @@
   * { transition-timing-function: cubic-bezier(.4,0,.2,1); }
   .sidebar::-webkit-scrollbar{width:3px;}
   .sidebar::-webkit-scrollbar-track{background:transparent;}
-  .sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px;}
-  .sidebar{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.08) transparent; }
+  .sidebar::-webkit-scrollbar-thumb{background:rgba(15,42,82,.12);border-radius:10px;}
+  .sidebar{ scrollbar-width:thin; scrollbar-color:rgba(15,42,82,.12) transparent; }
   .sidebar.collapsed{ width:0; overflow:hidden; }
   .overlay.show{ opacity:1; visibility:visible; }
 
-  .nav-item.active, .nav-item.active:hover{ background:#fffcf6; transform:none; }
+  .nav-item.active, .nav-item.active:hover{ background:#FFF7E8; transform:none; }
   .nav-item.active .nav-icon, .nav-item.active:hover .nav-icon{ background: rgba(2,2,86,.934); }
   .nav-item.active .nav-text .main, .nav-item.active:hover .nav-text .main{ color:#0f2242; }
   .nav-item.active .nav-text .sub, .nav-item.active:hover .nav-text .sub{ color:#5b6b85; }
@@ -78,22 +79,26 @@
     position:absolute; top:10px; right:12px; min-width:18px; height:18px; padding:0 5px;
     border-radius:999px; background:#fff; color:#c2410c; font-size:.62rem; font-weight:800;
     display:flex; align-items:center; justify-content:center; line-height:1;
-    box-shadow:0 0 0 2px #f97316; pointer-events:none; z-index:1;
+    box-shadow:0 0 0 2px #c07d10; pointer-events:none; z-index:1;
   }
   .nav-attention-badge.hidden{ display:none; }
-  .nav-item.needs-attention:not(.active){ background:rgba(255,252,246,.92); box-shadow:inset 3px 0 0 #fff; }
+  .nav-item.needs-attention:not(.active){ background:#FFF7E8; box-shadow:inset 3px 0 0 #EDE5D4; }
   .filter-pill{ position:relative; }
-  .filter-pill.needs-attention:not(.active){ box-shadow:0 0 0 2px #f97316; }
+  .filter-pill.needs-attention:not(.active){ box-shadow:0 0 0 2px #c07d10; }
   .filter-pill .pill-attention-dot{
     position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:999px;
-    background:#f97316; border:2px solid #fff; pointer-events:none;
+    background:#c07d10; border:2px solid #fff; pointer-events:none;
   }
   .filter-pill .pill-attention-dot.hidden{ display:none; }
   #notifBtn .dot.hidden{ display:none; }
   .gl-table tbody tr:hover{ background:#f7f9fc; }
   .page-section.hidden{ display:none; }
   .modal-overlay{ display:none; }
-  .modal-overlay.show{ display:flex; }
+  .modal-overlay.show{ display:flex; flex-direction:column; align-items:center; overflow-y:auto; padding:1rem; }
+  .btn-cream{
+    background:#FFF7E8; color:#0f2a52; border:1px solid #EDE5D4;
+  }
+  .btn-cream:hover{ background:#FFF7E8; filter:brightness(.98); }
   .row-hidden{ display:none !important; }
 
   @media (max-width:900px){
@@ -108,7 +113,7 @@
 <div class="flex h-screen overflow-hidden">
 
 <div class="overlay fixed inset-0 bg-black/40 z-[999] opacity-0 invisible transition-all duration-300" id="overlay"></div>
-<aside class="sidebar shrink-0 w-[290px] h-full overflow-y-auto bg-gradient-to-br from-orange to-orangeDark flex flex-col z-[1000] transition-all duration-300 shadow-sidebar" id="sidebar">
+<aside class="sidebar shrink-0 w-[290px] h-full overflow-y-auto bg-amberBg border-r border-line flex flex-col z-[1000] transition-all duration-300" id="sidebar">
 
   <div class="sidebar-top flex items-center gap-3 px-[1.4rem] pt-[1.4rem] pb-[.6rem]">
     <div class="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm p-1"><img src="assets/logo-icon.png" alt="Cre8ted Travel logo" class="w-full h-full object-contain"></div>
@@ -119,12 +124,12 @@
   </div>
 
   <nav class="sidebar-nav px-[.9rem] py-2 pb-8" id="sidebarNav">
-    <div class="w-full h-px bg-white/10 mb-4"></div>
+    <div class="w-full h-px bg-line mb-4"></div>
     <a class="nav-item active group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl text-[#b7c6e3] no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative hover:bg-white hover:translate-x-[3px]" data-page="Dashboard" data-target="page-dashboard">
       <div class="nav-icon w-[34px] h-[34px] rounded-[10px] bg-navy800 flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200 group-hover:bg-white/[.12]"><i class='bx bx-grid-alt'></i></div>
       <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold text-black">Dashboard</span></div>
     </a>
-    <div class="w-full h-px bg-white/10 mb-4"></div>
+    <div class="w-full h-px bg-line mb-4"></div>
 
     <div class="nav-section-title flex items-center gap-2 px-[.9rem] pt-[.4rem] pb-[.9rem]">
       <span class="w-[6px] h-[6px] rounded-full bg-black shrink-0"></span>
@@ -143,7 +148,7 @@
       <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold text-black">Purchase Orders</span><span class="sub text-[.68rem] font-medium text-black">Orders &amp; fulfillment</span></div>
     </a>
 
-    <div class="-mx-[.9rem] mt-[1.2rem] mb-[1.6rem] h-px bg-white/10"></div>
+    <div class="-mx-[.9rem] mt-[1.2rem] mb-[1.6rem] h-px bg-line"></div>
     <div class="nav-section-title flex items-center gap-2 px-[.9rem] pt-[.4rem] pb-[.9rem]">
       <span class="w-[6px] h-[6px] rounded-full bg-black shrink-0"></span>
       <span class="text-[.66rem] font-semibold tracking-[2px] text-black uppercase whitespace-nowrap">Partners</span>
@@ -153,7 +158,7 @@
       <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold text-black">Supplier Directory</span><span class="sub text-[.68rem] font-medium text-black">Preferred vendors</span></div>
     </a>
 
-    <div class="-mx-[.9rem] mt-[1.2rem] mb-[1.6rem] h-px bg-white/10"></div>
+    <div class="-mx-[.9rem] mt-[1.2rem] mb-[1.6rem] h-px bg-line"></div>
     <div class="nav-section-title flex items-center gap-2 px-[.9rem] pt-[.4rem] pb-[.9rem]">
       <span class="w-[6px] h-[6px] rounded-full bg-black shrink-0"></span>
       <span class="text-[.66rem] font-semibold tracking-[2px] text-black uppercase whitespace-nowrap">Insights</span>
@@ -188,7 +193,7 @@
       <div class="time font-light text-[.9rem]" id="topbarTime">--:--</div>
     </div>
     <button class="icon-btn relative w-10 h-10 rounded-full bg-transparent border-none flex items-center justify-center text-textMid text-[1.5rem] cursor-pointer transition-all duration-200 hover:bg-[#dde3ec] hover:text-textDark" id="notifBtn" title="Notifications">
-      <i class='bx bx-bell'></i><span class="dot absolute top-[9px] right-[10px] w-2 h-2 bg-orangeDark rounded-full border-2 border-card"></span>
+      <i class='bx bx-bell'></i><span class="dot absolute top-[9px] right-[10px] w-2 h-2 bg-amberTx rounded-full border-2 border-card"></span>
     </button>
     <div class="profile-menu-wrapper relative ml-1">
       <button class="icon-btn profile-btn w-10 h-10 min-w-10 p-0 rounded-full bg-transparent border-none flex items-center justify-center text-textMid text-[1.5rem] cursor-pointer transition-all duration-200 hover:bg-[#dde3ec] hover:text-textDark" id="profileBtn" title="Profile">
@@ -214,7 +219,7 @@
 <!-- ===================== DASHBOARD ===================== -->
 <section class="page-section" id="page-dashboard">
   <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center gap-3">
-    <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-grid-alt'></i></div>
+    <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-grid-alt'></i></div>
     <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Dashboard</h1>
   </div>
 
@@ -272,16 +277,24 @@
 <section class="page-section hidden" id="page-inventory">
   <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
     <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-archive'></i></div>
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-archive'></i></div>
       <div>
         <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Office Storage &amp; Inventory</h1>
         <p class="text-[.78rem] text-textMid mt-0.5">No warehouse needed — just cabinets, drawers, shelves and a locker.</p>
       </div>
     </div>
-    <button onclick="openItemModal()" id="inventoryAddItemBtn" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
+    <div id="inventoryRequestActions" class="hidden items-center gap-2 flex-wrap">
+      <button onclick="openStockRequestModal()" id="inventoryRequestStockBtn" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:-translate-y-px">
+        <i class='bx bx-package text-[1.1rem]'></i> Request from stock
+      </button>
+      <button onclick="openEquipmentRequestModal()" id="inventoryRequestEquipmentBtn" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:-translate-y-px">
+        <i class='bx bx-wrench text-[1.1rem]'></i> Request equipment
+      </button>
+    </div>
+    <button onclick="openItemModal()" id="inventoryAddItemBtn" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
       <i class='bx bx-plus text-[1.1rem]'></i> Add item
     </button>
-    <button onclick="openVoucherModal()" id="inventoryAddVoucherBtn" class="hidden items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
+    <button onclick="openVoucherModal()" id="inventoryAddVoucherBtn" class="hidden items-center gap-2 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
       <i class='bx bx-plus text-[1.1rem]'></i> Add voucher
     </button>
   </div>
@@ -291,9 +304,11 @@
       <button class="filter-pill active px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="all" data-slug="all">All items</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Low stock" data-slug="low-stock">Low stock</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="In stock" data-slug="in-stock">In stock</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Not tracked" data-slug="equipment">Equipment</button>
+      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="equipment" data-slug="equipment">Equipment</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="vouchers" data-slug="vouchers">Vouchers</button>
+      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="stock-requests" data-slug="stock-requests">Stock requests</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="issues" data-slug="issue-log">Issue log</button>
+      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="equipment-history" data-slug="equipment-history">Equipment history</button>
       <label class="ml-auto flex items-center gap-2 text-[.8rem] text-textMid cursor-pointer select-none">
         <input type="checkbox" id="showInactiveInventory" class="rounded border-line">
         Show inactive
@@ -305,7 +320,7 @@
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
             <th class="py-3 pr-3 font-semibold">Item</th>
             <th class="py-3 pr-3 font-semibold">Type</th>
-            <th class="py-3 pr-3 font-semibold">Storage</th>
+            <th class="py-3 pr-3 font-semibold">Storage / dept</th>
             <th class="py-3 pr-3 font-semibold">Current qty</th>
             <th class="py-3 pr-3 font-semibold">Min</th>
             <th class="py-3 pr-3 font-semibold">Max</th>
@@ -334,8 +349,30 @@
         </table>
       </div>
     </div>
+    <div class="hidden" id="stockRequestsPanel">
+      <p class="text-[.78rem] text-textMid mb-4">Departments request items here before inventory staff issue them from storage. Fulfill creates an issue log entry and reduces stock on hand.</p>
+      <div class="overflow-x-auto">
+        <table class="gl-table w-full text-[.85rem] border-collapse">
+          <thead>
+            <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+              <th class="py-3 pr-3 font-semibold">Request ID</th>
+              <th class="py-3 pr-3 font-semibold">Department</th>
+              <th class="py-3 pr-3 font-semibold">Type</th>
+              <th class="py-3 pr-3 font-semibold">Item</th>
+              <th class="py-3 pr-3 font-semibold">Qty</th>
+              <th class="py-3 pr-3 font-semibold">On hand</th>
+              <th class="py-3 pr-3 font-semibold">Requested by</th>
+              <th class="py-3 pr-3 font-semibold">Date</th>
+              <th class="py-3 pr-3 font-semibold">Status</th>
+              <th class="py-3 pr-3 font-semibold">Action</th>
+            </tr>
+          </thead>
+          <tbody id="stockRequestsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
     <div class="hidden" id="issuePanel">
-      <p class="text-[.78rem] text-textMid mb-4">Every checkout is logged here with the department and person that took it — count on shelf goes down right away, separate from month-end reconciliation.</p>
+      <p class="text-[.78rem] text-textMid mb-4">Checkouts from storage only — when inventory pulls an item off the shelf for a department. Purchases sent straight to a department are in <strong>Equipment history</strong>.</p>
       <div class="overflow-x-auto">
         <table class="gl-table w-full text-[.85rem] border-collapse">
           <thead>
@@ -354,6 +391,26 @@
         </table>
       </div>
     </div>
+    <div class="hidden" id="equipmentHistoryPanel">
+      <p class="text-[.78rem] text-textMid mb-4">Every equipment assignment and storage receipt — from shelf issues, purchase orders received to storage, and purchases deployed straight to a department.</p>
+      <div class="overflow-x-auto">
+        <table class="gl-table w-full text-[.85rem] border-collapse">
+          <thead>
+            <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+              <th class="py-3 pr-3 font-semibold">Date</th>
+              <th class="py-3 pr-3 font-semibold">Item</th>
+              <th class="py-3 pr-3 font-semibold">Qty</th>
+              <th class="py-3 pr-3 font-semibold">Event</th>
+              <th class="py-3 pr-3 font-semibold">To</th>
+              <th class="py-3 pr-3 font-semibold">Reference</th>
+              <th class="py-3 pr-3 font-semibold">Recorded by</th>
+              <th class="py-3 pr-3 font-semibold">Status</th>
+            </tr>
+          </thead>
+          <tbody id="equipmentHistoryTableBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -361,13 +418,13 @@
 <section class="page-section hidden" id="page-requests">
   <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
     <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-note'></i></div>
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-note'></i></div>
       <div>
         <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Purchase Requests</h1>
         <p class="text-[.78rem] text-textMid mt-0.5">Employee requests → manager approval → purchase order.</p>
       </div>
     </div>
-    <button onclick="openRequestModal()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
+    <button onclick="openRequestModal()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
       <i class='bx bx-plus text-[1.1rem]'></i> New request
     </button>
   </div>
@@ -379,7 +436,9 @@
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
             <th class="py-3 pr-3 font-semibold">Request ID</th>
             <th class="py-3 pr-3 font-semibold">Employee</th>
+            <th class="py-3 pr-3 font-semibold">Department</th>
             <th class="py-3 pr-3 font-semibold">Item</th>
+            <th class="py-3 pr-3 font-semibold">Reason</th>
             <th class="py-3 pr-3 font-semibold">Qty</th>
             <th class="py-3 pr-3 font-semibold">Est. cost</th>
             <th class="py-3 pr-3 font-semibold">Date</th>
@@ -397,7 +456,7 @@
 <section class="page-section hidden" id="page-orders">
   <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
     <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-receipt'></i></div>
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-receipt'></i></div>
       <div>
         <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Purchase Orders</h1>
         <p class="text-[.78rem] text-textMid mt-0.5">Generated automatically once a request is approved.</p>
@@ -436,10 +495,10 @@
 <section class="page-section hidden" id="page-suppliers">
   <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
     <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-store'></i></div>
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-store'></i></div>
       <div>
         <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Supplier Directory</h1>
-        <p class="text-[.78rem] text-textMid mt-0.5">The handful of stores the office actually buys from.</p>
+        <p class="text-[.78rem] text-textMid mt-0.5">The handful of stores the office actually buys from. Items on the vendor quote form come from Inventory — managers add new rows there first.</p>
       </div>
     </div>
     <button type="button" onclick="copyVendorApplyLink()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:-translate-y-px">
@@ -471,7 +530,7 @@
 <section class="page-section hidden" id="page-forecast">
   <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
     <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-line-chart'></i></div>
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-line-chart'></i></div>
       <div>
         <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">AI Demand Forecast</h1>
         <p class="text-[.78rem] text-textMid mt-0.5">Forecasts office supply usage, not travel bookings.</p>
@@ -516,7 +575,7 @@
 <section class="page-section hidden" id="page-documents">
   <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
     <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-orange text-[1.3rem] shrink-0"><i class='bx bx-folder'></i></div>
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-folder'></i></div>
       <div>
         <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Document Tracking</h1>
         <p class="text-[.78rem] text-textMid mt-0.5">One record per request or order — status stays in sync with the flow.</p>
@@ -542,8 +601,8 @@
 </section>
 
 <!-- ===================== MODAL: NEW PURCHASE REQUEST ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000] items-center justify-center p-4" id="requestModalOverlay">
-  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="requestModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6 my-4 shrink-0">
     <div class="flex items-center justify-between mb-4">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="requestModalTitle">New purchase request</h3>
       <button onclick="closeModal('requestModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
@@ -553,14 +612,54 @@
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Employee</label>
         <div id="reqEmployeeDisplay" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark">—</div>
       </div>
-      <div id="reqItemSelectWrap">
-        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item</label>
-        <select id="reqItem" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+      <div id="reqTypeWrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Request type</label>
+        <div class="flex gap-2">
+          <label class="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.85rem] cursor-pointer">
+            <input type="radio" name="reqPurchaseType" value="consumable" checked> Office supplies
+          </label>
+          <label class="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.85rem] cursor-pointer">
+            <input type="radio" name="reqPurchaseType" value="equipment"> Equipment
+          </label>
+        </div>
       </div>
-      <div id="reqItemLockedWrap" class="hidden">
-        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item</label>
-        <div id="reqItemLockedLabel" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark"></div>
-        <input type="hidden" id="reqItemLockedKey" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item needed</label>
+        <input id="reqItemNeeded" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. HP LaserJet printer, heavy-duty extension cord 25ft">
+        <p class="text-[.72rem] text-textSoft mt-1" id="reqItemNeededHint">Describe what we should buy — you don't have to pick from the catalog.</p>
+        <input type="hidden" id="reqCatalogKey" value="">
+      </div>
+      <div id="reqCatalogPickWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Catalog item (optional)</label>
+        <select id="reqCatalogPick" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <option value="">No catalog link — new item description only</option>
+        </select>
+        <p class="text-[.72rem] text-textSoft mt-1">Link to an existing inventory row when you know it (helps pricing and receive).</p>
+      </div>
+      <div id="reqEquipmentPurposeWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Purpose</label>
+        <div class="flex flex-col gap-2">
+          <label class="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.85rem] cursor-pointer">
+            <input type="radio" name="reqEquipmentPurpose" value="department" checked> For a department
+          </label>
+          <label class="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.85rem] cursor-pointer">
+            <input type="radio" name="reqEquipmentPurpose" value="storage"> Stock for storage
+          </label>
+        </div>
+        <p class="text-[.72rem] text-textSoft mt-1" id="reqStoragePurposeHint">Company stock-up — units go to a cabinet or shelf when received. Departments request from stock later.</p>
+      </div>
+      <div id="reqDepartmentWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Requesting department</label>
+        <select id="reqDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+        <p class="text-[.72rem] text-textSoft mt-1">Which department needs this equipment.</p>
+      </div>
+      <div id="reqReasonWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Reason</label>
+        <select id="reqReason" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <option value="replacement">Replacement (broken or lost)</option>
+          <option value="new_need">New need</option>
+          <option value="other">Other</option>
+        </select>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity</label>
@@ -571,21 +670,99 @@
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
         <textarea id="reqNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. needed for client itinerary printing"></textarea>
       </div>
-      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Submit request</button>
+      <button type="submit" id="reqSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Submit request</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: RECEIVE EQUIPMENT (PO) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="receiveEquipmentModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Receive equipment</h3>
+      <button type="button" onclick="closeModal('receiveEquipmentModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="receiveEquipmentSummary">—</p>
+    <form id="receiveEquipmentForm" class="flex flex-col gap-4">
+      <input type="hidden" id="receiveEquipmentOrderId" value="">
+      <div id="receiveStorageWrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Storage location</label>
+        <select id="receiveStorageLocation" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+        <p class="text-[.72rem] text-textSoft mt-1">Where the unit sits until issued, if not deploying immediately.</p>
+      </div>
+      <label id="receiveDeployWrap" class="flex items-start gap-2 cursor-pointer select-none">
+        <input type="checkbox" id="receiveDeployToDept" class="mt-1 rounded border-line">
+        <span class="text-[.82rem] text-textDark"><span class="font-semibold">Deploy to requesting department</span><br><span class="text-[.72rem] text-textSoft" id="receiveDeployHint">Adds an In use row on the Equipment tab for that department.</span></span>
+      </label>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Confirm received</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: STOCK REQUEST (department ask-before-issue) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="stockRequestModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="stockRequestModalTitle">Request from stock</h3>
+      <button type="button" onclick="closeModal('stockRequestModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4">Ask inventory to pull this from storage — stock is not deducted until staff fulfill the request.</p>
+    <form id="stockRequestForm" class="flex flex-col gap-4">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Requested by</label>
+        <div id="stockReqEmployeeDisplay" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark">—</div>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Department</label>
+        <select id="stockReqDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" required></select>
+      </div>
+      <div id="stockReqTypeWrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Request type</label>
+        <div class="flex gap-2">
+          <label class="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.85rem] cursor-pointer">
+            <input type="radio" name="stockReqType" value="consumable" checked> Office supplies
+          </label>
+          <label class="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.85rem] cursor-pointer">
+            <input type="radio" name="stockReqType" value="equipment"> Equipment
+          </label>
+        </div>
+        <p class="text-[.72rem] text-textSoft mt-1" id="stockReqTypeHint">Pens, paper, cleaning supplies, and other consumables.</p>
+      </div>
+      <div id="stockReqItemSelectWrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1" id="stockReqItemLabel">Supply</label>
+        <select id="stockReqItem" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+        <p id="stockReqPurchaseHint" class="hidden text-[.72rem] text-textMid mt-1"></p>
+      </div>
+      <div id="stockReqItemLockedWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1" id="stockReqItemLockedType">Supply</label>
+        <div id="stockReqItemLockedLabel" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark"></div>
+        <input type="hidden" id="stockReqItemLockedKey" value="">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity</label>
+        <input id="stockReqQty" type="number" min="0.01" step="any" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        <p class="text-[.72rem] text-textSoft mt-1" id="stockReqQtyHint"></p>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
+        <textarea id="stockReqNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. for front desk use this week"></textarea>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Submit request</button>
     </form>
   </div>
 </div>
 
 <!-- ===================== MODAL: ISSUE STOCK (checkout) ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000] items-center justify-center p-4" id="issueModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="issueModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-1">
-      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Issue stock</h3>
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="issueModalTitle">Issue stock</h3>
       <button type="button" onclick="closeModal('issueModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
     </div>
-    <p class="text-[.8rem] text-textMid mb-4">Record who took this from storage — stock updates right away.</p>
+    <p class="text-[.8rem] text-textMid mb-4" id="issueModalHint">Record who took this from storage — stock updates right away.</p>
     <form id="issueForm" class="flex flex-col gap-4">
       <input type="hidden" id="issueItemKey" value="">
+      <input type="hidden" id="issueStockRequestId" value="">
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item</label>
         <div id="issueItemLabel" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark"></div>
@@ -597,14 +774,7 @@
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Department</label>
-        <select id="issueDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
-          <option value="Marketing">Marketing</option>
-          <option value="Operations">Operations</option>
-          <option value="Finance">Finance</option>
-          <option value="Admin / General">Admin / General</option>
-          <option value="__other__">Other…</option>
-        </select>
-        <input id="issueDepartmentOther" class="hidden mt-2 w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Type department name">
+        <select id="issueDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" required></select>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Issued to (optional)</label>
@@ -614,13 +784,13 @@
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
         <textarea id="issueNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. for client folders"></textarea>
       </div>
-      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Record issue</button>
+      <button type="submit" id="issueFormSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Record issue</button>
     </form>
   </div>
 </div>
 
 <!-- ===================== MODAL: ADD / EDIT ITEM ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000] items-center justify-center p-4" id="itemModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="itemModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="itemModalTitle">Add office item</h3>
@@ -631,6 +801,7 @@
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item name</label>
         <input id="itmName" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Whiteboard markers">
+        <p id="itmNameSimilarHint" class="hidden text-[.72rem] text-amberTx mt-1"></p>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Unit</label>
@@ -646,11 +817,27 @@
             <input type="radio" name="itmType" value="equipment"> Equipment
           </label>
         </div>
-        <p class="text-[.72rem] text-textSoft mt-1">Equipment (printers, cords, etc.) has no min/max or reorder alerts — quantity &amp; location only.</p>
+        <p class="text-[.72rem] text-textSoft mt-1">Equipment (printers, cords, etc.) has no min/max or reorder alerts — set status and location below.</p>
       </div>
-      <div>
+      <div id="itmEquipmentStatusWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Status</label>
+        <select id="itmEquipmentStatus" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <option value="storage">In storage</option>
+        </select>
+        <p class="text-[.72rem] text-textSoft mt-1">Shelf stock for this product. Use Issue or stock requests to assign units to departments.</p>
+      </div>
+      <div id="itmDepartmentWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Department</label>
+        <select id="itmAssignedDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+      </div>
+      <div id="itmDeploymentsWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">In use by department</label>
+        <div id="itmDeploymentsList" class="rounded-xl border border-line bg-[#f8fafc] px-3 py-2.5 text-[.82rem] text-textMid space-y-1"></div>
+        <p class="text-[.72rem] text-textSoft mt-1">Totals here update when staff issue from storage or fulfill stock requests.</p>
+      </div>
+      <div id="itmLocationWrap">
         <div class="flex items-center justify-between mb-1">
-          <label class="text-[.78rem] font-semibold text-textMid">Storage</label>
+          <label class="text-[.78rem] font-semibold text-textMid" id="itmLocationLabel">Storage</label>
           <button type="button" onclick="openLocationModal()" class="text-[.72rem] font-semibold text-navy800 bg-transparent border-none cursor-pointer">+ Add new storage</button>
         </div>
         <select id="itmLocationId" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
@@ -669,13 +856,13 @@
           <input id="itmMax" type="number" min="0" value="5" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
         </div>
       </div>
-      <button type="submit" id="itemFormSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add item</button>
+      <button type="submit" id="itemFormSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add item</button>
     </form>
   </div>
 </div>
 
 <!-- ===================== MODAL: ADD / EDIT TOUR VOUCHER ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2100] items-center justify-center p-4" id="voucherModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2100]" id="voucherModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="voucherModalTitle">Add tour voucher</h3>
@@ -699,13 +886,13 @@
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
         <input id="voucherNotes" maxlength="255" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Valid until Dec 2026">
       </div>
-      <button type="submit" id="voucherFormSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add voucher</button>
+      <button type="submit" id="voucherFormSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add voucher</button>
     </form>
   </div>
 </div>
 
 <!-- ===================== MODAL: RESTOCK TOUR VOUCHER ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2200] items-center justify-center p-4" id="voucherRestockModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2200]" id="voucherRestockModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-sm p-6">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Add voucher stock</h3>
@@ -718,13 +905,13 @@
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity to add</label>
         <input id="voucherRestockQty" type="number" min="1" step="1" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
       </div>
-      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add vouchers</button>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add vouchers</button>
     </form>
   </div>
 </div>
 
 <!-- ===================== MODAL: CLOSE MONTH (consumables) ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2150] items-center justify-center p-4" id="closeMonthModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2150]" id="closeMonthModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="closeMonthModalTitle">Close month</h3>
@@ -754,7 +941,7 @@
           </div>
           <input id="closeReceived" type="number" min="0" step="any" required readonly value="0" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold">
           <p class="text-[.68rem] text-textSoft mt-1" id="closeReceivedNote">From purchase orders marked received</p>
-          <div id="closeReceivedHint" class="hidden mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[.72rem] text-amber-900"></div>
+          <div id="closeReceivedHint" class="hidden mt-2 rounded-lg border border-creamBorder bg-amberBg px-3 py-2 text-[.72rem] text-amberTx"></div>
         </div>
       </div>
       <div>
@@ -764,13 +951,13 @@
       </div>
       <p class="text-[.82rem] font-semibold text-navy800 bg-[#eaf1fb] rounded-xl px-3 py-2.5" id="closeMonthPreview">Usage = starting stock + received − your count</p>
       <span class="hidden" id="closeMonthUnit"></span>
-      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Close month &amp; save usage</button>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Close month &amp; save usage</button>
     </form>
   </div>
 </div>
 
 <!-- ===================== MODAL: EDIT SUPPLIER ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2150] items-center justify-center p-4" id="supplierEditModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2150]" id="supplierEditModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="supplierEditModalTitle">Edit supplier</h3>
@@ -813,13 +1000,13 @@
           <button type="button" id="supEditAddPriceBtn" class="px-3 py-2 rounded-xl bg-navy800 text-white text-[.8rem] font-semibold border-none cursor-pointer">Add</button>
         </div>
       </div>
-      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Save changes</button>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Save changes</button>
     </form>
   </div>
 </div>
 
 <!-- ===================== MODAL: ADD LOCATION ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2100] items-center justify-center p-4" id="locationModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2100]" id="locationModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-4">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Add &amp; manage locations</h3>
@@ -841,7 +1028,7 @@
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Description (optional)</label>
         <input id="locDescription" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Cleaning supplies">
       </div>
-      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add location</button>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add location</button>
     </form>
     <div class="mt-6 pt-5 border-t border-line">
       <div class="flex items-center justify-between gap-3 mb-3">
@@ -857,15 +1044,27 @@
 </div>
 
 <!-- ===================== MODAL: CREATE PURCHASE ORDER ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000] items-center justify-center p-4" id="supplierChoiceModalOverlay">
-  <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="supplierChoiceModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6 my-4 shrink-0">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Create purchase order</h3>
       <button onclick="cancelApproval()" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
     </div>
     <p class="text-[.8rem] text-textMid mb-4" id="supplierChoiceSubtitle">For: —</p>
+    <div id="poCatalogLinkWrap" class="hidden mb-4 p-3 rounded-xl border border-creamBorder bg-amberBg">
+      <label class="text-[.78rem] font-semibold text-textMid block mb-1">Link to catalog item</label>
+      <p class="text-[.72rem] text-textSoft mb-2">Staff asked for: <span id="poRequestedLabel" class="font-semibold text-textDark"></span></p>
+      <select id="poCatalogItem" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+      <p class="text-[.72rem] text-textSoft mt-1" id="poCatalogLinkHint">Pick the inventory row this order will add to when received (or the closest match). If nothing fits, add the item to inventory first.</p>
+    </div>
     <label class="text-[.78rem] font-semibold text-textMid block mb-1">Supplier</label>
     <div class="flex flex-col gap-3 mb-4" id="supplierChoiceList"></div>
+
+    <div id="poEstimatedAmountWrap" class="hidden mb-4">
+      <label class="text-[.78rem] font-semibold text-textMid block mb-1">Estimated total (₱)</label>
+      <input id="poEstimatedAmount" type="number" min="0" step="0.01" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. 4500">
+      <p class="text-[.72rem] text-textSoft mt-1">Optional for walk-in buys with no listed vendor price — used for finance disbursement.</p>
+    </div>
 
     <div class="grid grid-cols-2 gap-3 mb-4">
       <div>
@@ -887,12 +1086,12 @@
       </div>
     </div>
 
-    <button onclick="finalizeApproval()" class="w-full px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Create purchase order</button>
+    <button onclick="finalizeApproval()" class="w-full px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Create purchase order</button>
   </div>
 </div>
 
 <!-- ===================== MODAL: ORDER SLIP (internal + vendor message) ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2200] items-center justify-center p-4" id="orderSlipModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2200]" id="orderSlipModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-3">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Order slip</h3>
@@ -925,7 +1124,7 @@
 </div>
 
 <!-- ===================== MODAL: UPLOAD / REUPLOAD RECEIPT ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="receiptModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="receiptModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="receiptModalTitle">Upload receipt</h3>
@@ -951,13 +1150,13 @@
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes <span class="text-textSoft font-normal">(optional)</span></label>
         <input id="receiptNotes" maxlength="255" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Paid via petty cash">
       </div>
-      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.88rem] font-bold cursor-pointer border-none shadow-btn" id="receiptSubmitBtn">Upload receipt</button>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn" id="receiptSubmitBtn">Upload receipt</button>
     </form>
   </div>
 </div>
 
 <!-- ===================== MODAL: REJECT RECEIPT (manager only) ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="rejectReceiptModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="rejectReceiptModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Reject receipt</h3>
@@ -976,7 +1175,7 @@
 </div>
 
 <!-- ===================== MODAL: VIEW REJECTED RECEIPT (read-only) ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="rejectReceiptViewModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="rejectReceiptViewModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Receipt rejected</h3>
@@ -998,7 +1197,7 @@
 </div>
 
 <!-- ===================== MODAL: LOST RECEIPT (manager only) ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="lostReceiptModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="lostReceiptModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Lost receipt</h3>
@@ -1021,7 +1220,7 @@
 </div>
 
 <!-- ===================== MODAL: VIEW LOST RECEIPT NOTE (read-only) ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300] items-center justify-center p-4" id="lostReceiptViewModalOverlay">
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="lostReceiptViewModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Lost receipt</h3>
@@ -1063,8 +1262,25 @@ document.addEventListener('DOMContentLoaded', function(){
      load time and touches attention-badge state, so both must exist
      before that first call — otherwise it's a temporal-dead-zone error
      that silently aborts the rest of this script. */
-  const state = { user: null, locations: [], inventory: [], vouchers: [], stockIssues: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
-  const attentionDismissed = { requests: null, orders: null, inventory: null, suppliers: null };
+  const state = { user: null, locations: [], inventory: [], vouchers: [], stockIssues: [], stockRequests: [], equipmentMovements: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
+  const attentionDismissed = { requests: null, orders: null, inventory: null, stockRequests: null, suppliers: null };
+
+  const DEPARTMENTS = [
+    'Human resource management',
+    'Financial management',
+    'Fleet & Transportation management',
+    'Facilities & Administration management',
+    'Tour Operations',
+    'Back-office',
+  ];
+
+  function populateDepartmentSelect(selectEl, selectedValue){
+    if(typeof selectEl === 'string') selectEl = document.getElementById(selectEl);
+    if(!selectEl) return;
+    selectEl.innerHTML = DEPARTMENTS.map(d =>
+      `<option value="${escapeHtml(d)}"${d === selectedValue ? ' selected' : ''}>${escapeHtml(d)}</option>`
+    ).join('');
+  }
 
   function toggleSidebar(){
     if(window.innerWidth <= 900){
@@ -1108,6 +1324,10 @@ document.addEventListener('DOMContentLoaded', function(){
       showVoucherPanel();
     } else if(btn.dataset.view === 'issues'){
       showIssuePanel();
+    } else if(btn.dataset.view === 'equipment-history'){
+      showEquipmentHistoryPanel();
+    } else if(btn.dataset.view === 'stock-requests'){
+      showStockRequestsPanel();
     } else {
       showInventoryPanel(btn.dataset.filter);
     }
@@ -1172,6 +1392,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(c.requests) parts.push(`${c.requests} purchase request${c.requests === 1 ? '' : 's'}`);
     if(c.orders) parts.push(`${c.orders} purchase order${c.orders === 1 ? '' : 's'}`);
     if(c.inventory) parts.push(`${c.inventory} low stock item${c.inventory === 1 ? '' : 's'}`);
+    if(c.stockRequests) parts.push(`${c.stockRequests} stock request${c.stockRequests === 1 ? '' : 's'}`);
     if(c.suppliers) parts.push(`${c.suppliers} vendor quote${c.suppliers === 1 ? '' : 's'}`);
     alert(parts.length
       ? `Needs attention:\n\n• ${parts.join('\n• ')}`
@@ -1259,28 +1480,45 @@ document.addEventListener('DOMContentLoaded', function(){
       state.showInactiveLocations = false;
     }
     const activeView = document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view;
-    setInventoryHeaderAction(activeView === 'vouchers' ? 'vouchers' : activeView === 'issues' ? 'issues' : 'items');
+    setInventoryHeaderAction(
+      activeView === 'vouchers' ? 'vouchers'
+        : activeView === 'issues' ? 'issues'
+        : activeView === 'equipment-history' ? 'equipment-history'
+        : activeView === 'stock-requests' ? 'stock-requests'
+        : 'items'
+    );
     updateAttentionBadges();
   }
 
   function setInventoryHeaderAction(mode){
     const itemBtn = document.getElementById('inventoryAddItemBtn');
     const voucherBtn = document.getElementById('inventoryAddVoucherBtn');
+    const requestActions = document.getElementById('inventoryRequestActions');
     const managerUp = roleAtLeast('manager');
 
     itemBtn.classList.add('hidden');
     itemBtn.classList.remove('flex');
     voucherBtn.classList.add('hidden');
     voucherBtn.classList.remove('flex');
+    requestActions.classList.add('hidden');
+    requestActions.classList.remove('flex');
 
-    if(!managerUp || mode === 'issues'){
+    if(mode === 'issues' || mode === 'equipment-history'){
       return;
     }
 
     if(mode === 'vouchers'){
-      voucherBtn.classList.remove('hidden');
-      voucherBtn.classList.add('flex');
-    } else {
+      if(managerUp){
+        voucherBtn.classList.remove('hidden');
+        voucherBtn.classList.add('flex');
+      }
+      return;
+    }
+
+    requestActions.classList.remove('hidden');
+    requestActions.classList.add('flex');
+
+    if(managerUp && mode !== 'stock-requests'){
       itemBtn.classList.remove('hidden');
       itemBtn.classList.add('flex');
     }
@@ -1301,7 +1539,7 @@ document.addEventListener('DOMContentLoaded', function(){
       const raw = localStorage.getItem(key);
       if(!raw) return;
       const parsed = JSON.parse(raw);
-      ['requests', 'orders', 'inventory', 'suppliers'].forEach(bucket => {
+      ['requests', 'orders', 'inventory', 'stockRequests', 'suppliers'].forEach(bucket => {
         if(Array.isArray(parsed[bucket])) attentionDismissed[bucket] = new Set(parsed[bucket]);
       });
     } catch (e) {
@@ -1313,7 +1551,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const key = attentionStorageKey();
     if(!key) return;
     const serializable = {};
-    ['requests', 'orders', 'inventory', 'suppliers'].forEach(bucket => {
+    ['requests', 'orders', 'inventory', 'stockRequests', 'suppliers'].forEach(bucket => {
       if(attentionDismissed[bucket]) serializable[bucket] = Array.from(attentionDismissed[bucket]);
     });
     try {
@@ -1353,10 +1591,15 @@ document.addEventListener('DOMContentLoaded', function(){
     return currentIds.filter(id => !dismissedSet.has(id)).length;
   }
 
+  function pendingStockRequestIds(){
+    return state.stockRequests.filter(r => r.status === 'Pending').map(r => r.id);
+  }
+
   function computeAttentionCounts(){
     const requestIds = state.requests.filter(requestNeedsAttention).map(r => r.id);
     const orderIds = state.orders.filter(orderNeedsAttention).map(o => o.id);
     const lowStockKeys = lowStockItems().map(it => it.item_key);
+    const stockRequestIds = pendingStockRequestIds();
     const vendorIds = roleAtLeast('manager')
       ? state.vendorApplications.filter(a => a.status === 'Pending').map(a => a.id)
       : [];
@@ -1365,6 +1608,7 @@ document.addEventListener('DOMContentLoaded', function(){
       requests: unseenCount(requestIds, attentionDismissed.requests),
       orders: unseenCount(orderIds, attentionDismissed.orders),
       inventory: unseenCount(lowStockKeys, attentionDismissed.inventory),
+      stockRequests: unseenCount(stockRequestIds, attentionDismissed.stockRequests),
       suppliers: unseenCount(vendorIds, attentionDismissed.suppliers),
     };
   }
@@ -1382,6 +1626,7 @@ document.addEventListener('DOMContentLoaded', function(){
       attentionDismissed.inventory = new Set(
         lowStockItems().map(it => it.item_key)
       );
+      attentionDismissed.stockRequests = new Set(pendingStockRequestIds());
     } else if(pageId === 'page-suppliers'){
       attentionDismissed.suppliers = new Set(
         state.vendorApplications.filter(a => a.status === 'Pending').map(a => a.id)
@@ -1428,16 +1673,50 @@ document.addEventListener('DOMContentLoaded', function(){
     const c = computeAttentionCounts();
     setNavAttention('page-requests', c.requests);
     setNavAttention('page-orders', c.orders);
-    setNavAttention('page-inventory', c.inventory);
+    setNavAttention('page-inventory', c.inventory + c.stockRequests);
     setNavAttention('page-suppliers', c.suppliers);
     setFilterPillAttention('low-stock', c.inventory > 0);
-    const total = c.requests + c.orders + c.inventory + c.suppliers;
+    setFilterPillAttention('stock-requests', c.stockRequests > 0);
+    const total = c.requests + c.orders + c.inventory + c.stockRequests + c.suppliers;
     document.querySelector('#notifBtn .dot')?.classList.toggle('hidden', total === 0);
   }
 
   const PROCUREMENT_LABELS = {
     walk_in: 'Walk-in', pickup: 'Pick-up', delivery: 'Delivery', online: 'Online',
   };
+
+  const PURCHASE_REASON_LABELS = {
+    replacement: 'Replacement',
+    new_need: 'New need',
+    other: 'Other',
+    stock_up: 'Stock for storage',
+  };
+
+  const EQUIPMENT_MOVEMENT_LABELS = {
+    issue_from_storage: 'Issued from storage',
+    receive_to_storage: 'Received to storage',
+    deploy_from_purchase: 'Deployed from purchase',
+  };
+
+  function equipmentMovementDestination(m){
+    if(m.movement_type === 'receive_to_storage'){
+      return m.location_name ? escapeHtml(m.location_name) : 'Storage';
+    }
+    return m.department ? escapeHtml(m.department) : '—';
+  }
+
+  function purchaseRequestDepartmentLabel(r){
+    if(r.reason === 'stock_up') return 'Central storage';
+    return r.department || '—';
+  }
+
+  function isEquipmentPurchaseRequest(req){
+    return req.item_type === 'equipment' || req.reason === 'stock_up' || (req.department && req.reason);
+  }
+
+  function equipmentRequestPurpose(){
+    return document.querySelector('input[name="reqEquipmentPurpose"]:checked')?.value || 'department';
+  }
 
   function fmtDate(mysqlDatetime){
     if(!mysqlDatetime) return '—';
@@ -1464,6 +1743,12 @@ document.addEventListener('DOMContentLoaded', function(){
       'Low stock': 'bg-redBg text-redTx',
       'In stock': 'bg-greenBg text-greenTx',
       'Not tracked': 'bg-[#eef2f7] text-textMid',
+      'In storage': 'bg-[#eef2f7] text-textMid',
+      'Mixed': 'bg-blueBg text-blueTx',
+      'In use': 'bg-blueBg text-blueTx',
+      'Unassigned': 'bg-amberBg text-amberTx',
+      'Active': 'bg-greenBg text-greenTx',
+      'Voided': 'bg-redBg text-redTx',
       'Inactive': 'bg-[#eef2f7] text-textMid',
       'Active': 'bg-greenBg text-greenTx',
       'Voided': 'bg-redBg text-redTx',
@@ -1505,17 +1790,75 @@ document.addEventListener('DOMContentLoaded', function(){
     return state.locations.filter(l => l.active !== false);
   }
 
-  function populateLocationSelect(keepLocationId){
-    const visible = activeLocations();
-    const keep = keepLocationId ? state.locations.find(l => l.id === keepLocationId && !l.active) : null;
+  function populateLocationSelect(keepLocationId, { storageOnly = false } = {}){
+    let visible = activeLocations();
+    if(storageOnly){
+      visible = visible.filter(l => l.location_type === 'storage');
+    }
+    const keep = keepLocationId ? state.locations.find(l => l.id === keepLocationId && (!l.active || visible.some(v => v.id === l.id))) : null;
     const storage = visible.filter(l => l.location_type === 'storage');
     const inUse = visible.filter(l => l.location_type === 'in_use');
     const opt = (l) => `<option value="${l.id}">${escapeHtml(l.name)}</option>`;
     const optGroup = (label, list) => list.length ? `<optgroup label="${label}">${list.map(opt).join('')}</optgroup>` : '';
-    let html = optGroup('Storage', storage) + optGroup('In use', inUse);
-    if(keep) html += `<optgroup label="Inactive">${opt(keep)}</optgroup>`;
-    document.getElementById('itmLocationId').innerHTML = html || '<option value="">No active locations</option>';
-    if(keepLocationId) document.getElementById('itmLocationId').value = keepLocationId;
+    let html = storageOnly
+      ? visible.map(opt).join('')
+      : optGroup('Storage', storage) + optGroup('In use', inUse);
+    if(keep && !visible.some(l => l.id === keep.id)) html += `<optgroup label="Inactive">${opt(keep)}</optgroup>`;
+    document.getElementById('itmLocationId').innerHTML = html || '<option value="">No storage locations</option>';
+    if(keepLocationId && (visible.some(l => l.id === keepLocationId) || keep)) document.getElementById('itmLocationId').value = keepLocationId;
+    else if(visible.length) document.getElementById('itmLocationId').value = visible[0].id;
+  }
+
+  function syncEquipmentPlacementFields(keepLocationId){
+    const isConsumable = document.querySelector('input[name="itmType"]:checked').value === 'consumable';
+    document.getElementById('itmEquipmentStatusWrap').classList.toggle('hidden', true);
+    document.getElementById('itmDepartmentWrap').classList.add('hidden');
+    document.getElementById('itmLocationLabel').textContent = isConsumable ? 'Storage' : 'Storage location';
+    document.getElementById('itmLocationWrap').classList.toggle('hidden', false);
+    if(isConsumable){
+      populateLocationSelect(keepLocationId);
+    } else {
+      populateLocationSelect(keepLocationId, { storageOnly: true });
+    }
+  }
+
+  function renderEquipmentDeploymentsList(it){
+    const wrap = document.getElementById('itmDeploymentsWrap');
+    const list = document.getElementById('itmDeploymentsList');
+    if(!wrap || !list) return;
+    const deps = it?.deployments || [];
+    if(!it || it.item_type !== 'equipment' || !deps.length){
+      wrap.classList.add('hidden');
+      list.innerHTML = '';
+      return;
+    }
+    wrap.classList.remove('hidden');
+    list.innerHTML = deps.map(d =>
+      `<div class="flex justify-between gap-2"><span>${escapeHtml(d.department)}</span><span class="font-semibold">${d.qty} ${escapeHtml(it.unit)}</span></div>`
+    ).join('');
+  }
+
+  function equipmentQtyLabel(it){
+    if(it.item_type !== 'equipment') return `${it.current_qty} ${it.unit}`;
+    const storage = it.storage_qty ?? it.current_qty ?? 0;
+    const deployed = it.deployed_qty ?? 0;
+    if(deployed > 0){
+      return `${storage} ${it.unit} in storage · ${deployed} in use`;
+    }
+    return `${storage} ${it.unit}`;
+  }
+
+  function itemPlacementLabel(it){
+    if(it.item_type !== 'equipment') return it.location_name || '—';
+    const parts = [];
+    const storage = it.storage_qty ?? it.current_qty ?? 0;
+    if(storage > 0){
+      parts.push(`${storage} in storage${it.location_name ? ` (${it.location_name})` : ''}`);
+    }
+    (it.deployments || []).forEach(d => {
+      parts.push(`${d.department}: ${d.qty}`);
+    });
+    return parts.join(' · ') || '—';
   }
 
   function renderLocationManageList(){
@@ -1583,6 +1926,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const isConsumable = document.querySelector('input[name="itmType"]:checked').value === 'consumable';
     document.getElementById('itmMinWrap').classList.toggle('hidden', !isConsumable);
     document.getElementById('itmMaxWrap').classList.toggle('hidden', !isConsumable);
+    syncEquipmentPlacementFields(document.getElementById('itmLocationId').value || null);
   }
   document.querySelectorAll('input[name="itmType"]').forEach(r => r.addEventListener('change', itemTypeToggle));
 
@@ -1590,7 +1934,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const path = roleAtLeast('manager') ? 'inventory.php?include_inactive=1' : 'inventory.php';
     state.inventory = await apiGet(path);
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
-    if(active?.dataset.view !== 'vouchers' && active?.dataset.view !== 'issues'){
+    if(active?.dataset.view !== 'vouchers' && active?.dataset.view !== 'issues' && active?.dataset.view !== 'stock-requests'){
       renderInventory(active?.dataset.filter || 'all');
     }
   }
@@ -1620,7 +1964,13 @@ document.addEventListener('DOMContentLoaded', function(){
   function renderInventory(filter){
     filter = filter || 'all';
     const visible = (state.showInactiveInventory ? state.inventory : activeItems())
-      .filter(it => filter === 'all' || it.status === filter);
+      .filter(it => {
+        if(filter === 'all') return true;
+        if(filter === 'equipment') return it.item_type === 'equipment';
+        if(filter === 'In storage') return it.status === 'In storage' || it.status === 'Mixed';
+        if(filter === 'In use') return it.status === 'In use' || it.status === 'Mixed';
+        return it.status === filter;
+      });
     const tbody = document.getElementById('inventoryTableBody');
     if(!visible.length){
       tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-textMid">${state.showInactiveInventory ? 'No items match this filter.' : 'No active items. Turn on “Show inactive” to see hidden items.'}</td></tr>`;
@@ -1630,15 +1980,15 @@ document.addEventListener('DOMContentLoaded', function(){
       <tr class="border-b border-line last:border-0 ${it.active ? '' : 'opacity-70'}">
         <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(it.label)}</td>
         <td class="py-3 pr-3 text-textMid capitalize">${it.item_type}</td>
-        <td class="py-3 pr-3 text-textMid">${escapeHtml(it.location_name || '—')}</td>
-        <td class="py-3 pr-3">${it.current_qty} ${it.unit}</td>
+        <td class="py-3 pr-3 text-textMid">${escapeHtml(itemPlacementLabel(it))}</td>
+        <td class="py-3 pr-3">${equipmentQtyLabel(it)}</td>
         <td class="py-3 pr-3 text-textMid">${it.min_qty ?? '—'}</td>
         <td class="py-3 pr-3 text-textMid">${it.max_qty ?? '—'}</td>
         <td class="py-3 pr-3">${statusPill(it.status)}</td>
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
             ${it.active && it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
-            ${it.active && it.item_type === 'consumable' && it.current_qty > 0 ? `<button onclick="openIssueModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#fff3e0] text-orangeDark text-[.75rem] font-semibold border-none cursor-pointer">Issue</button>` : ''}
+            ${it.active && it.item_type === 'consumable' && it.current_qty > 0 ? `<button onclick="openIssueModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-semibold cursor-pointer">Issue</button>` : ''}
             ${roleAtLeast('manager') && it.active && it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
             ${roleAtLeast('manager') ? `<button onclick="openEditItemModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>` : ''}
             ${roleAtLeast('super_admin') ? `<button onclick="setItemActive('${it.item_key}', ${it.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${it.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${it.active ? 'Mark inactive' : 'Reactivate'}</button>` : ''}
@@ -1657,7 +2007,9 @@ document.addEventListener('DOMContentLoaded', function(){
   function showInventoryPanel(filter){
     document.getElementById('inventoryTableWrap').classList.remove('hidden');
     document.getElementById('voucherPanel').classList.add('hidden');
+    document.getElementById('stockRequestsPanel').classList.add('hidden');
     document.getElementById('issuePanel').classList.add('hidden');
+    document.getElementById('equipmentHistoryPanel').classList.add('hidden');
     setInventoryHeaderAction('items');
     renderInventory(filter || 'all');
   }
@@ -1665,7 +2017,9 @@ document.addEventListener('DOMContentLoaded', function(){
   function showVoucherPanel(){
     document.getElementById('inventoryTableWrap').classList.add('hidden');
     document.getElementById('voucherPanel').classList.remove('hidden');
+    document.getElementById('stockRequestsPanel').classList.add('hidden');
     document.getElementById('issuePanel').classList.add('hidden');
+    document.getElementById('equipmentHistoryPanel').classList.add('hidden');
     setInventoryHeaderAction('vouchers');
     renderVouchers();
   }
@@ -1673,9 +2027,31 @@ document.addEventListener('DOMContentLoaded', function(){
   function showIssuePanel(){
     document.getElementById('inventoryTableWrap').classList.add('hidden');
     document.getElementById('voucherPanel').classList.add('hidden');
+    document.getElementById('stockRequestsPanel').classList.add('hidden');
     document.getElementById('issuePanel').classList.remove('hidden');
+    document.getElementById('equipmentHistoryPanel').classList.add('hidden');
     setInventoryHeaderAction('issues');
     renderStockIssues();
+  }
+
+  function showEquipmentHistoryPanel(){
+    document.getElementById('inventoryTableWrap').classList.add('hidden');
+    document.getElementById('voucherPanel').classList.add('hidden');
+    document.getElementById('stockRequestsPanel').classList.add('hidden');
+    document.getElementById('issuePanel').classList.add('hidden');
+    document.getElementById('equipmentHistoryPanel').classList.remove('hidden');
+    setInventoryHeaderAction('equipment-history');
+    renderEquipmentHistory();
+  }
+
+  function showStockRequestsPanel(){
+    document.getElementById('inventoryTableWrap').classList.add('hidden');
+    document.getElementById('voucherPanel').classList.add('hidden');
+    document.getElementById('stockRequestsPanel').classList.remove('hidden');
+    document.getElementById('issuePanel').classList.add('hidden');
+    document.getElementById('equipmentHistoryPanel').classList.add('hidden');
+    setInventoryHeaderAction('stock-requests');
+    renderStockRequests();
   }
 
   async function loadVouchers(){
@@ -1710,12 +2086,304 @@ document.addEventListener('DOMContentLoaded', function(){
       </tr>`).join('');
   }
 
+  /* ---------- department stock requests (ask before issue) ---------- */
+  async function loadStockRequests(){
+    state.stockRequests = await apiGet('stock_requests.php');
+    if(document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view === 'stock-requests'){
+      renderStockRequests();
+    }
+    updateAttentionBadges();
+  }
+
+  function stockRequestType(){
+    return document.querySelector('input[name="stockReqType"]:checked')?.value || 'consumable';
+  }
+
+  function isEquipmentInStorage(it){
+    return it.item_type === 'equipment'
+      && (it.storage_qty ?? it.current_qty) > 0
+      && it.location_id;
+  }
+
+  function stockRequestItemsByType(type){
+    return activeItems().filter(it => {
+      if(it.item_type !== type) return false;
+      if(type === 'equipment') return isEquipmentInStorage(it);
+      return it.current_qty > 0;
+    });
+  }
+
+  function stockRequestTypeLabel(type){
+    return type === 'equipment' ? 'Equipment' : 'Office supplies';
+  }
+
+  function syncStockRequestTypeUI(){
+    const type = stockRequestType();
+    const isEquipment = type === 'equipment';
+    document.getElementById('stockReqItemLabel').textContent = isEquipment ? 'Equipment' : 'Supply';
+    document.getElementById('stockReqTypeHint').textContent = isEquipment
+      ? 'Extension cords, printers, and other reusable assets from storage.'
+      : 'Pens, paper, cleaning supplies, and other consumables.';
+    document.getElementById('stockReqNotes').placeholder = isEquipment
+      ? 'e.g. for meeting room setup this week'
+      : 'e.g. for front desk use this week';
+    const qtyInput = document.getElementById('stockReqQty');
+    qtyInput.step = isEquipment ? '1' : 'any';
+    qtyInput.min = isEquipment ? '1' : '0.01';
+    if(isEquipment) qtyInput.value = 1;
+    populateStockRequestItemSelect(type);
+    updateStockReqQtyHint(document.getElementById('stockReqItem').value);
+  }
+
+  function populateStockRequestItemSelect(type){
+    type = type || stockRequestType();
+    const items = stockRequestItemsByType(type);
+    const select = document.getElementById('stockReqItem');
+    if(!items.length){
+      select.innerHTML = `<option value="">No ${type === 'equipment' ? 'equipment in storage' : 'supplies on hand'}</option>`;
+      document.getElementById('stockReqQtyHint').textContent = '';
+      updateStockReqPurchaseHint(type);
+      return;
+    }
+    select.innerHTML = items.map(it => {
+      const place = type === 'equipment' && it.location_name ? ` · ${it.location_name}` : '';
+      const onHand = type === 'equipment' ? (it.storage_qty ?? it.current_qty) : it.current_qty;
+      return `<option value="${it.item_key}">${escapeHtml(it.label)}${place} (${onHand} ${it.unit} on hand)</option>`;
+    }).join('');
+    updateStockReqPurchaseHint(type);
+  }
+
+  function updateStockReqPurchaseHint(type){
+    type = type || stockRequestType();
+    const hint = document.getElementById('stockReqPurchaseHint');
+    if(!hint) return;
+    if(type !== 'equipment' || stockRequestItemsByType('equipment').length){
+      hint.classList.add('hidden');
+      hint.innerHTML = '';
+      return;
+    }
+    hint.classList.remove('hidden');
+    hint.innerHTML = 'Nothing in storage for this type. <button type="button" class="font-bold text-navy800 underline bg-transparent border-none cursor-pointer p-0" onclick="openEquipmentPurchaseFromStockRequest()">Request equipment instead</button>.';
+  }
+
+  window.openEquipmentPurchaseFromStockRequest = function(){
+    const dept = document.getElementById('stockReqDepartment').value;
+    closeModal('stockRequestModalOverlay');
+    openRequestModal(null, { department: dept, reason: 'new_need', equipmentOnly: true });
+  };
+
+  window.openEquipmentRequestModal = function(itemKey){
+    if(itemKey){
+      openEquipmentPurchaseRequest(itemKey);
+      return;
+    }
+    openRequestModal(null, { reason: 'new_need', equipmentOnly: true });
+  };
+
+  window.openEquipmentPurchaseRequest = function(itemKey){
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    if(!it) return;
+    const topDept = it.deployments?.[0]?.department || null;
+    openRequestModal(itemKey, {
+      department: topDept,
+      reason: (it.deployed_qty > 0 || topDept) ? 'replacement' : 'new_need',
+    });
+  };
+
+  function updateStockReqQtyHint(itemKey){
+    const hint = document.getElementById('stockReqQtyHint');
+    const item = state.inventory.find(i => i.item_key === itemKey);
+    if(!item){
+      hint.textContent = '';
+      return;
+    }
+    const onHand = item.item_type === 'equipment' ? (item.storage_qty ?? item.current_qty) : item.current_qty;
+    const base = `${onHand} ${item.unit} currently in storage. Inventory staff will issue when they fulfill this request.`;
+    hint.textContent = item.item_type === 'equipment'
+      ? `${base} Equipment is usually issued one unit at a time.`
+      : `${onHand} ${item.unit} currently on hand. Inventory staff will issue when they fulfill this request.`;
+  }
+
+  window.openStockRequestModal = function(presetItemKey){
+    const locked = Boolean(presetItemKey);
+    const item = locked ? state.inventory.find(i => i.item_key === presetItemKey) : null;
+
+    document.getElementById('stockReqEmployeeDisplay').textContent = state.user?.name || '—';
+    populateDepartmentSelect('stockReqDepartment', DEPARTMENTS[0]);
+
+    document.getElementById('stockReqTypeWrap').classList.toggle('hidden', locked);
+    document.getElementById('stockReqItemSelectWrap').classList.toggle('hidden', locked);
+    document.getElementById('stockReqItemLockedWrap').classList.toggle('hidden', !locked);
+    document.getElementById('stockRequestModalTitle').textContent = locked && item
+      ? `Request — ${item.label}`
+      : 'Request from stock';
+
+    if(locked && item){
+      document.getElementById('stockReqItemLockedType').textContent = item.item_type === 'equipment' ? 'Equipment' : 'Supply';
+      document.getElementById('stockReqItemLockedLabel').textContent = item.label;
+      document.getElementById('stockReqItemLockedKey').value = item.item_key;
+    } else {
+      document.querySelector('input[name="stockReqType"][value="consumable"]').checked = true;
+      syncStockRequestTypeUI();
+      document.getElementById('stockReqItemLockedKey').value = '';
+    }
+
+    document.getElementById('stockReqQty').value = 1;
+    document.getElementById('stockReqNotes').value = '';
+    openModal('stockRequestModalOverlay');
+
+    const key = locked ? presetItemKey : document.getElementById('stockReqItem').value;
+    if(key) updateStockReqQtyHint(key);
+  };
+
+  document.querySelectorAll('input[name="stockReqType"]').forEach(r => r.addEventListener('change', syncStockRequestTypeUI));
+
+  document.getElementById('stockReqItem')?.addEventListener('change', function(){
+    updateStockReqQtyHint(this.value);
+  });
+
+  document.getElementById('stockRequestForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const lockedKey = document.getElementById('stockReqItemLockedKey').value;
+    const itemKey = lockedKey || document.getElementById('stockReqItem').value;
+    const qty = Number(document.getElementById('stockReqQty').value);
+    const department = document.getElementById('stockReqDepartment').value;
+    const item = state.inventory.find(i => i.item_key === itemKey);
+    if(!itemKey || !department || !(qty > 0)){
+      alert('Choose a department, item, and quantity.');
+      return;
+    }
+    if(!confirm(`Submit stock request for ${qty} ${item?.unit || ''} of ${item?.label || itemKey} (${department})?`)) return;
+    try {
+      await apiSend('stock_requests.php', 'POST', {
+        department,
+        item_key: itemKey,
+        qty,
+        notes: document.getElementById('stockReqNotes').value.trim() || null,
+      });
+      closeModal('stockRequestModalOverlay');
+      await loadStockRequests();
+      location.hash = hashForInventoryTab('stock-requests');
+    } catch (err) {
+      alert(err.error || 'Could not submit stock request.');
+    }
+  });
+
+  function renderStockRequests(){
+    const tbody = document.getElementById('stockRequestsTableBody');
+    if(!state.stockRequests.length){
+      tbody.innerHTML = `<tr><td colspan="10" class="py-6 text-center text-textMid">No stock requests yet. Click Request from stock to ask inventory for items on the shelf.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = state.stockRequests.map(sr => {
+      const canFulfill = sr.status === 'Pending' && roleAtLeast('staff');
+      const canCancel = sr.status === 'Pending' && (sr.requested_by === state.user?.name || roleAtLeast('staff'));
+      const enoughStock = sr.current_qty == null || sr.qty <= sr.current_qty;
+      return `
+      <tr class="border-b border-line last:border-0">
+        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(sr.request_code)}</td>
+        <td class="py-3 pr-3">${escapeHtml(sr.department)}</td>
+        <td class="py-3 pr-3 text-textMid capitalize">${sr.item_type === 'equipment' ? 'Equipment' : 'Supply'}</td>
+        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(sr.item_label)}</td>
+        <td class="py-3 pr-3">${sr.qty} ${escapeHtml(sr.unit)}</td>
+        <td class="py-3 pr-3 ${enoughStock ? 'text-textMid' : 'text-redTx font-semibold'}">${sr.current_qty ?? '—'} ${escapeHtml(sr.unit)}</td>
+        <td class="py-3 pr-3 text-textMid">${escapeHtml(sr.requested_by)}</td>
+        <td class="py-3 pr-3 text-textMid">${fmtDate(sr.created_at)}</td>
+        <td class="py-3 pr-3">${statusPill(sr.status)}${sr.fulfilled_issue_code ? `<div class="text-[.72rem] text-textSoft mt-1">${escapeHtml(sr.fulfilled_issue_code)}</div>` : ''}</td>
+        <td class="py-3 pr-3">
+          <div class="flex flex-wrap gap-2">
+            ${canFulfill ? `<button onclick="fulfillStockRequest(${sr.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Issue</button>` : ''}
+            ${canCancel ? `<button onclick="cancelStockRequest(${sr.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Cancel</button>` : ''}
+            ${!canFulfill && !canCancel ? '—' : ''}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.fulfillStockRequest = function(id){
+    const sr = state.stockRequests.find(r => r.id === id);
+    if(!sr || sr.status !== 'Pending') return;
+    openIssueModal(sr.item_key, { stockRequest: sr });
+  };
+
+  function resetIssueModalMode(){
+    document.getElementById('issueStockRequestId').value = '';
+    document.getElementById('issueModalTitle').textContent = 'Issue stock';
+    document.getElementById('issueModalHint').textContent = 'Record who took this from storage — stock updates right away.';
+    document.getElementById('issueFormSubmitBtn').textContent = 'Record issue';
+    document.getElementById('issueDepartment').disabled = false;
+  }
+
+  window.openIssueModal = function(itemKey, { stockRequest = null } = {}){
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    if(!it) return;
+    document.getElementById('issueForm').reset();
+    resetIssueModalMode();
+    document.getElementById('issueItemKey').value = it.item_key;
+    document.getElementById('issueItemLabel').textContent = it.label;
+    document.getElementById('issueStockHint').textContent = `${it.current_qty} ${it.unit} currently on hand.`;
+    document.getElementById('issueQty').max = it.current_qty;
+    document.getElementById('issueQty').value = stockRequest ? stockRequest.qty : 1;
+    populateDepartmentSelect('issueDepartment', stockRequest ? stockRequest.department : DEPARTMENTS[0]);
+    document.getElementById('issueIssuedTo').value = stockRequest ? (stockRequest.requested_by || '') : '';
+    document.getElementById('issueNotes').value = stockRequest ? (stockRequest.notes || '') : '';
+
+    if(stockRequest){
+      document.getElementById('issueStockRequestId').value = stockRequest.id;
+      document.getElementById('issueModalTitle').textContent = `Fulfill — ${stockRequest.request_code}`;
+      document.getElementById('issueModalHint').textContent = `Same as issuing stock — completes this request and logs the checkout in the issue log.`;
+      document.getElementById('issueFormSubmitBtn').textContent = 'Fulfill & record issue';
+      document.getElementById('issueDepartment').disabled = true;
+    }
+
+    openModal('issueModalOverlay');
+  };
+
+  window.cancelStockRequest = async function(id){
+    const sr = state.stockRequests.find(r => r.id === id);
+    if(!sr || sr.status !== 'Pending') return;
+    if(!confirm(`Cancel stock request ${sr.request_code}?`)) return;
+    try {
+      await apiSend(`stock_requests.php?id=${id}`, 'PUT', { action: 'cancel' });
+      await loadStockRequests();
+    } catch (err) {
+      alert(err.error || 'Could not cancel request.');
+    }
+  };
+
   /* ---------- stock issues (department checkout log) ---------- */
   async function loadStockIssues(){
     state.stockIssues = await apiGet('stock_issues.php');
     if(document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view === 'issues'){
       renderStockIssues();
     }
+  }
+
+  async function loadEquipmentMovements(){
+    state.equipmentMovements = await apiGet('equipment_movements.php');
+    if(document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view === 'equipment-history'){
+      renderEquipmentHistory();
+    }
+  }
+
+  function renderEquipmentHistory(){
+    const tbody = document.getElementById('equipmentHistoryTableBody');
+    if(!state.equipmentMovements.length){
+      tbody.innerHTML = '<tr><td colspan="8" class="py-6 text-center text-textMid">No equipment movements yet — issues from storage and purchase receipts will appear here.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = state.equipmentMovements.map(m => `
+      <tr class="border-b border-line last:border-0 ${m.status === 'Voided' ? 'opacity-70' : ''}">
+        <td class="py-3 pr-3 text-textMid">${fmtDate(m.created_at)}</td>
+        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(m.item_label)}</td>
+        <td class="py-3 pr-3">${m.qty} ${escapeHtml(m.unit)}</td>
+        <td class="py-3 pr-3 text-textMid">${EQUIPMENT_MOVEMENT_LABELS[m.movement_type] || m.movement_type}</td>
+        <td class="py-3 pr-3 text-textMid">${equipmentMovementDestination(m)}</td>
+        <td class="py-3 pr-3 text-textMid font-semibold">${escapeHtml(m.reference_code || '—')}</td>
+        <td class="py-3 pr-3 text-textMid">${escapeHtml(m.recorded_by)}</td>
+        <td class="py-3 pr-3">${statusPill(m.status)}${m.status === 'Voided' && m.voided_reason ? `<div class="text-[.68rem] text-textSoft mt-1">${escapeHtml(m.voided_reason)}</div>` : ''}</td>
+      </tr>`).join('');
   }
 
   function renderStockIssues(){
@@ -1739,46 +2407,38 @@ document.addEventListener('DOMContentLoaded', function(){
       </tr>`).join('');
   }
 
-  window.openIssueModal = function(itemKey){
-    const it = state.inventory.find(i => i.item_key === itemKey);
-    if(!it) return;
-    document.getElementById('issueForm').reset();
-    document.getElementById('issueItemKey').value = it.item_key;
-    document.getElementById('issueItemLabel').textContent = it.label;
-    document.getElementById('issueStockHint').textContent = `${it.current_qty} ${it.unit} currently on hand.`;
-    document.getElementById('issueQty').max = it.current_qty;
-    document.getElementById('issueQty').value = 1;
-    document.getElementById('issueDepartment').value = 'Marketing';
-    document.getElementById('issueDepartmentOther').classList.add('hidden');
-    document.getElementById('issueDepartmentOther').value = '';
-    openModal('issueModalOverlay');
-  };
-
-  document.getElementById('issueDepartment').addEventListener('change', function(){
-    document.getElementById('issueDepartmentOther').classList.toggle('hidden', this.value !== '__other__');
-  });
-
   document.getElementById('issueForm').addEventListener('submit', async function(e){
     e.preventDefault();
     const itemKey = document.getElementById('issueItemKey').value;
     const it = state.inventory.find(i => i.item_key === itemKey);
     const qty = Number(document.getElementById('issueQty').value);
-    const deptSelect = document.getElementById('issueDepartment').value;
-    const department = deptSelect === '__other__'
-      ? document.getElementById('issueDepartmentOther').value.trim()
-      : deptSelect;
-    if(!department){ alert('Enter a department.'); return; }
-    if(!confirm(`Issue ${qty} ${it?.unit || ''} of ${it?.label || itemKey} to ${department}?`)) return;
+    const department = document.getElementById('issueDepartment').value;
+    const stockRequestId = document.getElementById('issueStockRequestId').value;
+    if(!department){ alert('Choose a department.'); return; }
+    const confirmMsg = stockRequestId
+      ? `Fulfill this request and issue ${qty} ${it?.unit || ''} of ${it?.label || itemKey} to ${department}?`
+      : `Issue ${qty} ${it?.unit || ''} of ${it?.label || itemKey} to ${department}?`;
+    if(!confirm(confirmMsg)) return;
     try {
-      await apiSend('stock_issues.php', 'POST', {
-        item_key: itemKey,
-        qty,
-        department,
-        issued_to: document.getElementById('issueIssuedTo').value.trim() || null,
-        notes: document.getElementById('issueNotes').value.trim() || null,
-      });
+      if(stockRequestId){
+        await apiSend(`stock_requests.php?id=${stockRequestId}`, 'PUT', {
+          action: 'fulfill',
+          qty,
+          issued_to: document.getElementById('issueIssuedTo').value.trim() || null,
+          notes: document.getElementById('issueNotes').value.trim() || null,
+        });
+        await Promise.all([loadInventory(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests()]);
+      } else {
+        await apiSend('stock_issues.php', 'POST', {
+          item_key: itemKey,
+          qty,
+          department,
+          issued_to: document.getElementById('issueIssuedTo').value.trim() || null,
+          notes: document.getElementById('issueNotes').value.trim() || null,
+        });
+        await Promise.all([loadInventory(), loadStockIssues(), loadEquipmentMovements()]);
+      }
       closeModal('issueModalOverlay');
-      await Promise.all([loadInventory(), loadStockIssues()]);
       renderDashboard();
     } catch (err) {
       alert(err.error || 'Could not record issue.');
@@ -1792,7 +2452,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(reason === null) return;
     try {
       await apiSend(`stock_issues.php?id=${id}`, 'PUT', { action: 'void', reason });
-      await Promise.all([loadInventory(), loadStockIssues()]);
+      await Promise.all([loadInventory(), loadStockIssues(), loadEquipmentMovements()]);
       renderDashboard();
     } catch (err) {
       alert(err.error || 'Could not void issue.');
@@ -1887,10 +2547,11 @@ document.addEventListener('DOMContentLoaded', function(){
   window.openItemModal = function(){
     document.getElementById('itemForm').reset();
     document.getElementById('itmEditKey').value = '';
+    document.getElementById('itmDeploymentsWrap')?.classList.add('hidden');
     document.getElementById('itemModalTitle').textContent = 'Add office item';
     document.getElementById('itemFormSubmitBtn').textContent = 'Add item';
+    updateItemNameSimilarHint();
     itemTypeToggle();
-    populateLocationSelect();
     openModal('itemModalOverlay');
   };
 
@@ -1901,13 +2562,15 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('itmName').value = it.label;
     document.getElementById('itmUnit').value = it.unit;
     document.querySelector(`input[name="itmType"][value="${it.item_type}"]`).checked = true;
-    document.getElementById('itmCurrent').value = it.current_qty;
+    document.getElementById('itmCurrent').value = it.storage_qty ?? it.current_qty;
     document.getElementById('itmMin').value = it.min_qty ?? 1;
     document.getElementById('itmMax').value = it.max_qty ?? 5;
-    document.getElementById('itemModalTitle').textContent = `Edit / relocate — ${it.label}`;
+    renderEquipmentDeploymentsList(it);
+    document.getElementById('itemModalTitle').textContent = `Edit — ${it.label}`;
     document.getElementById('itemFormSubmitBtn').textContent = 'Save changes';
+    updateItemNameSimilarHint();
     itemTypeToggle();
-    populateLocationSelect(it.location_id);
+    syncEquipmentPlacementFields(it.location_id);
     openModal('itemModalOverlay');
   };
 
@@ -2034,19 +2697,100 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 
+  function normalizeItemLabel(label){
+    return (label || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '');
+  }
+
+  function levenshtein(a, b){
+    const m = a.length;
+    const n = b.length;
+    if(!m) return n;
+    if(!n) return m;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for(let i = 0; i <= m; i++) dp[i][0] = i;
+    for(let j = 0; j <= n; j++) dp[0][j] = j;
+    for(let i = 1; i <= m; i++){
+      for(let j = 1; j <= n; j++){
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+      }
+    }
+    return dp[m][n];
+  }
+
+  function findSimilarItems(label, excludeItemKey){
+    const norm = normalizeItemLabel(label);
+    if(norm.length < 3) return [];
+    return state.inventory.filter(it => {
+      if(excludeItemKey && it.item_key === excludeItemKey) return false;
+      if(it.item_type === 'equipment' && it.assigned_department) return false;
+      const other = normalizeItemLabel(it.label);
+      if(!other) return false;
+      if(other === norm) return true;
+      return norm.length >= 5 && other.length >= 5 && levenshtein(norm, other) <= 2;
+    });
+  }
+
+  function similarBlocksNewItem(similar, itemType){
+    if(!similar.length) return false;
+    return true;
+  }
+
+  function updateItemNameSimilarHint(){
+    const hint = document.getElementById('itmNameSimilarHint');
+    if(!hint) return;
+    const editKey = document.getElementById('itmEditKey').value;
+    if(editKey){
+      hint.classList.add('hidden');
+      hint.textContent = '';
+      return;
+    }
+    const label = document.getElementById('itmName').value.trim();
+    const similar = findSimilarItems(label, editKey || null);
+    if(!label || !similar.length){
+      hint.classList.add('hidden');
+      hint.textContent = '';
+      return;
+    }
+    const names = similar.map(i => i.label).join(', ');
+    hint.textContent = `${names} already exists. Edit that item and add storage quantity instead of creating a duplicate.`;
+    hint.className = 'text-[.72rem] text-amberTx mt-1';
+    hint.classList.remove('hidden');
+  }
+
+  let itemNameHintTimer;
+  document.getElementById('itmName').addEventListener('input', function(){
+    clearTimeout(itemNameHintTimer);
+    itemNameHintTimer = setTimeout(updateItemNameSimilarHint, 250);
+  });
+  document.querySelectorAll('input[name="itmType"]').forEach(el => el.addEventListener('change', updateItemNameSimilarHint));
+
   document.getElementById('itemForm').addEventListener('submit', async function(e){
     e.preventDefault();
     const editKey = document.getElementById('itmEditKey').value;
+    const label = document.getElementById('itmName').value.trim();
     const itemType = document.querySelector('input[name="itmType"]:checked').value;
+    const locationId = document.getElementById('itmLocationId').value || null;
+    const similar = findSimilarItems(label, editKey || null);
+    if(!editKey && similar.length){
+      const names = similar.map(i => `"${i.label}"`).join(', ');
+      alert(`Similar item already listed: ${names}.\n\nUse Edit on that row and add storage quantity instead of creating a duplicate.`);
+      return;
+    }
     const payload = {
-      label: document.getElementById('itmName').value,
+      label: label,
       unit: document.getElementById('itmUnit').value,
       item_type: itemType,
-      location_id: document.getElementById('itmLocationId').value || null,
       current_qty: Number(document.getElementById('itmCurrent').value),
       min_qty: itemType === 'consumable' ? Number(document.getElementById('itmMin').value) : null,
       max_qty: itemType === 'consumable' ? Number(document.getElementById('itmMax').value) : null,
     };
+    if(itemType === 'equipment'){
+      if(!locationId){ alert('Choose a storage location.'); return; }
+      payload.location_id = locationId;
+    } else {
+      payload.location_id = locationId;
+    }
     try {
       if(editKey){
         await apiSend(`inventory.php?item=${encodeURIComponent(editKey)}`, 'PUT', payload);
@@ -2099,7 +2843,6 @@ document.addEventListener('DOMContentLoaded', function(){
   async function loadRequests(){
     state.requests = await apiGet('purchase_requests.php');
     renderRequests();
-    populateItemSelect();
   }
 
   function renderRequests(){
@@ -2107,8 +2850,10 @@ document.addEventListener('DOMContentLoaded', function(){
     tbody.innerHTML = state.requests.map(r => `
       <tr class="border-b border-line last:border-0">
         <td class="py-3 pr-3 font-semibold text-textDark">${r.request_code}</td>
-        <td class="py-3 pr-3">${r.employee}</td>
-        <td class="py-3 pr-3">${r.item_label}</td>
+        <td class="py-3 pr-3">${escapeHtml(r.employee)}</td>
+        <td class="py-3 pr-3 text-textMid">${escapeHtml(purchaseRequestDepartmentLabel(r))}</td>
+        <td class="py-3 pr-3">${escapeHtml(r.display_label || r.item_label)}${r.needs_catalog_link ? ' <span class="text-[.68rem] text-amberTx">(not in catalog yet)</span>' : ''}${r.item_type === 'equipment' ? ' <span class="text-[.68rem] text-textSoft">(equipment)</span>' : ''}</td>
+        <td class="py-3 pr-3 text-textMid">${r.reason ? PURCHASE_REASON_LABELS[r.reason] || r.reason : '—'}</td>
         <td class="py-3 pr-3">${r.qty} ${r.unit}</td>
         <td class="py-3 pr-3">${peso(r.estimate_cost)}${r.best_supplier ? `<div class="text-[.68rem] text-textSoft">est., ${r.best_supplier}</div>` : ''}</td>
         <td class="py-3 pr-3 text-textMid">${fmtDate(r.created_at)}</td>
@@ -2153,17 +2898,62 @@ document.addEventListener('DOMContentLoaded', function(){
     pendingRequest = req;
     selectedSupplierId = null;
 
-    document.getElementById('supplierChoiceSubtitle').textContent = `For: ${req.item_label} × ${req.qty} ${req.unit} (already approved)`;
+    document.getElementById('supplierChoiceSubtitle').textContent = req.reason === 'stock_up'
+      ? `For: ${req.display_label || req.item_label} × ${req.qty} ${req.unit} — Central storage (stock-up)`
+      : req.department
+      ? `For: ${req.display_label || req.item_label} × ${req.qty} ${req.unit} — ${req.department}${req.reason ? ` (${PURCHASE_REASON_LABELS[req.reason] || req.reason})` : ''}`
+      : `For: ${req.display_label || req.item_label} × ${req.qty} ${req.unit} (already approved)`;
 
+    const needsCatalogLink = req.needs_catalog_link;
+    document.getElementById('poCatalogLinkWrap').classList.toggle('hidden', !needsCatalogLink);
+    if(needsCatalogLink){
+      document.getElementById('poRequestedLabel').textContent = req.requested_label || req.display_label || '—';
+      populatePoCatalogSelect(req);
+      const hint = document.getElementById('poCatalogLinkHint');
+      const hasSelection = document.getElementById('poCatalogItem').value;
+      hint.textContent = hasSelection
+        ? 'Pick the inventory row this order will add to when received (or the closest match).'
+        : `"${req.requested_label || req.display_label}" is not in the catalog yet — choose the closest match, or add it under Inventory before creating the order.`;
+    }
+
+    refreshPoSupplierChoices();
+
+    document.getElementById('poAssignedLabel').textContent = "Who's buying / receiving?";
+    const assignedSelect = document.getElementById('poAssignedTo');
+    if(state.user?.name){
+      const match = [...assignedSelect.options].find(o => o.value === state.user.name);
+      assignedSelect.value = match ? match.value : assignedSelect.options[0]?.value;
+    }
+    openModal('supplierChoiceModalOverlay');
+  };
+
+  function poCatalogKeyForPricing(){
+    if(!pendingRequest) return null;
+    return pendingRequest.item_key || document.getElementById('poCatalogItem')?.value || null;
+  }
+
+  function refreshPoSupplierChoices(){
+    if(!pendingRequest) return;
+    const req = pendingRequest;
+    const priceKey = poCatalogKeyForPricing();
     const carriers = activeSuppliers()
-      .map(s => ({ s, price: s.prices.find(p => p.item_key === req.item_key)?.price }))
+      .map(s => ({ s, price: priceKey ? supplierPriceForItem(s, priceKey) : null }))
       .filter(x => x.price != null)
       .sort((a, b) => a.price - b.price)
       .slice(0, 3);
 
     if(carriers.length === 0){
-      document.getElementById('supplierChoiceList').innerHTML = `<p class="text-[.85rem] text-textMid">No supplier in the directory carries this item yet. You can still create the order without a listed vendor — pick who's handling it below.</p>`;
+      document.getElementById('supplierChoiceList').innerHTML = `<div class="p-3 rounded-xl border border-line bg-[#f8fafc] text-[.82rem] text-textMid space-y-2">
+        <p><span class="font-semibold text-textDark">No listed vendor price</span> for this item yet — that's normal for new equipment.</p>
+        <p>You can still create the order: pick walk-in below and assign who will buy it. After purchase, upload the receipt as usual.</p>
+        <p class="text-[.72rem] text-textSoft">To add a vendor first: add the item under Inventory, then share the vendor quote link or edit a supplier and add a price for this item.</p>
+      </div>`;
+      document.getElementById('poEstimatedAmountWrap').classList.remove('hidden');
+      document.getElementById('poEstimatedAmount').value = '';
+      selectedSupplierId = null;
     } else {
+      document.getElementById('poEstimatedAmountWrap').classList.add('hidden');
+      document.getElementById('poEstimatedAmount').value = '';
       selectedSupplierId = carriers[0].s.id;
       document.getElementById('supplierChoiceList').innerHTML = carriers.map(({s, price}, idx) => `
         <button type="button" onclick="selectSupplier(${s.id})" data-supplier-id="${s.id}" class="supplier-choice-btn text-left p-4 rounded-xl border ${idx===0 ? 'border-greenTx bg-greenBg/30' : 'border-line'} hover:border-navy800 cursor-pointer bg-transparent">
@@ -2175,15 +2965,9 @@ document.addEventListener('DOMContentLoaded', function(){
           <div class="text-[.72rem] text-textSoft mt-1 flex items-center gap-1"><i class='bx bxs-star text-[.8rem]'></i>${s.rating ?? '—'} rating · ${(s.procurement_methods || []).map(m => PROCUREMENT_LABELS[m]).join(', ')}</div>
         </button>`).join('');
     }
+  }
 
-    document.getElementById('poAssignedLabel').textContent = "Who's buying / receiving?";
-    const assignedSelect = document.getElementById('poAssignedTo');
-    if(state.user?.name){
-      const match = [...assignedSelect.options].find(o => o.value === state.user.name);
-      assignedSelect.value = match ? match.value : assignedSelect.options[0]?.value;
-    }
-    openModal('supplierChoiceModalOverlay');
-  };
+  document.getElementById('poCatalogItem')?.addEventListener('change', refreshPoSupplierChoices);
 
   window.selectSupplier = function(id){
     selectedSupplierId = id;
@@ -2199,13 +2983,23 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!pendingRequest) return;
     const method = document.getElementById('poMethod').value;
     const assignedTo = document.getElementById('poAssignedTo').value;
+    let catalogKey = pendingRequest.item_key;
+    if(!catalogKey){
+      catalogKey = document.getElementById('poCatalogItem').value;
+      if(!catalogKey){ alert('Choose which catalog item this order is for.'); return; }
+    }
     const supplier = selectedSupplierId ? state.suppliers.find(s => s.id === selectedSupplierId) : null;
-    const priceEntry = supplier ? supplier.prices.find(p => p.item_key === pendingRequest.item_key) : null;
-    const amount = priceEntry ? priceEntry.price * pendingRequest.qty : null;
+    const matchedPrice = supplier ? supplierPriceForItem(supplier, catalogKey) : null;
+    let amount = matchedPrice != null ? matchedPrice * pendingRequest.qty : null;
+    if(amount == null){
+      const est = document.getElementById('poEstimatedAmount').value;
+      if(est !== '' && Number(est) > 0) amount = Number(est);
+    }
 
     try {
       await apiSend('purchase_orders.php', 'POST', {
         request_id: pendingRequest.id,
+        item_key: pendingRequest.item_key ? undefined : catalogKey,
         supplier_id: selectedSupplierId,
         procurement_method: method,
         assigned_to: assignedTo,
@@ -2267,8 +3061,8 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">${statusPill(o.status)}</td>
         <td class="py-3 pr-3">
           <div class="flex gap-2 flex-wrap">
-            ${canUploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.75rem] font-bold border-none cursor-pointer">Upload receipt</button>` : ''}
-            ${canReuploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-gradient-to-br from-orange to-orangeDark text-[#3a2306] text-[.75rem] font-bold border-none cursor-pointer">Reupload receipt</button>` : ''}
+            ${canUploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-bold border-none cursor-pointer">Upload receipt</button>` : ''}
+            ${canReuploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-bold border-none cursor-pointer">Reupload receipt</button>` : ''}
             ${canDeclareLostReceipt ? `<button onclick="openLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Lost receipt</button>` : ''}
             ${canRejectReceipt ? `<button onclick="openRejectReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Reject receipt</button>` : ''}
             ${awaitingFinance ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for Finance</span>` : ''}
@@ -2432,16 +3226,87 @@ document.addEventListener('DOMContentLoaded', function(){
   window.markReceived = async function(id){
     const order = state.orders.find(o => o.id === id);
     if(!order) return;
+    if(order.item_type === 'equipment'){
+      openReceiveEquipmentModal(id);
+      return;
+    }
     if(!confirm(`Confirm ${order.qty} ${order.unit} of ${order.item_label} were received, and that the receipt/lost-receipt note matches this order?`)) return;
     try {
       const result = await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'receive' });
-      await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory()]);
+      await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory(), loadEquipmentMovements()]);
       renderDashboard();
       alert(`${result.qty_added} ${result.unit} of ${result.item_label} added to inventory. Stock is now ${result.new_stock}.`);
     } catch (err) {
       alert(err.error || 'Could not mark as received.');
     }
   };
+
+  function populateReceiveStorageSelect(keepId){
+    const select = document.getElementById('receiveStorageLocation');
+    const storageLocs = state.locations.filter(l => l.active !== false && l.location_type === 'storage');
+    select.innerHTML = storageLocs.map(l =>
+      `<option value="${l.id}">${escapeHtml(l.name)}</option>`
+    ).join('') || '<option value="">No storage locations</option>';
+    if(keepId && storageLocs.some(l => l.id === keepId)) select.value = keepId;
+    else if(storageLocs.length) select.value = storageLocs[0].id;
+  }
+
+  window.openReceiveEquipmentModal = function(orderId){
+    const order = state.orders.find(o => o.id === orderId);
+    if(!order) return;
+    document.getElementById('receiveEquipmentOrderId').value = orderId;
+    document.getElementById('receiveEquipmentSummary').textContent =
+      `${order.po_code}: ${order.qty} ${order.unit} of ${order.item_label}` +
+      (order.reason === 'stock_up' ? ' — central storage stock-up' : order.department ? ` for ${order.department}` : '') +
+      (order.reason && order.reason !== 'stock_up' ? ` (${PURCHASE_REASON_LABELS[order.reason] || order.reason})` : '') +
+      '. Confirm receipt details below.';
+    populateReceiveStorageSelect();
+    const deployEl = document.getElementById('receiveDeployToDept');
+    const deployWrap = document.getElementById('receiveDeployWrap');
+    const storageWrap = document.getElementById('receiveStorageWrap');
+    const stockUp = order.reason === 'stock_up' || !order.department;
+    const hasDept = Boolean(order.department) && !stockUp;
+    deployWrap.classList.toggle('hidden', !hasDept);
+    deployEl.checked = hasDept;
+    document.getElementById('receiveDeployHint').textContent = hasDept
+      ? `Deploy ${order.qty} ${order.unit} to ${order.department} on the Equipment tab (In use).`
+      : '';
+    storageWrap.classList.toggle('hidden', hasDept && deployEl.checked);
+    deployEl.onchange = function(){
+      storageWrap.classList.toggle('hidden', hasDept && deployEl.checked);
+    };
+    openModal('receiveEquipmentModalOverlay');
+  };
+
+  document.getElementById('receiveEquipmentForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const orderId = Number(document.getElementById('receiveEquipmentOrderId').value);
+    const order = state.orders.find(o => o.id === orderId);
+    if(!order) return;
+    const deploy = document.getElementById('receiveDeployToDept').checked;
+    const storageLocationId = document.getElementById('receiveStorageLocation').value || null;
+    if(!deploy && !storageLocationId){
+      alert('Choose a storage location, or deploy to the requesting department.');
+      return;
+    }
+    try {
+      const result = await apiSend(`purchase_orders.php?id=${orderId}`, 'PUT', {
+        action: 'receive',
+        deploy_to_department: deploy ? 1 : 0,
+        storage_location_id: deploy ? null : storageLocationId,
+      });
+      closeModal('receiveEquipmentModalOverlay');
+      await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory(), loadEquipmentMovements()]);
+      renderDashboard();
+      if(result.received_to === 'department'){
+        alert(`${result.qty_added} ${result.unit} of ${result.item_label} received and deployed to ${result.deployed_to}. Check the Equipment tab.`);
+      } else {
+        alert(`${result.qty_added} ${result.unit} of ${result.item_label} added to storage. On hand: ${result.new_stock}.`);
+      }
+    } catch (err) {
+      alert(err.error || 'Could not mark as received.');
+    }
+  });
 
   window.cancelOrder = async function(id){
     const order = state.orders.find(o => o.id === id);
@@ -2465,11 +3330,11 @@ document.addEventListener('DOMContentLoaded', function(){
     },
     pickup: {
       text: 'Pick-up: Call the supplier first so they can prepare your order before you collect.',
-      class: 'bg-amberBg text-amberTx border-[#f0d9a8]',
+      class: 'bg-amberBg text-amberTx border-creamBorder',
     },
     delivery: {
       text: 'Delivery: Call or message the supplier to arrange delivery to the office.',
-      class: 'bg-amberBg text-amberTx border-[#f0d9a8]',
+      class: 'bg-amberBg text-amberTx border-creamBorder',
     },
     online: {
       text: 'Online: Place the order on the supplier\'s app or website using the message below as your checklist.',
@@ -2742,9 +3607,9 @@ document.addEventListener('DOMContentLoaded', function(){
   function populateSupEditNewItemSelect(){
     const select = document.getElementById('supEditNewItem');
     const pricedKeys = new Set(supEditPrices.map(p => p.item_key));
-    const consumables = state.inventory.filter(i => i.item_type === 'consumable' && i.active !== false && !pricedKeys.has(i.item_key));
+    const items = state.inventory.filter(i => ['consumable', 'equipment'].includes(i.item_type) && i.active !== false && !pricedKeys.has(i.item_key));
     select.innerHTML = `<option value="">Add item…</option>` +
-      consumables.map(i => `<option value="${i.item_key}" data-label="${escapeHtml(i.label)}">${escapeHtml(i.label)}</option>`).join('');
+      items.map(i => `<option value="${i.item_key}" data-label="${escapeHtml(i.label)}">${escapeHtml(i.label)}${i.item_type === 'equipment' ? ' (equipment)' : ''}</option>`).join('');
   }
 
   window.openEditSupplierModal = function(id){
@@ -2834,7 +3699,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const canvas = document.getElementById('forecastChart');
     canvas.classList.remove('hidden');
     const dataVals = [...actual, predicted];
-    const colors = [...actual.map(()=>'#173868'), '#f5a524'];
+    const colors = [...actual.map(()=>'#173868'), '#c07d10'];
     if(forecastChart) forecastChart.destroy();
     forecastChart = new Chart(canvas, {
       type: 'bar',
@@ -2903,8 +3768,94 @@ document.addEventListener('DOMContentLoaded', function(){
   window.openModal = function(id){ document.getElementById(id).classList.add('show'); };
   window.closeModal = function(id){ document.getElementById(id).classList.remove('show'); };
 
-  function populateItemSelect(){
-    document.getElementById('reqItem').innerHTML = activeItems().map(it => `<option value="${it.item_key}">${it.label}</option>`).join('');
+  function supplierPriceForItem(supplier, itemKey){
+    let price = supplier.prices.find(p => p.item_key === itemKey)?.price;
+    if(price != null) return price;
+    const item = state.inventory.find(i => i.item_key === itemKey);
+    if(!item) return null;
+    const match = supplier.prices.find(p => {
+      const priced = state.inventory.find(i => i.item_key === p.item_key);
+      return priced && priced.label === item.label;
+    });
+    return match?.price ?? null;
+  }
+
+  function catalogItemKeyForPurchase(item){
+    if(!item) return '';
+    if(state.suppliers.some(s => s.prices.some(p => p.item_key === item.item_key))) return item.item_key;
+    const priced = state.inventory.find(i =>
+      i.label === item.label && i.active !== false &&
+      state.suppliers.some(s => s.prices.some(p => p.item_key === i.item_key))
+    );
+    return priced?.item_key || item.item_key;
+  }
+
+  function purchaseRequestMode(){
+    return document.querySelector('input[name="reqPurchaseType"]:checked')?.value || 'consumable';
+  }
+
+  function populateReqCatalogPick(mode, selectedKey){
+    mode = mode || purchaseRequestMode();
+    const select = document.getElementById('reqCatalogPick');
+    const items = activeItems().filter(it => mode === 'equipment' ? it.item_type === 'equipment' : it.item_type === 'consumable');
+    select.innerHTML = `<option value="">No catalog link — describe the item above</option>` +
+      items.map(it => `<option value="${it.item_key}">${escapeHtml(it.label)}</option>`).join('');
+    if(selectedKey && items.some(i => i.item_key === selectedKey)) select.value = selectedKey;
+    else select.value = '';
+  }
+
+  function populatePoCatalogSelect(req){
+    const select = document.getElementById('poCatalogItem');
+    const isEquipment = req.item_type === 'equipment' || req.reason === 'stock_up' || (req.department && req.reason);
+    const items = activeItems().filter(it => isEquipment ? it.item_type === 'equipment' : it.item_type === 'consumable');
+    const label = (req.requested_label || req.display_label || '').trim();
+    const norm = normalizeItemLabel(label);
+    select.innerHTML = `<option value="">— Choose catalog item —</option>` +
+      items.map(it => `<option value="${it.item_key}">${escapeHtml(it.label)}</option>`).join('');
+    const exact = items.find(it => it.label.toLowerCase() === label.toLowerCase());
+    const similar = !exact && norm.length >= 3
+      ? items.filter(it => normalizeItemLabel(it.label) === norm)
+      : [];
+    if(exact){
+      select.value = exact.item_key;
+    } else if(similar.length === 1){
+      select.value = similar[0].item_key;
+    } else {
+      select.value = '';
+    }
+  }
+
+  function syncEquipmentPurposeFields(){
+    const isEquipment = purchaseRequestMode() === 'equipment';
+    const purposeWrap = document.getElementById('reqEquipmentPurposeWrap');
+    const forStorage = isEquipment && equipmentRequestPurpose() === 'storage';
+    purposeWrap.classList.toggle('hidden', !isEquipment);
+    document.getElementById('reqDepartmentWrap').classList.toggle('hidden', !isEquipment || forStorage);
+    document.getElementById('reqReasonWrap').classList.toggle('hidden', !isEquipment || forStorage);
+    document.getElementById('reqStoragePurposeHint').classList.toggle('hidden', !forStorage);
+  }
+
+  function syncPurchaseRequestFields(){
+    const mode = purchaseRequestMode();
+    const isEquipment = mode === 'equipment';
+    syncEquipmentPurposeFields();
+    document.getElementById('reqCatalogPickWrap').classList.remove('hidden');
+    document.getElementById('reqItemNeededHint').textContent = isEquipment
+      ? 'Describe what we should buy — e.g. model, size, or specs. Catalog link is optional.'
+      : 'Name the supply we should reorder. Pick a catalog item below when it matches.';
+    if(isEquipment){
+      if(!document.getElementById('reqDepartment').options.length){
+        populateDepartmentSelect('reqDepartment', DEPARTMENTS[0]);
+      }
+      document.getElementById('reqNotes').placeholder = 'e.g. serial number of broken unit, preferred model';
+      document.getElementById('reqQty').step = '1';
+      document.getElementById('reqQty').min = '1';
+    } else {
+      document.getElementById('reqNotes').placeholder = 'e.g. needed for client itinerary printing';
+      document.getElementById('reqQty').step = 'any';
+      document.getElementById('reqQty').min = '1';
+    }
+    populateReqCatalogPick(mode, document.getElementById('reqCatalogKey').value || document.getElementById('reqCatalogPick').value);
   }
 
   /** Baseline suggestion: enough to get back to minimum stock. */
@@ -2924,7 +3875,9 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('reqQty').value = baseQty;
 
     if(item.item_type !== 'consumable'){
-      hint.textContent = baseQty > 1 ? `Suggested: ${baseQty} to reach minimum stock. You can change this.` : '';
+      hint.textContent = item.item_type === 'equipment'
+        ? 'Equipment is purchased one unit at a time unless you need several.'
+        : (baseQty > 1 ? `Suggested: ${baseQty} to reach minimum stock. You can change this.` : '');
       return;
     }
 
@@ -2947,50 +3900,97 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  // presetItemKey is passed when opened from a specific row's "Request" button
-  // (Inventory table or Dashboard low-stock alert) — the item is locked so you
-  // can't accidentally submit a request for a different item. The generic
-  // "New Purchase Request" button (Dashboard/Requests header) omits it, so a
-  // full item dropdown is shown instead.
-  window.openRequestModal = async function(presetItemKey){
-    const locked = Boolean(presetItemKey);
-    const item = locked ? state.inventory.find(i => i.item_key === presetItemKey) : null;
+  // presetItemKey pre-fills from a catalog row; staff can still edit Item needed text.
+  window.openRequestModal = async function(presetItemKey, opts = {}){
+    opts = { department: null, reason: 'replacement', equipmentOnly: false, stockForStorage: false, ...opts };
+    const item = presetItemKey ? state.inventory.find(i => i.item_key === presetItemKey) : null;
+    const purchaseKey = item ? catalogItemKeyForPurchase(item) : null;
+    const mode = item?.item_type === 'equipment' || opts.equipmentOnly ? 'equipment' : (item ? 'consumable' : 'consumable');
 
-    document.getElementById('reqItemSelectWrap').classList.toggle('hidden', locked);
-    document.getElementById('reqItemLockedWrap').classList.toggle('hidden', !locked);
-    document.getElementById('requestModalTitle').textContent = locked && item
-      ? `Request — ${item.label}`
-      : 'New purchase request';
+    document.querySelector(`input[name="reqPurchaseType"][value="${mode}"]`).checked = true;
+    document.getElementById('reqTypeWrap').classList.toggle('hidden', Boolean(item) || opts.equipmentOnly);
 
-    if(locked && item){
-      document.getElementById('reqItemLockedLabel').textContent = item.label;
-      document.getElementById('reqItemLockedKey').value = item.item_key;
-    } else {
-      populateItemSelect();
-      document.getElementById('reqItemLockedKey').value = '';
+    document.getElementById('requestModalTitle').textContent = item
+      ? (mode === 'equipment' ? `Request equipment — ${item.label}` : `New purchase request — ${item.label}`)
+      : (opts.equipmentOnly ? 'Request equipment' : 'New purchase request');
+
+    document.getElementById('reqItemNeeded').value = item?.label || '';
+    document.getElementById('reqCatalogKey').value = purchaseKey || '';
+    populateReqCatalogPick(mode, purchaseKey);
+    syncPurchaseRequestFields();
+
+    if(mode === 'equipment'){
+      const purpose = opts.stockForStorage ? 'storage' : 'department';
+      document.querySelector(`input[name="reqEquipmentPurpose"][value="${purpose}"]`).checked = true;
+      syncEquipmentPurposeFields();
+      if(purpose === 'department'){
+        populateDepartmentSelect('reqDepartment', opts.department || item?.deployments?.[0]?.department || DEPARTMENTS[0]);
+        document.getElementById('reqReason').value = opts.reason || ((item?.deployed_qty > 0 || item?.deployments?.length) ? 'replacement' : 'new_need');
+      }
     }
 
     document.getElementById('reqQty').value = 1;
     document.getElementById('reqQtyHint').textContent = '';
     openModal('requestModalOverlay');
 
-    const key = locked ? presetItemKey : document.getElementById('reqItem').value;
-    updateRequestQtyHint(key);
+    if(purchaseKey || document.getElementById('reqCatalogPick').value){
+      updateRequestQtyHint(purchaseKey || document.getElementById('reqCatalogPick').value);
+    } else {
+      document.getElementById('reqQtyHint').textContent = mode === 'equipment'
+        ? 'Equipment is usually purchased one unit at a time unless you need several.'
+        : '';
+    }
   };
 
-  document.getElementById('reqItem').addEventListener('change', function(){
-    updateRequestQtyHint(this.value);
+  document.querySelectorAll('input[name="reqEquipmentPurpose"]').forEach(r => r.addEventListener('change', syncPurchaseRequestFields));
+
+  document.querySelectorAll('input[name="reqPurchaseType"]').forEach(r => r.addEventListener('change', function(){
+    document.getElementById('reqCatalogKey').value = '';
+    syncPurchaseRequestFields();
+    const key = document.getElementById('reqCatalogPick').value;
+    if(key) updateRequestQtyHint(key);
+    else document.getElementById('reqQtyHint').textContent = purchaseRequestMode() === 'equipment'
+      ? 'Equipment is usually purchased one unit at a time unless you need several.'
+      : '';
+  }));
+
+  document.getElementById('reqCatalogPick').addEventListener('change', function(){
+    document.getElementById('reqCatalogKey').value = this.value;
+    const picked = state.inventory.find(i => i.item_key === this.value);
+    if(picked && !document.getElementById('reqItemNeeded').value.trim()){
+      document.getElementById('reqItemNeeded').value = picked.label;
+    }
+    if(this.value) updateRequestQtyHint(this.value);
   });
 
   document.getElementById('requestForm').addEventListener('submit', async function(e){
     e.preventDefault();
     try {
-      const lockedKey = document.getElementById('reqItemLockedKey').value;
-      await apiSend('purchase_requests.php', 'POST', {
-        item_key: lockedKey || document.getElementById('reqItem').value,
+      const requestedLabel = document.getElementById('reqItemNeeded').value.trim();
+      if(!requestedLabel){ alert('Describe the item needed.'); return; }
+      const catalogKey = document.getElementById('reqCatalogPick').value || document.getElementById('reqCatalogKey').value || null;
+      const mode = purchaseRequestMode();
+      const payload = {
+        requested_label: requestedLabel,
+        item_key: catalogKey || undefined,
+        request_type: mode,
         qty: Number(document.getElementById('reqQty').value),
-        notes: document.getElementById('reqNotes').value || null,
-      });
+        notes: document.getElementById('reqNotes').value.trim() || null,
+      };
+      if(mode === 'equipment'){
+        if(equipmentRequestPurpose() === 'storage'){
+          payload.reason = 'stock_up';
+        } else {
+          const dept = document.getElementById('reqDepartment').value;
+          if(!dept){ alert('Choose the requesting department.'); return; }
+          payload.department = dept;
+          payload.reason = document.getElementById('reqReason').value;
+        }
+      } else if(!catalogKey){
+        alert('Pick the catalog supply this request is for, or switch to Equipment for new items.');
+        return;
+      }
+      await apiSend('purchase_requests.php', 'POST', payload);
       closeModal('requestModalOverlay');
       this.reset();
       await Promise.all([loadRequests(), loadDocuments()]);
@@ -3008,7 +4008,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('showInactiveInventory').addEventListener('change', function(){
     state.showInactiveInventory = this.checked;
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
-    if(active?.dataset.view !== 'vouchers' && active?.dataset.view !== 'issues'){
+    if(active?.dataset.view !== 'vouchers' && active?.dataset.view !== 'issues' && active?.dataset.view !== 'stock-requests'){
       renderInventory(active?.dataset.filter || 'all');
     }
   });
@@ -3024,7 +4024,8 @@ document.addEventListener('DOMContentLoaded', function(){
     updateProfileUI();
     applyRoleUI();
     await loadLocations();
-    await Promise.all([loadInventory(), loadVouchers(), loadStockIssues(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments()]);
+    await Promise.all([loadInventory(), loadVouchers(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments()]);
+    populateDepartmentSelect('issueDepartment', DEPARTMENTS[0]);
     renderDashboard();
     dismissAttentionForPage(pageIdFromHash(location.hash));
     if(pageIdFromHash(location.hash) === 'page-inventory'){

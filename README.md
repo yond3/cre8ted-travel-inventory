@@ -71,6 +71,8 @@ Get-Content ".\sql\migration_po_receipts.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_po_finance_status.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_po_receipt_waiver.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_po_receipt_rejection.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_stock_requests.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_items_assigned_department.sql" | mysql -u root wayfarer_inventory
 ```
 
 If a migration fails with “duplicate column” or “table already exists”, that file was already applied — skip it and continue.
@@ -144,11 +146,26 @@ Sign in with one of the demo accounts:
 
 | Username | Password | Role | Can do |
 |----------|----------|------|--------|
-| `juan` | `staff123` | Staff | View everything, create purchase requests, use vouchers, issue stock to a department, upload a purchase order receipt |
+| `juan` | `staff123` | Staff | View everything, create purchase requests, **request stock from inventory**, use vouchers, issue stock to a department, fulfill department stock requests, upload a purchase order receipt |
 | `maria` | `manager123` | Manager | Staff + approve/reject requests, create POs, resend a PO to Financial Management, record lost receipt on an order, **mark orders received**, edit stock, close month, restock vouchers, approve vendor quotes, void a stock issue |
 | `admin` | `admin123` | Super Admin | Manager + mark items/suppliers/locations inactive, edit voucher quantities, cancel POs |
 
 The vendor quote form (`vendor-apply.html`) stays **public** — no login required, by design.
+
+---
+
+## Department stock requests
+
+Departments can ask for items from shelf **before** inventory staff hand them out:
+
+1. Any staff member clicks **Request from stock** on Office Storage & Inventory (or **Ask** on a consumable row), picks one of the six official departments, item, and quantity.
+2. The request appears on the **Stock requests** tab with status **Pending** — stock is **not** deducted yet.
+3. Inventory staff click **Fulfill** — this opens the same **Issue stock** form, pre-filled from the request. Submitting records the checkout in the issue log, reduces stock, and marks the request **Fulfilled**.
+4. The requester (or any staff member) can **Cancel** a pending request.
+
+Official departments (used on stock requests and the issue log): Human resource management, Financial management, Fleet & Transportation management, Facilities & Administration management, Tour Operations, Back-office.
+
+API: `GET/POST /api/stock_requests.php`, `PUT /api/stock_requests.php?id=<id> { action: 'fulfill' | 'cancel' }`.
 
 ---
 
