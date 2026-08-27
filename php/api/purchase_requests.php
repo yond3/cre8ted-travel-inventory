@@ -119,6 +119,7 @@ if ($method === 'POST') {
 
     if ($isEquipment) {
         if ($reason === 'stock_up') {
+            require_manager_or_above();
             $department = null;
         } elseif ($department === null || !is_valid_department($department)) {
             json_error('department is required for department equipment requests — or choose stock for storage');

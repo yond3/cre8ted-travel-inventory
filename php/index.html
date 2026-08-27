@@ -436,7 +436,7 @@
       </div>
     </div>
     <div class="hidden" id="issuePanel">
-      <p class="text-[.78rem] text-textMid mb-4">Checkouts from storage only — when inventory pulls an item off the shelf for a department. Purchases sent straight to a department are in <strong>Equipment history</strong>.</p>
+      <p class="text-[.78rem] text-textMid mb-4">Checkouts and write-offs from storage — when inventory pulls items off the shelf or retires broken stock. Equipment retirements also appear in <strong>Equipment history</strong>.</p>
       <div class="overflow-x-auto">
         <table class="gl-table w-full text-[.85rem] border-collapse">
           <thead>
@@ -445,7 +445,7 @@
               <th class="py-3 pr-3 font-semibold">Item</th>
               <th class="py-3 pr-3 font-semibold">Qty</th>
               <th class="py-3 pr-3 font-semibold">Department</th>
-              <th class="py-3 pr-3 font-semibold">Issued to</th>
+              <th class="py-3 pr-3 font-semibold">Issued to / reason</th>
               <th class="py-3 pr-3 font-semibold">Status</th>
               <th class="py-3 pr-3 font-semibold">Action</th>
             </tr>
@@ -771,7 +771,7 @@
           <label class="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.85rem] cursor-pointer">
             <input type="radio" name="reqEquipmentPurpose" value="department" checked> For a department
           </label>
-          <label class="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.85rem] cursor-pointer">
+          <label id="reqEquipmentPurposeStorageWrap" class="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.85rem] cursor-pointer">
             <input type="radio" name="reqEquipmentPurpose" value="storage"> Stock for storage
           </label>
         </div>
@@ -914,6 +914,52 @@
         <textarea id="issueNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. for client folders"></textarea>
       </div>
       <button type="submit" id="issueFormSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Record issue</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: RETIRE / WRITE OFF ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="retireModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="retireModalTitle">Retire / write off</h3>
+      <button type="button" onclick="closeModal('retireModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="retireModalHint">Record broken, lost, or unusable units — stock counts update immediately.</p>
+    <form id="retireForm" class="flex flex-col gap-4">
+      <input type="hidden" id="retireItemKey" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item</label>
+        <div id="retireItemLabel" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark"></div>
+        <p class="text-[.72rem] text-textSoft mt-1" id="retireStockHint"></p>
+      </div>
+      <div id="retireSourceWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Retire from</label>
+        <select id="retireSource" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+      </div>
+      <div id="retireDepartmentWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Department</label>
+        <select id="retireDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity</label>
+        <input id="retireQty" type="number" min="0.01" step="any" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Reason</label>
+        <select id="retireReason" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <option value="broken">Broken</option>
+          <option value="lost">Lost</option>
+          <option value="expired">Expired</option>
+          <option value="damaged">Damaged</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
+        <textarea id="retireNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. power supply failed, water damage"></textarea>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Retire units</button>
     </form>
   </div>
 </div>
@@ -1110,7 +1156,11 @@
       <input type="hidden" id="supEditId" value="">
       <div>
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Contact</label>
-          <input id="supEditContact" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Phone / Viber / email">
+          <textarea id="supEditContact" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="Phone numbers and email addresses"></textarea>
+      </div>
+      <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Address</label>
+          <textarea id="supEditAddress" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="Store or office address"></textarea>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Procurement methods</label>
@@ -1355,6 +1405,42 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: VIEW RECEIPT DETAILS (read-only) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="receiptViewModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Receipt details</h3>
+      <button type="button" onclick="closeModal('receiptViewModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="receiptViewPoLabel"></p>
+    <dl class="flex flex-col gap-3 text-[.85rem] mb-4">
+      <div>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Amount on receipt</dt>
+        <dd class="text-textDark font-semibold" id="receiptViewAmount">—</dd>
+      </div>
+      <div id="receiptViewNumberWrap">
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Receipt / OR number</dt>
+        <dd class="text-textDark" id="receiptViewNumber">—</dd>
+      </div>
+      <div id="receiptViewNotesWrap">
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Notes</dt>
+        <dd class="text-textDark whitespace-pre-wrap bg-[#f8fafc] border border-line rounded-xl px-3 py-2.5" id="receiptViewNotes">—</dd>
+      </div>
+      <div>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Uploaded by</dt>
+        <dd class="text-textMid" id="receiptViewMeta">—</dd>
+      </div>
+    </dl>
+    <div id="receiptViewPreviewWrap" class="hidden mb-4 rounded-xl border border-line overflow-hidden bg-[#f8fafc]">
+      <img id="receiptViewPreview" alt="Receipt preview" class="w-full max-h-72 object-contain bg-white">
+    </div>
+    <div class="flex gap-2">
+      <button type="button" id="receiptViewOpenFileBtn" onclick="viewReceiptFile()" class="flex-1 px-4 py-2.5 rounded-xl bg-[#eef2f7] text-textMid text-[.85rem] font-semibold cursor-pointer border-none">Open receipt file</button>
+      <button type="button" onclick="closeModal('receiptViewModalOverlay')" class="flex-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-semibold cursor-pointer border-none">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== MODAL: VIEW LOST RECEIPT NOTE (read-only) ===================== -->
 <div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="lostReceiptViewModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
@@ -1398,7 +1484,7 @@ document.addEventListener('DOMContentLoaded', function(){
      load time and touches attention-badge state, so both must exist
      before that first call — otherwise it's a temporal-dead-zone error
      that silently aborts the rest of this script. */
-  const state = { user: null, locations: [], inventory: [], vouchers: [], stockIssues: [], stockRequests: [], equipmentMovements: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], demandInsights: null, demandInsightsError: null, showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
+  const state = { user: null, locations: [], inventory: [], vouchers: [], stockIssues: [], inventoryRetirements: [], stockRequests: [], equipmentMovements: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], demandInsights: null, demandInsightsError: null, showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
   const attentionDismissed = { requests: null, orders: null, inventory: null, stockRequests: null, suppliers: null };
 
   const DEPARTMENTS = [
@@ -1837,9 +1923,22 @@ document.addEventListener('DOMContentLoaded', function(){
     issue_from_storage: 'Issued from storage',
     receive_to_storage: 'Received to storage',
     deploy_from_purchase: 'Deployed from purchase',
+    retired: 'Retired / write-off',
+  };
+
+  const RETIREMENT_REASON_LABELS = {
+    broken: 'Broken',
+    lost: 'Lost',
+    expired: 'Expired',
+    damaged: 'Damaged',
+    other: 'Other',
   };
 
   function equipmentMovementDestination(m){
+    if(m.movement_type === 'retired'){
+      if(m.department) return escapeHtml(m.department);
+      return m.location_name ? escapeHtml(m.location_name) : 'Storage';
+    }
     if(m.movement_type === 'receive_to_storage'){
       return m.location_name ? escapeHtml(m.location_name) : 'Storage';
     }
@@ -1941,7 +2040,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const DOCUMENT_SEARCH_PLACEHOLDERS = {
     pr: 'Search PR ID, item, employee, department…',
     po: 'Search PO ID, item, supplier, linked PR…',
-    vendor: 'Search quote ID, company, contact…',
+    vendor: 'Search quote ID, company, phone, email, address…',
   };
 
   function requestForRef(refCode){
@@ -1999,7 +2098,23 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function documentVendorSearchFields(app){
     if(!app) return [];
-    return [app.company_name, app.contact, app.status, ...(app.prices || []).map(p => p.label)];
+    return [app.company_name, app.contact, app.phones, app.emails, app.address, app.status, ...(app.prices || []).map(p => p.label)];
+  }
+
+  function formatContactMultiline(value){
+    if(!value) return '—';
+    return escapeHtml(value).replace(/\n/g, '<br>');
+  }
+
+  function vendorContactDetailHtml(app){
+    const rows = [];
+    if(app.phones) rows.push(`<div><span class="font-semibold text-textDark">Phone:</span> ${formatContactMultiline(app.phones)}</div>`);
+    if(app.emails) rows.push(`<div><span class="font-semibold text-textDark">Email:</span> ${formatContactMultiline(app.emails)}</div>`);
+    if(app.address) rows.push(`<div><span class="font-semibold text-textDark">Address:</span> ${formatContactMultiline(app.address)}</div>`);
+    if(!rows.length && app.contact){
+      rows.push(`<div>${escapeHtml(app.contact)}</div>`);
+    }
+    return rows.length ? `<div class="text-[.78rem] text-textMid space-y-1">${rows.join('')}</div>` : '<span class="text-textMid">—</span>';
   }
 
   window.openDocumentDetail = function(kind, refCode){
@@ -2037,6 +2152,15 @@ document.addEventListener('DOMContentLoaded', function(){
         if(o.receipt_rejected) receiptStatus = 'Rejected — needs reupload';
         else if(o.receipt_uploaded) receiptStatus = 'Uploaded';
         else if(o.receipt_waived) receiptStatus = 'Lost receipt note on file';
+        const receiptDetailRows = [];
+        if(o.receipt_uploaded){
+          if(o.receipt_amount != null) receiptDetailRows.push(documentDetailRow('Receipt amount', peso(o.receipt_amount)));
+          if(o.receipt_number) receiptDetailRows.push(documentDetailRow('Receipt / OR no.', escapeHtml(o.receipt_number)));
+          if(o.receipt_notes) receiptDetailRows.push(documentDetailRow('Receipt notes', escapeHtml(o.receipt_notes)));
+          if(o.receipt_uploaded_by || o.receipt_uploaded_at){
+            receiptDetailRows.push(documentDetailRow('Receipt uploaded', `${escapeHtml(o.receipt_uploaded_by || '—')}${o.receipt_uploaded_at ? ` · ${fmtDateTime(o.receipt_uploaded_at)}` : ''}`));
+          }
+        }
         body.innerHTML = [
           documentDetailRow('Item', escapeHtml(o.item_label)),
           documentDetailRow('Quantity', `${o.qty} ${escapeHtml(o.unit)}`),
@@ -2047,6 +2171,7 @@ document.addEventListener('DOMContentLoaded', function(){
           documentDetailRow('Assigned to', escapeHtml(o.assigned_to || '—')),
           documentDetailRow('Finance', financeStatusPill(o.finance_status)),
           documentDetailRow('Receipt', receiptStatus),
+          ...receiptDetailRows,
           documentDetailRow('Order status', statusPill(o.status)),
           documentDetailRow('Order date', fmtDate(o.created_at)),
           documentDetailRow('Received at', o.status === 'Received' && o.received_at ? fmtDateTime(o.received_at) : '—'),
@@ -2076,7 +2201,10 @@ document.addEventListener('DOMContentLoaded', function(){
           : '<span class="text-textMid">No line items</span>';
         body.innerHTML = [
           documentDetailRow('Company', escapeHtml(a.company_name)),
-          documentDetailRow('Contact', escapeHtml(a.contact || '—')),
+          a.phones ? documentDetailRow('Phone', formatContactMultiline(a.phones)) : '',
+          a.emails ? documentDetailRow('Email', formatContactMultiline(a.emails)) : '',
+          a.address ? documentDetailRow('Address', formatContactMultiline(a.address)) : '',
+          (!a.phones && !a.emails && !a.address) ? documentDetailRow('Contact', escapeHtml(a.contact || '—')) : '',
           documentDetailRow('Methods', escapeHtml(methods)),
           documentDetailRow('Status', statusPill(a.status)),
           documentDetailRow('Submitted', fmtDate(a.created_at)),
@@ -2140,7 +2268,7 @@ document.addEventListener('DOMContentLoaded', function(){
     equipment: 'Search equipment name, location…',
     vouchers: 'Search voucher, tour package…',
     'stock-requests': 'Search request ID, item, department…',
-    'issue-log': 'Search item, department, issued to, issuer…',
+    'issue-log': 'Search item, department, issued to, reason…',
     'equipment-history': 'Search item, PO/issue reference…',
   };
 
@@ -2300,6 +2428,104 @@ document.addEventListener('DOMContentLoaded', function(){
     return parts.join(' · ') || '—';
   }
 
+  function canRetireItem(it){
+    if(!it?.active) return false;
+    if(it.item_type === 'consumable') return it.current_qty > 0;
+    const storage = it.storage_qty ?? it.current_qty ?? 0;
+    const deployed = it.deployed_qty ?? 0;
+    return storage > 0 || deployed > 0;
+  }
+
+  function retireSourceOptions(it){
+    const options = [];
+    const storage = it.storage_qty ?? it.current_qty ?? 0;
+    if(storage > 0){
+      options.push({ value: 'storage', label: `Storage (${storage} ${it.unit})` });
+    }
+    (it.deployments || []).forEach(d => {
+      if(d.qty > 0){
+        options.push({ value: `department:${d.department}`, label: `${d.department} (${d.qty} ${it.unit})` });
+      }
+    });
+    return options;
+  }
+
+  function updateRetireSourceFields(){
+    const itemKey = document.getElementById('retireItemKey').value;
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    const sourceWrap = document.getElementById('retireSourceWrap');
+    const deptWrap = document.getElementById('retireDepartmentWrap');
+    const sourceSelect = document.getElementById('retireSource');
+    const deptSelect = document.getElementById('retireDepartment');
+    if(!it){
+      sourceWrap.classList.add('hidden');
+      deptWrap.classList.add('hidden');
+      return;
+    }
+    if(it.item_type === 'consumable'){
+      sourceWrap.classList.add('hidden');
+      deptWrap.classList.add('hidden');
+      document.getElementById('retireModalHint').textContent = 'Record broken, lost, or unusable units — stock counts update immediately.';
+      document.getElementById('retireStockHint').textContent = `${it.current_qty} ${it.unit} in storage.`;
+      document.getElementById('retireQty').max = it.current_qty;
+      return;
+    }
+    const options = retireSourceOptions(it);
+    if(options.length <= 1){
+      sourceWrap.classList.add('hidden');
+      sourceSelect.innerHTML = options.length
+        ? `<option value="${escapeHtml(options[0].value)}">${escapeHtml(options[0].label)}</option>`
+        : '';
+    } else {
+      sourceWrap.classList.remove('hidden');
+      sourceSelect.innerHTML = options.map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join('');
+    }
+    deptWrap.classList.add('hidden');
+    const selected = sourceSelect.value;
+    const storage = it.storage_qty ?? it.current_qty ?? 0;
+    const deployed = it.deployed_qty ?? 0;
+    const maxQty = selected.startsWith('department:')
+      ? (it.deployments.find(d => d.department === selected.slice(11))?.qty ?? 0)
+      : storage;
+    const modalHint = document.getElementById('retireModalHint');
+    const stockHint = document.getElementById('retireStockHint');
+
+    if(storage <= 0 && deployed > 0){
+      modalHint.textContent = 'All units are deployed — retire from the department where the broken or lost unit is.';
+      if(selected.startsWith('department:')){
+        const dept = selected.slice(11);
+        stockHint.textContent = options.length > 1
+          ? `Nothing in storage. Retiring from ${dept} (${maxQty} ${it.unit} there).`
+          : `Nothing in storage. All ${maxQty} ${it.unit} are at ${dept}.`;
+      } else {
+        stockHint.textContent = 'Nothing in storage. Pick the department where the unit was lost or broken.';
+      }
+    } else if(storage > 0 && deployed > 0){
+      modalHint.textContent = 'Choose whether to retire from storage or from a department deployment.';
+      stockHint.textContent = selected.startsWith('department:')
+        ? `Retiring from ${selected.slice(11)} (${maxQty} ${it.unit} there).`
+        : `Retiring from storage${it.location_name ? ` (${it.location_name})` : ''} — ${maxQty} ${it.unit} on shelf.`;
+    } else {
+      modalHint.textContent = 'Record broken, lost, or unusable units — stock counts update immediately.';
+      stockHint.textContent = `Retiring from storage${it.location_name ? ` (${it.location_name})` : ''} — ${maxQty} ${it.unit} on hand.`;
+    }
+
+    document.getElementById('retireQty').max = maxQty;
+    deptSelect.innerHTML = '';
+  }
+
+  window.openRetireModal = function(itemKey){
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    if(!it || !canRetireItem(it)) return;
+    document.getElementById('retireItemKey').value = itemKey;
+    document.getElementById('retireItemLabel').textContent = it.label;
+    document.getElementById('retireQty').value = '1';
+    document.getElementById('retireReason').value = it.item_type === 'equipment' ? 'broken' : 'damaged';
+    document.getElementById('retireNotes').value = '';
+    updateRetireSourceFields();
+    openModal('retireModalOverlay');
+  };
+
   function renderLocationManageList(){
     const el = document.getElementById('locationManageList');
     if(!el) return;
@@ -2431,6 +2657,7 @@ document.addEventListener('DOMContentLoaded', function(){
             ${it.active && it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
             ${it.active && it.item_type === 'consumable' && it.current_qty > 0 ? `<button onclick="openIssueModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-semibold cursor-pointer">Issue</button>` : ''}
             ${roleAtLeast('manager') && it.active && it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
+            ${roleAtLeast('manager') && canRetireItem(it) ? `<button onclick="openRetireModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Retire</button>` : ''}
             ${roleAtLeast('manager') ? `<button onclick="openEditItemModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>` : ''}
             ${roleAtLeast('super_admin') ? `<button onclick="setItemActive('${it.item_key}', ${it.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${it.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${it.active ? 'Mark inactive' : 'Reactivate'}</button>` : ''}
           </div>
@@ -2800,6 +3027,13 @@ document.addEventListener('DOMContentLoaded', function(){
   };
 
   /* ---------- stock issues (department checkout log) ---------- */
+  async function loadInventoryRetirements(){
+    state.inventoryRetirements = await apiGet('inventory_retirements.php');
+    if(document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view === 'issues'){
+      renderStockIssues();
+    }
+  }
+
   async function loadStockIssues(){
     state.stockIssues = await apiGet('stock_issues.php');
     if(document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view === 'issues'){
@@ -2840,15 +3074,27 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderStockIssues(){
     const query = tableSearchQuery('inventoryTableSearch');
-    const visible = state.stockIssues.filter(iss => rowMatchesSearch(
-      query, iss.item_label, iss.department, iss.issued_to, iss.recorded_by, iss.status
+    const issues = state.stockIssues.filter(iss => rowMatchesSearch(
+      query, iss.item_label, iss.department, iss.issued_to, iss.recorded_by, iss.status, 'issue'
     ));
+    const retirements = state.inventoryRetirements
+      .filter(r => r.item_type === 'consumable')
+      .filter(r => rowMatchesSearch(
+        query, r.item_label, r.department, r.reason_label, r.notes, r.recorded_by, r.retirement_code, 'retire', 'retired'
+      ));
+    const rows = [
+      ...issues.map(iss => ({ kind: 'issue', sortAt: iss.created_at, data: iss })),
+      ...retirements.map(r => ({ kind: 'retire', sortAt: r.created_at, data: r })),
+    ].sort((a, b) => new Date(b.sortAt.replace(' ', 'T')) - new Date(a.sortAt.replace(' ', 'T')));
     const tbody = document.getElementById('issueTableBody');
-    if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(7, query, 'No stock issued yet. Use the Issue button on an item to record a checkout.');
+    if(!rows.length){
+      tbody.innerHTML = tableSearchEmptyMessage(7, query, 'No stock issued or retired yet. Use Issue or Retire on an item to record activity.');
       return;
     }
-    tbody.innerHTML = visible.map(iss => `
+    tbody.innerHTML = rows.map(row => {
+      if(row.kind === 'issue'){
+        const iss = row.data;
+        return `
       <tr class="border-b border-line last:border-0 ${iss.status === 'Voided' ? 'opacity-60' : ''}">
         <td class="py-3 pr-3 received-cell">${issueIssuedCell(iss)}</td>
         <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(iss.item_label)}</td>
@@ -2859,8 +3105,67 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">
           ${iss.status === 'Active' && roleAtLeast('manager') ? `<button onclick="voidIssue(${iss.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Void</button>` : (iss.status === 'Voided' ? `<span class="text-textSoft text-[.78rem]">${escapeHtml(iss.voided_reason || 'Voided')}</span>` : '—')}
         </td>
-      </tr>`).join('');
+      </tr>`;
+      }
+      const r = row.data;
+      const who = r.recorded_by ? escapeHtml(r.recorded_by) : '<span class="text-textSoft">—</span>';
+      const details = r.notes
+        ? `${escapeHtml(r.reason_label)} — ${escapeHtml(r.notes)}`
+        : escapeHtml(r.reason_label);
+      return `
+      <tr class="border-b border-line last:border-0">
+        <td class="py-3 pr-3 received-cell"><div class="received-when text-[.78rem] text-textDark">${fmtDateTime(r.created_at)}</div><div class="text-[.72rem] text-textMid">${who}</div></td>
+        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(r.item_label)}</td>
+        <td class="py-3 pr-3">${r.qty} ${r.unit}</td>
+        <td class="py-3 pr-3 text-textMid">Storage</td>
+        <td class="py-3 pr-3 text-textMid">${details}</td>
+        <td class="py-3 pr-3"><span class="status-pill px-2.5 py-1 rounded-full text-[.68rem] font-semibold bg-redBg text-redTx">Retired</span></td>
+        <td class="py-3 pr-3 text-textSoft text-[.78rem]">${escapeHtml(r.retirement_code)}</td>
+      </tr>`;
+    }).join('');
   }
+
+  document.getElementById('retireSource')?.addEventListener('change', updateRetireSourceFields);
+
+  document.getElementById('retireForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const itemKey = document.getElementById('retireItemKey').value;
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    const qty = Number(document.getElementById('retireQty').value);
+    const reason = document.getElementById('retireReason').value;
+    const notes = document.getElementById('retireNotes').value.trim() || null;
+    if(!it || qty <= 0){ alert('Enter a quantity greater than 0.'); return; }
+
+    let source = 'storage';
+    let department = null;
+    if(it.item_type === 'equipment'){
+      const selected = document.getElementById('retireSource').value;
+      if(selected.startsWith('department:')){
+        source = 'department';
+        department = selected.slice(11);
+      }
+    }
+
+    const where = source === 'department' ? department : 'storage';
+    const reasonLabel = RETIREMENT_REASON_LABELS[reason] || reason;
+    if(!confirm(`Retire ${qty} ${it.unit} of ${it.label} from ${where}?\n\nReason: ${reasonLabel}`)) return;
+
+    try {
+      await apiSend('inventory_retirements.php', 'POST', {
+        item_key: itemKey,
+        qty,
+        source,
+        department,
+        reason,
+        notes,
+      });
+      closeModal('retireModalOverlay');
+      await Promise.all([loadInventory(), loadInventoryRetirements(), loadEquipmentMovements()]);
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not retire units.');
+    }
+  });
 
   document.getElementById('issueForm').addEventListener('submit', async function(e){
     e.preventDefault();
@@ -2882,7 +3187,7 @@ document.addEventListener('DOMContentLoaded', function(){
           issued_to: document.getElementById('issueIssuedTo').value.trim() || null,
           notes: document.getElementById('issueNotes').value.trim() || null,
         });
-        await Promise.all([loadInventory(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests()]);
+        await Promise.all([loadInventory(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests()]);
       } else {
         await apiSend('stock_issues.php', 'POST', {
           item_key: itemKey,
@@ -2891,7 +3196,7 @@ document.addEventListener('DOMContentLoaded', function(){
           issued_to: document.getElementById('issueIssuedTo').value.trim() || null,
           notes: document.getElementById('issueNotes').value.trim() || null,
         });
-        await Promise.all([loadInventory(), loadStockIssues(), loadEquipmentMovements()]);
+        await Promise.all([loadInventory(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements()]);
       }
       closeModal('issueModalOverlay');
       renderDashboard();
@@ -2907,7 +3212,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(reason === null) return;
     try {
       await apiSend(`stock_issues.php?id=${id}`, 'PUT', { action: 'void', reason });
-      await Promise.all([loadInventory(), loadStockIssues(), loadEquipmentMovements()]);
+      await Promise.all([loadInventory(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements()]);
       renderDashboard();
     } catch (err) {
       alert(err.error || 'Could not void issue.');
@@ -3760,8 +4065,48 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 
+  let receiptViewOrderId = null;
+
+  window.viewReceiptFile = function(){
+    if(receiptViewOrderId == null) return;
+    window.open(`${API}receipts.php?po_id=${receiptViewOrderId}`, '_blank');
+  };
+
   window.viewReceipt = function(id){
-    window.open(`${API}receipts.php?po_id=${id}`, '_blank');
+    const order = state.orders.find(o => o.id === id);
+    if(!order || !order.receipt_uploaded) return;
+    receiptViewOrderId = id;
+    document.getElementById('receiptViewPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}`;
+    document.getElementById('receiptViewAmount').textContent = order.receipt_amount != null ? peso(order.receipt_amount) : '—';
+    const numberWrap = document.getElementById('receiptViewNumberWrap');
+    if(order.receipt_number){
+      numberWrap.classList.remove('hidden');
+      document.getElementById('receiptViewNumber').textContent = order.receipt_number;
+    } else {
+      numberWrap.classList.add('hidden');
+    }
+    const notesWrap = document.getElementById('receiptViewNotesWrap');
+    if(order.receipt_notes){
+      notesWrap.classList.remove('hidden');
+      document.getElementById('receiptViewNotes').textContent = order.receipt_notes;
+    } else {
+      notesWrap.classList.add('hidden');
+    }
+    const when = order.receipt_uploaded_at ? fmtDateTime(order.receipt_uploaded_at) : '—';
+    const who = order.receipt_uploaded_by || '—';
+    document.getElementById('receiptViewMeta').textContent = `${who} · ${when}`;
+    const previewWrap = document.getElementById('receiptViewPreviewWrap');
+    const previewImg = document.getElementById('receiptViewPreview');
+    const mime = (order.receipt_mime || '').toLowerCase();
+    if(mime.startsWith('image/')){
+      previewWrap.classList.remove('hidden');
+      previewImg.src = `${API}receipts.php?po_id=${id}`;
+      previewImg.classList.remove('hidden');
+    } else {
+      previewWrap.classList.add('hidden');
+      previewImg.removeAttribute('src');
+    }
+    openModal('receiptViewModalOverlay');
   };
 
   window.viewLostReceiptNote = function(id){
@@ -4078,10 +4423,11 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="flex items-start justify-between gap-3 flex-wrap mb-2">
           <div>
             <div class="font-semibold text-[.92rem] text-textDark">${escapeHtml(a.company_name)}</div>
-            <div class="text-[.75rem] text-textMid">${escapeHtml(a.application_code)} · ${fmtDate(a.created_at)} · ${escapeHtml(a.contact || '—')}</div>
+            <div class="text-[.75rem] text-textMid">${escapeHtml(a.application_code)} · ${fmtDate(a.created_at)}</div>
           </div>
           ${statusPill(a.status)}
         </div>
+        ${vendorContactDetailHtml(a)}
         <div class="flex flex-wrap gap-1.5 mb-2">${(a.procurement_methods || []).map(m =>
           `<span class="px-2 py-0.5 rounded-full text-[.68rem] font-medium bg-blueBg text-blueTx">${PROCUREMENT_LABELS[m] || m}</span>`
         ).join('')}</div>
@@ -4173,7 +4519,8 @@ document.addEventListener('DOMContentLoaded', function(){
             ${!s.active ? `<span class="px-2 py-0.5 rounded-full text-[.68rem] font-semibold bg-[#eef2f7] text-textMid">Inactive</span>` : ''}
           </div>
         </div>
-        <div class="text-[.78rem] text-textMid mb-2">${escapeHtml(s.contact || '—')}</div>
+        <div class="text-[.78rem] text-textMid mb-1">${escapeHtml(s.contact || '—')}</div>
+        ${s.address ? `<div class="text-[.72rem] text-textSoft mb-2 whitespace-pre-wrap">${escapeHtml(s.address)}</div>` : '<div class="mb-2"></div>'}
         <div class="flex flex-wrap gap-1 mb-3">${(s.procurement_methods || []).map(m => `<span class="px-2 py-0.5 rounded-full text-[.68rem] font-medium bg-blueBg text-blueTx">${PROCUREMENT_LABELS[m] || m}</span>`).join('')}</div>
         <div class="flex flex-wrap gap-1.5 mb-3">${s.prices.map(p => {
           const best = bestSupplierFor(p.item_key);
@@ -4251,6 +4598,7 @@ document.addEventListener('DOMContentLoaded', function(){
     supEditRemoved = [];
     document.getElementById('supplierEditModalTitle').textContent = `Edit — ${s.name}`;
     document.getElementById('supEditContact').value = s.contact || '';
+    document.getElementById('supEditAddress').value = s.address || '';
     document.getElementById('supEditNotes').value = s.notes || '';
     document.querySelectorAll('.supEditMethodChk').forEach(chk => {
       chk.checked = (s.procurement_methods || []).includes(chk.value);
@@ -4281,6 +4629,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!editingSupplierId) return;
     const body = {
       contact: document.getElementById('supEditContact').value.trim() || null,
+      address: document.getElementById('supEditAddress').value.trim() || null,
       notes: document.getElementById('supEditNotes').value.trim() || null,
       procurement_methods: Array.from(document.querySelectorAll('.supEditMethodChk:checked')).map(c => c.value),
       prices: supEditPrices.map(p => ({ item_key: p.item_key, price: Number(p.price) })),
@@ -4516,9 +4865,18 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function syncEquipmentPurposeFields(){
     const isEquipment = purchaseRequestMode() === 'equipment';
+    const canStockForStorage = roleAtLeast('manager');
     const purposeWrap = document.getElementById('reqEquipmentPurposeWrap');
-    const forStorage = isEquipment && equipmentRequestPurpose() === 'storage';
-    purposeWrap.classList.toggle('hidden', !isEquipment);
+    const storageOption = document.getElementById('reqEquipmentPurposeStorageWrap');
+    if(storageOption){
+      storageOption.classList.toggle('hidden', !canStockForStorage);
+      if(!canStockForStorage){
+        const deptRadio = document.querySelector('input[name="reqEquipmentPurpose"][value="department"]');
+        if(deptRadio) deptRadio.checked = true;
+      }
+    }
+    const forStorage = isEquipment && canStockForStorage && equipmentRequestPurpose() === 'storage';
+    purposeWrap.classList.toggle('hidden', !isEquipment || !canStockForStorage);
     document.getElementById('reqDepartmentWrap').classList.toggle('hidden', !isEquipment || forStorage);
     document.getElementById('reqReasonWrap').classList.toggle('hidden', !isEquipment || forStorage);
     document.getElementById('reqStoragePurposeHint').classList.toggle('hidden', !forStorage);
@@ -4719,7 +5077,7 @@ document.addEventListener('DOMContentLoaded', function(){
     updateProfileUI();
     applyRoleUI();
     await loadLocations();
-    await Promise.all([loadInventory(), loadVouchers(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments(), loadDemandInsights()]);
+    await Promise.all([loadInventory(), loadVouchers(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments(), loadDemandInsights()]);
     populateDepartmentSelect('issueDepartment', DEPARTMENTS[0]);
     renderDashboard();
     dismissAttentionForPage(pageIdFromHash(location.hash));

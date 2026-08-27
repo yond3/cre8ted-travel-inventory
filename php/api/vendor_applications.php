@@ -57,6 +57,9 @@ function format_application(PDO $pdo, array $row): array
         'application_code' => $row['application_code'],
         'company_name' => $row['company_name'],
         'contact' => $row['contact'],
+        'phones' => $row['phones'] ?? null,
+        'emails' => $row['emails'] ?? null,
+        'address' => $row['address'] ?? null,
         'procurement_methods' => $row['procurement_methods']
             ? explode(',', $row['procurement_methods'])
             : [],
@@ -80,6 +83,50 @@ function normalize_methods($methods): string
         $methods = ['walk_in'];
     }
     return implode(',', $methods);
+}
+
+function normalize_contact_list(?string $value): ?string
+{
+    if ($value === null) {
+        return null;
+    }
+    $lines = preg_split('/[\r\n,]+/', $value);
+    $parts = [];
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line !== '') {
+            $parts[] = $line;
+        }
+    }
+    if ($parts === []) {
+        return null;
+    }
+    return implode("\n", $parts);
+}
+
+function format_vendor_contact_summary(?string $phones, ?string $emails): ?string
+{
+    $parts = [];
+    if ($phones !== null && $phones !== '') {
+        foreach (preg_split('/[\r\n]+/', $phones) as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $parts[] = $line;
+            }
+        }
+    }
+    if ($emails !== null && $emails !== '') {
+        foreach (preg_split('/[\r\n]+/', $emails) as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $parts[] = $line;
+            }
+        }
+    }
+    if ($parts === []) {
+        return null;
+    }
+    return implode(' · ', $parts);
 }
 
 if ($method === 'GET') {
@@ -163,18 +210,31 @@ if ($method === 'POST') {
 
     $code = next_code('VQ', 'vendor_applications', 'application_code');
     $methods = normalize_methods($body['procurement_methods'] ?? ['walk_in']);
+    $phones = normalize_contact_list($body['phones'] ?? null);
+    $emails = normalize_contact_list($body['emails'] ?? null);
+    $address = trim($body['address'] ?? '') ?: null;
+    $legacyContact = trim($body['contact'] ?? '') ?: null;
+
+    if ($phones === null && $emails === null && $legacyContact === null) {
+        json_error('provide at least one phone number or email address');
+    }
+
+    $contactSummary = format_vendor_contact_summary($phones, $emails) ?: $legacyContact;
 
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare(
             'INSERT INTO vendor_applications
-             (application_code, company_name, contact, procurement_methods, notes, status)
-             VALUES (?, ?, ?, ?, ?, ?)'
+             (application_code, company_name, contact, phones, emails, address, procurement_methods, notes, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $code,
             $companyName,
-            trim($body['contact'] ?? '') ?: null,
+            $contactSummary,
+            $phones,
+            $emails,
+            $address,
             $methods,
             trim($body['notes'] ?? '') ?: null,
             'Pending',
@@ -252,9 +312,10 @@ if ($method === 'PUT') {
             if ($supplierId) {
                 $supplierId = (int) $supplierId;
                 $pdo->prepare(
-                    'UPDATE suppliers SET contact = COALESCE(?, contact), procurement_methods = ?, notes = COALESCE(?, notes), active = 1 WHERE id = ?'
+                    'UPDATE suppliers SET contact = COALESCE(?, contact), address = COALESCE(?, address), procurement_methods = ?, notes = COALESCE(?, notes), active = 1 WHERE id = ?'
                 )->execute([
                     $row['contact'],
+                    $row['address'] ?? null,
                     $row['procurement_methods'],
                     $row['notes'],
                     $supplierId,
@@ -262,11 +323,12 @@ if ($method === 'PUT') {
             } else {
                 $rating = isset($body['rating']) ? (float) $body['rating'] : null;
                 $pdo->prepare(
-                    'INSERT INTO suppliers (name, contact, rating, procurement_methods, notes)
-                     VALUES (?, ?, ?, ?, ?)'
+                    'INSERT INTO suppliers (name, contact, address, rating, procurement_methods, notes)
+                     VALUES (?, ?, ?, ?, ?, ?)'
                 )->execute([
                     $row['company_name'],
                     $row['contact'],
+                    $row['address'] ?? null,
                     $rating,
                     $row['procurement_methods'],
                     $row['notes'],

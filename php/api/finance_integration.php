@@ -57,6 +57,7 @@ if ($method === 'GET') {
                     'actual_amount' => 195.50,
                     'receipt_unavailable' => false,
                     'receipt_number' => 'OR-123456',
+                    'receipt_notes' => 'Paid via petty cash at SM Megamall branch.',
                     'receipt_file_url' => rtrim(APP_BASE_URL, '/') . '/api/receipts.php?po_id=25',
                     'expense_category' => 'office_supplies',
                 ],

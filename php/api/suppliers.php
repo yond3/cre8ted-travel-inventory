@@ -34,6 +34,7 @@ function format_supplier(PDO $pdo, array $row): array
         'id' => (int) $row['id'],
         'name' => $row['name'],
         'contact' => $row['contact'],
+        'address' => $row['address'] ?? null,
         'rating' => $row['rating'] !== null ? (float) $row['rating'] : null,
         'procurement_methods' => $row['procurement_methods'] ? explode(',', $row['procurement_methods']) : [],
         'notes' => $row['notes'],
@@ -107,7 +108,7 @@ if ($method === 'PUT') {
 
     $fields = [];
     $values = [];
-    foreach (['name', 'contact', 'rating', 'notes'] as $field) {
+    foreach (['name', 'contact', 'address', 'rating', 'notes'] as $field) {
         if (array_key_exists($field, $body)) {
             $fields[] = "$field = ?";
             $values[] = $body[$field];

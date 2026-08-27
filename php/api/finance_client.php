@@ -143,6 +143,7 @@ function finance_expense_payload(array $po): array
     return array_merge($base, [
         'receipt_unavailable' => false,
         'receipt_number' => $po['receipt_number'],
+        'receipt_notes' => $po['receipt_notes'],
         'receipt_file_url' => rtrim(APP_BASE_URL, '/') . '/api/receipts.php?po_id=' . $po['id'],
     ]);
 }

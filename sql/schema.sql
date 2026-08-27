@@ -6,6 +6,7 @@ USE wayfarer_inventory;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS finance_integration_log;
+DROP TABLE IF EXISTS inventory_retirements;
 DROP TABLE IF EXISTS equipment_movements;
 DROP TABLE IF EXISTS equipment_deployments;
 DROP TABLE IF EXISTS stock_requests;
@@ -58,13 +59,13 @@ CREATE TABLE equipment_movements (
     movement_code VARCHAR(20) NOT NULL UNIQUE,
     item_key VARCHAR(50) NOT NULL,
     qty DECIMAL(10,2) NOT NULL,
-    movement_type ENUM('issue_from_storage', 'receive_to_storage', 'deploy_from_purchase') NOT NULL,
+    movement_type ENUM('issue_from_storage', 'receive_to_storage', 'deploy_from_purchase', 'retired') NOT NULL,
     department VARCHAR(100) NULL,
     location_id INT NULL,
     issued_to VARCHAR(100) NULL,
     notes VARCHAR(255) NULL,
     recorded_by VARCHAR(100) NOT NULL,
-    reference_type ENUM('stock_issue', 'purchase_order') NULL,
+    reference_type ENUM('stock_issue', 'purchase_order', 'inventory_retirement') NULL,
     reference_id INT NULL,
     reference_code VARCHAR(20) NULL,
     status ENUM('Active', 'Voided') NOT NULL DEFAULT 'Active',
@@ -86,7 +87,8 @@ CREATE TABLE usage_log (
 CREATE TABLE suppliers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
-    contact VARCHAR(150) NULL,
+    contact VARCHAR(500) NULL,
+    address VARCHAR(500) NULL,
     rating DECIMAL(2,1) NULL,
     procurement_methods VARCHAR(100) NOT NULL DEFAULT 'walk_in',
     notes VARCHAR(255) NULL,
@@ -107,7 +109,10 @@ CREATE TABLE vendor_applications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     application_code VARCHAR(20) NOT NULL UNIQUE,
     company_name VARCHAR(150) NOT NULL,
-    contact VARCHAR(150) NULL,
+    contact VARCHAR(500) NULL,
+    phones VARCHAR(500) NULL,
+    emails VARCHAR(500) NULL,
+    address VARCHAR(500) NULL,
     procurement_methods VARCHAR(100) NOT NULL DEFAULT 'walk_in',
     notes VARCHAR(255) NULL,
     status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
@@ -249,6 +254,21 @@ CREATE TABLE stock_issues (
     voided_reason VARCHAR(255) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     voided_at DATETIME NULL,
+    FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Retire / write-off log: broken, lost, expired, or damaged units removed from counts.
+CREATE TABLE inventory_retirements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    retirement_code VARCHAR(20) NOT NULL UNIQUE,
+    item_key VARCHAR(50) NOT NULL,
+    qty DECIMAL(10,2) NOT NULL,
+    source ENUM('storage', 'department') NOT NULL DEFAULT 'storage',
+    department VARCHAR(100) NULL,
+    reason ENUM('broken', 'lost', 'expired', 'damaged', 'other') NOT NULL,
+    notes VARCHAR(255) NULL,
+    recorded_by VARCHAR(100) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

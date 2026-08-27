@@ -51,6 +51,7 @@ function format_order(array $row): array
         'received_at' => $row['received_at'],
         'received_by' => $row['received_by'] ?? null,
         'receipt_uploaded' => $row['receipt_filename'] !== null,
+        'receipt_mime' => $row['receipt_mime'],
         'receipt_amount' => $row['receipt_amount'] !== null ? (float) $row['receipt_amount'] : null,
         'receipt_number' => $row['receipt_number'],
         'receipt_notes' => $row['receipt_notes'],

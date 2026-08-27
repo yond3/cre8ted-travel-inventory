@@ -482,7 +482,7 @@ function log_equipment_movement(
     if (($item['item_type'] ?? '') !== 'equipment') {
         return;
     }
-    $allowed = ['issue_from_storage', 'receive_to_storage', 'deploy_from_purchase'];
+    $allowed = ['issue_from_storage', 'receive_to_storage', 'deploy_from_purchase', 'retired'];
     if (!in_array($movementType, $allowed, true)) {
         return;
     }
@@ -525,6 +525,183 @@ function void_equipment_movements_for_reference(
 }
 
 const PURCHASE_REASONS = ['replacement', 'new_need', 'other', 'stock_up'];
+const RETIREMENT_REASONS = ['broken', 'lost', 'expired', 'damaged', 'other'];
+
+function retirement_reason_label(string $reason): string
+{
+    $labels = [
+        'broken' => 'Broken',
+        'lost' => 'Lost',
+        'expired' => 'Expired',
+        'damaged' => 'Damaged',
+        'other' => 'Other',
+    ];
+
+    return $labels[$reason] ?? $reason;
+}
+
+function format_retirement_note(string $reason, ?string $notes): string
+{
+    $label = retirement_reason_label($reason);
+    return $notes !== null && $notes !== '' ? "$label — $notes" : $label;
+}
+
+/**
+ * Remove units from storage or a department deployment and record the audit trail.
+ */
+function apply_inventory_retirement(PDO $pdo, array $body, array $user): array
+{
+    $itemKey = trim($body['item_key'] ?? '');
+    $qty = isset($body['qty']) ? (float) $body['qty'] : 0;
+    $source = $body['source'] ?? 'storage';
+    $department = trim($body['department'] ?? '') ?: null;
+    $reason = strtolower(trim($body['reason'] ?? ''));
+    $notes = trim($body['notes'] ?? '') ?: null;
+
+    if ($itemKey === '' || $qty <= 0) {
+        json_error('item_key and qty greater than 0 are required');
+    }
+    if (!in_array($reason, RETIREMENT_REASONS, true)) {
+        json_error('reason must be one of: ' . implode(', ', RETIREMENT_REASONS));
+    }
+    if (!in_array($source, ['storage', 'department'], true)) {
+        json_error("source must be 'storage' or 'department'");
+    }
+
+    $item = get_item_or_404($itemKey);
+    if ((int) ($item['active'] ?? 1) !== 1) {
+        json_error('cannot retire units from an inactive item');
+    }
+
+    $itemType = $item['item_type'] ?? 'consumable';
+    if ($itemType === 'consumable') {
+        if ($source !== 'storage') {
+            json_error('consumables can only be retired from storage');
+        }
+        if ($qty > (float) $item['current_qty']) {
+            json_error(
+                "only {$item['current_qty']} {$item['unit']} on hand — cannot retire $qty",
+                409
+            );
+        }
+    } elseif ($source === 'storage') {
+        if ($qty > (float) $item['current_qty']) {
+            json_error(
+                "only {$item['current_qty']} {$item['unit']} in storage — cannot retire $qty",
+                409
+            );
+        }
+    } else {
+        if ($department === null || !is_valid_department($department)) {
+            json_error('department is required when retiring deployed equipment');
+        }
+        $stmt = $pdo->prepare('SELECT qty FROM equipment_deployments WHERE item_key = ? AND department = ?');
+        $stmt->execute([$itemKey, $department]);
+        $deployed = (float) $stmt->fetchColumn();
+        if ($deployed <= 0) {
+            json_error("no units deployed to $department", 409);
+        }
+        if ($qty > $deployed) {
+            json_error("only $deployed {$item['unit']} at $department — cannot retire $qty", 409);
+        }
+    }
+
+    $code = next_code('RET', 'inventory_retirements', 'retirement_code');
+    $recordedBy = $user['name'] ?? 'System';
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare(
+            'INSERT INTO inventory_retirements
+             (retirement_code, item_key, qty, source, department, reason, notes, recorded_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        )->execute([
+            $code,
+            $itemKey,
+            $qty,
+            $source,
+            $source === 'department' ? $department : null,
+            $reason,
+            $notes,
+            $recordedBy,
+        ]);
+        $retirementId = (int) $pdo->lastInsertId();
+
+        if ($itemType === 'consumable') {
+            $pdo->prepare('UPDATE items SET current_qty = current_qty - ? WHERE item_key = ?')
+                ->execute([$qty, $itemKey]);
+        } elseif ($source === 'storage') {
+            $pdo->prepare('UPDATE items SET current_qty = current_qty - ? WHERE item_key = ?')
+                ->execute([$qty, $itemKey]);
+            $locationId = !empty($item['location_id']) ? (int) $item['location_id'] : null;
+            log_equipment_movement(
+                $pdo,
+                $itemKey,
+                $qty,
+                'retired',
+                $recordedBy,
+                null,
+                $locationId,
+                null,
+                format_retirement_note($reason, $notes),
+                'inventory_retirement',
+                $retirementId,
+                $code
+            );
+        } else {
+            subtract_equipment_deployment($pdo, $itemKey, $department, $qty);
+            log_equipment_movement(
+                $pdo,
+                $itemKey,
+                $qty,
+                'retired',
+                $recordedBy,
+                $department,
+                null,
+                null,
+                format_retirement_note($reason, $notes),
+                'inventory_retirement',
+                $retirementId,
+                $code
+            );
+        }
+
+        $pdo->commit();
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        json_error('failed to retire: ' . $e->getMessage(), 500);
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT ir.*, i.label, i.unit, i.item_type
+         FROM inventory_retirements ir
+         JOIN items i ON i.item_key = ir.item_key
+         WHERE ir.id = ?'
+    );
+    $stmt->execute([$retirementId]);
+
+    return format_inventory_retirement($stmt->fetch());
+}
+
+function format_inventory_retirement(array $row): array
+{
+    return [
+        'id' => (int) $row['id'],
+        'retirement_code' => $row['retirement_code'],
+        'item_key' => $row['item_key'],
+        'item_label' => $row['label'],
+        'item_type' => $row['item_type'],
+        'unit' => $row['unit'],
+        'qty' => (float) $row['qty'],
+        'source' => $row['source'],
+        'department' => $row['department'],
+        'reason' => $row['reason'],
+        'reason_label' => retirement_reason_label($row['reason']),
+        'notes' => $row['notes'],
+        'recorded_by' => $row['recorded_by'],
+        'created_at' => $row['created_at'],
+    ];
+}
 
 function normalize_purchase_reason(?string $reason): ?string
 {
