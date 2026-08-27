@@ -1537,7 +1537,9 @@
       </div>
     </dl>
     <div id="receiptViewPreviewWrap" class="hidden mb-4 rounded-xl border border-line overflow-hidden bg-[#f8fafc]">
-      <img id="receiptViewPreview" alt="Receipt preview" class="w-full max-h-72 object-contain bg-white">
+      <p id="receiptViewPreviewStatus" class="text-[.82rem] text-textMid px-3 py-4 text-center">Loading preview…</p>
+      <img id="receiptViewPreview" alt="Receipt preview" class="hidden w-full max-h-72 object-contain bg-white">
+      <iframe id="receiptViewPreviewPdf" title="Receipt PDF preview" class="hidden w-full h-72 bg-white border-0"></iframe>
     </div>
     <div class="flex gap-2">
       <button type="button" id="receiptViewOpenFileBtn" onclick="viewReceiptFile()" class="flex-1 px-4 py-2.5 rounded-xl bg-[#eef2f7] text-textMid text-[.85rem] font-semibold cursor-pointer border-none">Open receipt file</button>
@@ -4397,13 +4399,45 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
   let receiptViewOrderId = null;
+  let receiptViewBlobUrl = null;
 
-  window.viewReceiptFile = function(){
+  function revokeReceiptBlobUrl(){
+    if(receiptViewBlobUrl){
+      URL.revokeObjectURL(receiptViewBlobUrl);
+      receiptViewBlobUrl = null;
+    }
+    const previewImg = document.getElementById('receiptViewPreview');
+    const previewPdf = document.getElementById('receiptViewPreviewPdf');
+    if(previewImg) previewImg.removeAttribute('src');
+    if(previewPdf) previewPdf.removeAttribute('src');
+  }
+
+  async function fetchReceiptBlob(poId){
+    const res = await fetch(`${API}receipts.php?po_id=${poId}`, { credentials: 'include' });
+    if(res.status === 401){
+      location.href = 'login.html';
+      throw { error: 'authentication required' };
+    }
+    if(!res.ok){
+      throw await res.json().catch(() => ({ error: 'Could not load receipt file.' }));
+    }
+    return res.blob();
+  }
+
+  window.viewReceiptFile = async function(){
     if(receiptViewOrderId == null) return;
-    window.open(`${API}receipts.php?po_id=${receiptViewOrderId}`, '_blank');
+    try {
+      if(!receiptViewBlobUrl){
+        const blob = await fetchReceiptBlob(receiptViewOrderId);
+        receiptViewBlobUrl = URL.createObjectURL(blob);
+      }
+      window.open(receiptViewBlobUrl, '_blank');
+    } catch (err) {
+      alert(err.error || 'Could not open receipt file.');
+    }
   };
 
-  window.viewReceipt = function(id){
+  window.viewReceipt = async function(id){
     const order = state.orders.find(o => o.id === id);
     if(!order || !order.receipt_uploaded) return;
     receiptViewOrderId = id;
@@ -4439,18 +4473,38 @@ document.addEventListener('DOMContentLoaded', function(){
     const when = order.receipt_uploaded_at ? fmtDateTime(order.receipt_uploaded_at) : '—';
     const who = order.receipt_uploaded_by || '—';
     document.getElementById('receiptViewMeta').textContent = `${who} · ${when}`;
+
+    revokeReceiptBlobUrl();
     const previewWrap = document.getElementById('receiptViewPreviewWrap');
     const previewImg = document.getElementById('receiptViewPreview');
-    const mime = (order.receipt_mime || '').toLowerCase();
-    if(mime.startsWith('image/')){
-      previewWrap.classList.remove('hidden');
-      previewImg.src = `${API}receipts.php?po_id=${id}`;
-      previewImg.classList.remove('hidden');
-    } else {
-      previewWrap.classList.add('hidden');
-      previewImg.removeAttribute('src');
-    }
+    const previewPdf = document.getElementById('receiptViewPreviewPdf');
+    const previewStatus = document.getElementById('receiptViewPreviewStatus');
+    previewWrap.classList.remove('hidden');
+    previewImg.classList.add('hidden');
+    previewPdf.classList.add('hidden');
+    previewStatus.textContent = 'Loading preview…';
+    previewStatus.classList.remove('hidden');
     openModal('receiptViewModalOverlay');
+
+    try {
+      const blob = await fetchReceiptBlob(id);
+      receiptViewBlobUrl = URL.createObjectURL(blob);
+      const mime = (order.receipt_mime || blob.type || '').toLowerCase();
+      previewStatus.classList.add('hidden');
+      if(mime.startsWith('image/')){
+        previewImg.src = receiptViewBlobUrl;
+        previewImg.classList.remove('hidden');
+      } else if(mime === 'application/pdf'){
+        previewPdf.src = receiptViewBlobUrl;
+        previewPdf.classList.remove('hidden');
+      } else {
+        previewStatus.textContent = 'Preview not available for this file type. Use Open receipt file.';
+        previewStatus.classList.remove('hidden');
+      }
+    } catch (err) {
+      previewStatus.textContent = err.error || 'Could not load receipt preview.';
+      previewStatus.classList.remove('hidden');
+    }
   };
 
   window.viewLostReceiptNote = function(id){
@@ -5260,7 +5314,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
   /* ---------- modals ---------- */
   window.openModal = function(id){ document.getElementById(id).classList.add('show'); };
-  window.closeModal = function(id){ document.getElementById(id).classList.remove('show'); };
+  window.closeModal = function(id){
+    if(id === 'receiptViewModalOverlay') revokeReceiptBlobUrl();
+    document.getElementById(id).classList.remove('show');
+  };
 
   function supplierPriceForItem(supplier, itemKey){
     let price = supplier.prices.find(p => p.item_key === itemKey)?.price;
