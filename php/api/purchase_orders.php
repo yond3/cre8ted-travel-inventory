@@ -15,6 +15,12 @@
  * created; PUT ?id=<id> { action: 'resend_finance' } (manager+) retries it.
  * PUT ?id=<id> { action: 'declare_receipt_lost', actual_amount, note }
  * (manager+) records a lost receipt and forwards the note to Finance.
+ * PUT ?id=<id> { action: 'report_receipt_lost', actual_amount, note }
+ * (staff+) reports a lost receipt for manager approval.
+ * PUT ?id=<id> { action: 'approve_lost_receipt_report' }
+ * (manager+) approves a staff lost-receipt report — forwards to Finance.
+ * PUT ?id=<id> { action: 'reject_lost_receipt_report', note }
+ * (manager+) rejects a staff lost-receipt report with a required note.
  * PUT ?id=<id> { action: 'reject_receipt', note }
  * (manager+) rejects an uploaded receipt (wrong file, wrong amount, unreadable,
  * etc.) with a required note. Blocks 'receive' until the order gets a fresh
@@ -65,6 +71,15 @@ function format_order(array $row): array
         'receipt_rejection_note' => $row['receipt_rejection_note'],
         'receipt_rejected_at' => $row['receipt_rejected_at'],
         'receipt_rejected_by' => $row['receipt_rejected_by'],
+        'receipt_lost_report_pending' => !empty($row['receipt_lost_report_pending']),
+        'receipt_lost_report_amount' => $row['receipt_lost_report_amount'] !== null ? (float) $row['receipt_lost_report_amount'] : null,
+        'receipt_lost_report_note' => $row['receipt_lost_report_note'],
+        'receipt_lost_report_at' => $row['receipt_lost_report_at'],
+        'receipt_lost_report_by' => $row['receipt_lost_report_by'],
+        'receipt_lost_report_rejected' => !empty($row['receipt_lost_report_rejected']),
+        'receipt_lost_report_rejection_note' => $row['receipt_lost_report_rejection_note'],
+        'receipt_lost_report_rejected_at' => $row['receipt_lost_report_rejected_at'],
+        'receipt_lost_report_rejected_by' => $row['receipt_lost_report_rejected_by'],
         'finance_status' => $row['finance_status'],
         'finance_disbursement_id' => $row['finance_disbursement_id'],
         'finance_expense_id' => $row['finance_expense_id'],
@@ -81,6 +96,79 @@ const ORDER_SELECT = "SELECT po.*, pr.request_code, pr.item_key, pr.requested_la
     JOIN purchase_requests pr ON pr.id = po.request_id
     LEFT JOIN items i ON i.item_key = pr.item_key
     LEFT JOIN suppliers s ON s.id = po.supplier_id";
+
+function assert_po_can_report_lost_receipt(array $row): void
+{
+    if ($row['finance_status'] !== 'funded') {
+        json_error("purchase order is not funded yet (finance status: {$row['finance_status']})", 409);
+    }
+    if ($row['receipt_filename']) {
+        json_error('a receipt is already uploaded for this order', 409);
+    }
+    if (!empty($row['receipt_waived'])) {
+        json_error('lost receipt was already recorded for this order', 409);
+    }
+    if (!empty($row['receipt_lost_report_pending'])) {
+        json_error('a lost-receipt report is already waiting for manager review', 409);
+    }
+}
+
+function parse_lost_receipt_payload(array $body): array
+{
+    $amount = $body['actual_amount'] ?? null;
+    if ($amount === null || $amount === '' || !is_numeric($amount) || (float) $amount <= 0) {
+        json_error('actual_amount is required');
+    }
+    $note = trim($body['note'] ?? '');
+    if (strlen($note) < 10) {
+        json_error('note is required (at least 10 characters — explain what was purchased and why the receipt is missing)');
+    }
+    return [(float) $amount, $note];
+}
+
+function finalize_lost_receipt(PDO $pdo, int $id, string $note, float $amount, string $recordedBy, bool $preserveStaffReport = false): array
+{
+    if ($preserveStaffReport) {
+        $sql = 'UPDATE purchase_orders SET
+            receipt_waived = 1,
+            receipt_waiver_note = ?,
+            receipt_waived_at = NOW(),
+            receipt_waived_by = ?,
+            receipt_amount = ?,
+            receipt_lost_report_pending = 0,
+            receipt_lost_report_rejected = 0,
+            receipt_lost_report_rejection_note = NULL,
+            receipt_lost_report_rejected_at = NULL,
+            receipt_lost_report_rejected_by = NULL
+         WHERE id = ?';
+    } else {
+        $sql = 'UPDATE purchase_orders SET
+            receipt_waived = 1,
+            receipt_waiver_note = ?,
+            receipt_waived_at = NOW(),
+            receipt_waived_by = ?,
+            receipt_amount = ?,
+            receipt_lost_report_pending = 0,
+            receipt_lost_report_amount = NULL,
+            receipt_lost_report_note = NULL,
+            receipt_lost_report_at = NULL,
+            receipt_lost_report_by = NULL,
+            receipt_lost_report_rejected = 0,
+            receipt_lost_report_rejection_note = NULL,
+            receipt_lost_report_rejected_at = NULL,
+            receipt_lost_report_rejected_by = NULL
+         WHERE id = ?';
+    }
+    $pdo->prepare($sql)->execute([$note, $recordedBy, $amount, $id]);
+
+    $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
+    try {
+        finance_send_expense($pdo, $updated);
+    } catch (Exception $e) {
+        error_log('finance_send_expense failed after lost receipt: ' . $e->getMessage());
+    }
+    return $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
+}
 
 if ($method === 'GET') {
     require_auth();
@@ -190,10 +278,16 @@ if ($method === 'PUT') {
         require_manager_or_above();
     } elseif ($action === 'declare_receipt_lost') {
         require_manager_or_above();
+    } elseif ($action === 'report_receipt_lost') {
+        require_staff_or_above();
+    } elseif ($action === 'approve_lost_receipt_report') {
+        require_manager_or_above();
+    } elseif ($action === 'reject_lost_receipt_report') {
+        require_manager_or_above();
     } elseif ($action === 'reject_receipt') {
         require_manager_or_above();
     } else {
-        json_error("action must be 'receive', 'cancel', 'resend_finance', 'declare_receipt_lost', or 'reject_receipt'");
+        json_error("action must be 'receive', 'cancel', 'resend_finance', 'declare_receipt_lost', 'report_receipt_lost', 'approve_lost_receipt_report', 'reject_lost_receipt_report', or 'reject_receipt'");
     }
 
     $row = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
@@ -216,42 +310,73 @@ if ($method === 'PUT') {
     }
 
     if ($action === 'declare_receipt_lost') {
-        if ($row['finance_status'] !== 'funded') {
-            json_error("purchase order is not funded yet (finance status: {$row['finance_status']})", 409);
-        }
-        if ($row['receipt_filename']) {
-            json_error('a receipt is already uploaded for this order', 409);
-        }
-        if (!empty($row['receipt_waived'])) {
-            json_error('lost receipt was already recorded for this order', 409);
-        }
+        assert_po_can_report_lost_receipt($row);
+        [$amount, $note] = parse_lost_receipt_payload($body);
+        $user = get_session_user();
+        $updated = finalize_lost_receipt($pdo, $id, $note, $amount, $user['name']);
+        echo json_encode(format_order($updated));
+        exit;
+    }
 
-        $amount = $body['actual_amount'] ?? null;
-        if ($amount === null || $amount === '' || !is_numeric($amount) || (float) $amount <= 0) {
-            json_error('actual_amount is required');
-        }
-        $note = trim($body['note'] ?? '');
-        if (strlen($note) < 10) {
-            json_error('note is required (at least 10 characters — explain what was purchased and why the receipt is missing)');
-        }
-
+    if ($action === 'report_receipt_lost') {
+        assert_po_can_report_lost_receipt($row);
+        [$amount, $note] = parse_lost_receipt_payload($body);
         $user = get_session_user();
         $pdo->prepare(
             'UPDATE purchase_orders SET
-                receipt_waived = 1,
-                receipt_waiver_note = ?,
-                receipt_waived_at = NOW(),
-                receipt_waived_by = ?,
-                receipt_amount = ?
+                receipt_lost_report_pending = 1,
+                receipt_lost_report_amount = ?,
+                receipt_lost_report_note = ?,
+                receipt_lost_report_at = NOW(),
+                receipt_lost_report_by = ?,
+                receipt_lost_report_rejected = 0,
+                receipt_lost_report_rejection_note = NULL,
+                receipt_lost_report_rejected_at = NULL,
+                receipt_lost_report_rejected_by = NULL
              WHERE id = ?'
-        )->execute([$note, $user['name'], (float) $amount, $id]);
-
+        )->execute([$amount, $note, $user['name'], $id]);
         $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
-        try {
-            finance_send_expense($pdo, $updated);
-        } catch (Exception $e) {
-            error_log('finance_send_expense failed after declare_receipt_lost: ' . $e->getMessage());
+        echo json_encode(format_order($updated));
+        exit;
+    }
+
+    if ($action === 'approve_lost_receipt_report') {
+        if (empty($row['receipt_lost_report_pending'])) {
+            json_error('no lost-receipt report is waiting for review on this order', 409);
         }
+        $managerNote = trim($body['note'] ?? '');
+        if (strlen($managerNote) < 10) {
+            json_error('note is required (at least 10 characters — write the official explanation for Financial Management)');
+        }
+        $user = get_session_user();
+        $amount = (float) $row['receipt_lost_report_amount'];
+        $updated = finalize_lost_receipt($pdo, $id, $managerNote, $amount, $user['name'], true);
+        echo json_encode(format_order($updated));
+        exit;
+    }
+
+    if ($action === 'reject_lost_receipt_report') {
+        if (empty($row['receipt_lost_report_pending'])) {
+            json_error('no lost-receipt report is waiting for review on this order', 409);
+        }
+        $note = trim($body['note'] ?? '');
+        if (strlen($note) < 10) {
+            json_error('note is required (at least 10 characters — explain why the report cannot be accepted)');
+        }
+        $user = get_session_user();
+        $pdo->prepare(
+            'UPDATE purchase_orders SET
+                receipt_lost_report_pending = 0,
+                receipt_lost_report_amount = NULL,
+                receipt_lost_report_note = NULL,
+                receipt_lost_report_at = NULL,
+                receipt_lost_report_by = NULL,
+                receipt_lost_report_rejected = 1,
+                receipt_lost_report_rejection_note = ?,
+                receipt_lost_report_rejected_at = NOW(),
+                receipt_lost_report_rejected_by = ?
+             WHERE id = ?'
+        )->execute([$note, $user['name'], $id]);
         $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
         echo json_encode(format_order($updated));
         exit;
@@ -290,7 +415,9 @@ if ($method === 'PUT') {
     if ($action === 'receive' && !$hasProof) {
         $reason = !empty($row['receipt_rejected'])
             ? 'the uploaded receipt was rejected — wait for a corrected upload before marking this order received'
-            : 'upload the purchase receipt or record a lost receipt (manager) before marking this order received';
+            : (!empty($row['receipt_lost_report_pending'])
+                ? 'a lost-receipt report is waiting for manager approval before this order can be received'
+                : 'upload the purchase receipt or record a lost receipt before marking this order received');
         json_error($reason, 409);
     }
 

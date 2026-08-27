@@ -120,14 +120,20 @@ if ($method === 'POST') {
     }
 
     // A reupload replaces the file/metadata and clears any prior rejection —
-    // it's a fresh receipt awaiting the manager's review again.
+    // it's a fresh receipt awaiting the manager's review again. A successful
+    // upload also clears any in-flight lost-receipt report from staff.
     $stmt = $pdo->prepare(
         'UPDATE purchase_orders SET
             receipt_filename = ?, receipt_original_name = ?, receipt_mime = ?,
             receipt_amount = ?, receipt_number = ?, receipt_notes = ?,
             receipt_uploaded_at = NOW(), receipt_uploaded_by = ?,
             receipt_rejected = 0, receipt_rejection_note = NULL,
-            receipt_rejected_at = NULL, receipt_rejected_by = NULL
+            receipt_rejected_at = NULL, receipt_rejected_by = NULL,
+            receipt_lost_report_pending = 0,
+            receipt_lost_report_amount = NULL, receipt_lost_report_note = NULL,
+            receipt_lost_report_at = NULL, receipt_lost_report_by = NULL,
+            receipt_lost_report_rejected = 0, receipt_lost_report_rejection_note = NULL,
+            receipt_lost_report_rejected_at = NULL, receipt_lost_report_rejected_by = NULL
          WHERE id = ?'
     );
     $stmt->execute([

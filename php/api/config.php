@@ -29,6 +29,12 @@ const DB_PASSWORD = '';
 // PHP layer is expected to reach it.
 const FORECAST_SERVICE_URL = 'http://127.0.0.1:5050';
 
+// Python receipt-OCR microservice (ocr_service.py) — same pattern as the
+// forecast service, on its own port. Used to suggest an amount and OR
+// number when a receipt is uploaded; the user still reviews it before
+// submitting, so this service being down is never a hard blocker.
+const OCR_SERVICE_URL = 'http://127.0.0.1:5051';
+
 // Purchase order receipt uploads (proof of purchase, required before an
 // order can be marked Received). Files are stored outside web-served paths
 // in spirit — access is only via receipts.php, which checks login first.

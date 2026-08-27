@@ -71,6 +71,7 @@ Get-Content ".\sql\migration_po_receipts.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_po_finance_status.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_po_receipt_waiver.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_po_receipt_rejection.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_po_lost_receipt_report.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_stock_requests.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_items_assigned_department.sql" | mysql -u root wayfarer_inventory
 ```
@@ -118,7 +119,36 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 ---
 
-## 5. Start the PHP app
+## 5. Python OCR service (optional — suggests receipt amount / OR number)
+
+When someone uploads a purchase-order receipt, the form calls this service to
+suggest the amount and OR number by reading the image, so staff can just
+double-check a suggestion instead of typing everything by hand. It never
+blocks the upload — if it's not running, the form just falls back to manual
+entry.
+
+This one needs the **Tesseract OCR** binary installed separately (it's not a
+pip package — `pytesseract` just calls out to it):
+
+- Windows: install from the [UB-Mannheim Tesseract build](https://github.com/UB-Mannheim/tesseract/wiki) (default install path is picked up automatically)
+- macOS: `brew install tesseract`
+- Linux: `sudo apt install tesseract-ocr`
+
+Then, in the same venv as the forecast service:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python ocr_service.py
+```
+
+Leave this terminal open too. The service runs on `http://127.0.0.1:5051`.
+Only JPG/PNG/WEBP receipts are scanned automatically — PDFs are always
+entered manually.
+
+---
+
+## 6. Start the PHP app
 
 Open a **second** terminal:
 
@@ -136,7 +166,7 @@ cd php
 
 ---
 
-## 6. Open in browser
+## 7. Open in browser
 
 ```
 http://localhost:8000/login.html
@@ -197,6 +227,12 @@ Once a purchase order is **Placed** and **funded** (see Financial Management bel
 A receipt can only be replaced this way — a second upload is rejected by the API unless the current receipt was rejected first. This keeps the loop explicit: **upload → manager review → reject with note (if needed) → reupload → receive**, instead of a silent, unaudited replace.
 
 **Lost receipt (manager only):** if proof of purchase truly cannot be attached, a manager can click **Lost receipt** on a funded order, enter the actual amount spent and a note (min. 10 characters). This is forwarded to Financial Management instead of a file, and **Mark received** becomes available the same way. Staff cannot use this — only managers and above.
+
+**Report lost receipt (staff):** if staff lost the receipt, they click **Report lost receipt** on a funded order, enter the amount spent and an explanation (min. 10 characters). This sends a report to the manager — it does **not** go to Finance or unlock **Mark received** until approved. The manager clicks **Review lost receipt**, then either:
+- **Approve** — manager writes the official **Note for Finance** (staff explanation is shown for context only, pre-filled as a starting point they can edit). Same outcome as manager **Lost receipt** once approved.
+- **Reject report** — staff see the manager's note and can upload a receipt if they find one, or submit a new report.
+
+If staff find the receipt while a report is still pending, they can still **Upload receipt** — the file upload clears the pending report.
 
 **Why manager-only receive:** upload and receive used to both be staff actions, so a wrong receipt upload followed immediately by Mark received could lock in bad Finance data and inventory with no second check. Requiring a manager to receive adds a verification step between "proof attached" and "stock/Finance finalized," without blocking staff from doing the legwork of buying and uploading. Reject-with-note turns that check into an actual feedback loop instead of a silent rubber stamp.
 

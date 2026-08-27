@@ -533,7 +533,7 @@
   </div>
   <div class="bg-blueBg border border-[#c6d7fb] rounded-card p-4 mb-5 flex items-start gap-3">
     <i class='bx bx-bulb text-blueTx text-[1.3rem] mt-0.5'></i>
-    <p class="text-[.85rem] text-blueTx"><span class="font-bold">System tip:</span> Orders are sent to Financial Management automatically for budget disbursement. Once Finance marks it funded, upload the purchase receipt — it's forwarded to Finance too. A manager reviews it: reject with a note if something's wrong (staff reuploads), or mark the order received once it checks out.</p>
+    <p class="text-[.85rem] text-blueTx"><span class="font-bold">System tip:</span> Orders are sent to Financial Management automatically for budget disbursement. Once Finance marks it funded, upload the purchase receipt — it's forwarded to Finance too. If the receipt is lost, staff can <strong>Report lost receipt</strong> for manager approval. A manager reviews uploads and lost-receipt reports: reject with a note if something's wrong, or mark the order received once it checks out.</p>
   </div>
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
@@ -1323,10 +1323,12 @@
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Receipt file (JPG, PNG, or PDF)</label>
         <input id="receiptFile" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf" required class="w-full px-3 py-2 rounded-xl border border-line bg-[#f8fafc] text-[.85rem]">
+        <div id="receiptScanStatus" class="hidden text-[.75rem] mt-1.5 flex items-center gap-1.5 rounded-lg px-2.5 py-2"></div>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Amount on receipt</label>
         <input id="receiptAmount" type="number" min="0.01" step="0.01" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. 415.00">
+        <div id="receiptAmountWarning" class="hidden text-[.75rem] text-redTx font-semibold mt-1.5 flex items-center gap-1"></div>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Receipt / OR number <span class="text-textSoft font-normal">(optional)</span></label>
@@ -1397,11 +1399,106 @@
         <input id="lostReceiptAmount" type="number" min="0.01" step="0.01" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. 415.00">
       </div>
       <div>
-        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Manager note</label>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Note for Finance</label>
         <textarea id="lostReceiptNote" maxlength="500" rows="4" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="What was purchased, when, how paid, and why the receipt is missing (min. 10 characters)."></textarea>
       </div>
       <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-amberTx text-[.88rem] font-bold cursor-pointer border border-amberTx/20 shadow-btn">Record lost receipt</button>
     </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: REPORT LOST RECEIPT (staff) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="reportLostReceiptModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Report lost receipt</h3>
+      <button type="button" onclick="closeModal('reportLostReceiptModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="reportLostReceiptModalPoLabel">Tell your manager the receipt is missing. They must approve before it counts as proof or goes to Financial Management.</p>
+    <form id="reportLostReceiptForm" class="flex flex-col gap-4">
+      <input type="hidden" id="reportLostReceiptPoId" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Actual amount spent</label>
+        <input id="reportLostReceiptAmount" type="number" min="0.01" step="0.01" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. 415.00">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">What happened?</label>
+        <textarea id="reportLostReceiptNote" maxlength="500" rows="4" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="What was purchased, when, how paid, and why the receipt is missing (min. 10 characters)."></textarea>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-amberTx text-[.88rem] font-bold cursor-pointer border border-amberTx/20 shadow-btn">Send to manager</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: REVIEW LOST RECEIPT REPORT (manager) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="reviewLostReceiptReportModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Review lost receipt report</h3>
+      <button type="button" onclick="closeModal('reviewLostReceiptReportModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="reviewLostReceiptReportPoLabel"></p>
+    <dl class="flex flex-col gap-3 text-[.85rem] mb-5">
+      <div>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Reported amount</dt>
+        <dd class="text-textDark font-semibold" id="reviewLostReceiptReportAmount">—</dd>
+      </div>
+      <div>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Staff explanation</dt>
+        <dd class="text-textDark whitespace-pre-wrap bg-[#f8fafc] border border-line rounded-xl px-3 py-2.5" id="reviewLostReceiptReportNote">—</dd>
+      </div>
+      <div>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Reported by</dt>
+        <dd class="text-textMid" id="reviewLostReceiptReportMeta">—</dd>
+      </div>
+    </dl>
+    <div class="mb-5">
+      <label class="text-[.78rem] font-semibold text-textMid block mb-1">Official note for Finance</label>
+      <p class="text-[.72rem] text-textSoft mb-2">Write what Financial Management should see. The staff explanation above is for your review only — edit or replace it here before approving.</p>
+      <textarea id="reviewLostReceiptReportManagerNote" maxlength="500" rows="4" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="e.g. Walk-in purchase at National Book Store, paid cash ₱184 on 27 Aug — OR lost by staff, verified with Juan."></textarea>
+    </div>
+    <div class="flex gap-2">
+      <button type="button" id="approveLostReceiptReportBtn" class="flex-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none">Approve</button>
+      <button type="button" id="openRejectLostReceiptReportBtn" class="flex-1 px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border border-redTx/20">Reject report</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: REJECT LOST RECEIPT REPORT (manager) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="rejectLostReceiptReportModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Reject lost receipt report</h3>
+      <button type="button" onclick="closeModal('rejectLostReceiptReportModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="rejectLostReceiptReportPoLabel">Send this back to staff with a note. They can upload a receipt or submit a new report.</p>
+    <form id="rejectLostReceiptReportForm" class="flex flex-col gap-4">
+      <input type="hidden" id="rejectLostReceiptReportPoId" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Note to staff</label>
+        <textarea id="rejectLostReceiptReportNote" maxlength="500" rows="4" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="Why this report cannot be accepted (min. 10 characters)."></textarea>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border border-redTx/20 shadow-btn">Reject report</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: VIEW REJECTED LOST RECEIPT REPORT (staff) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2300]" id="lostReceiptReportRejectionViewModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Lost receipt report rejected</h3>
+      <button type="button" onclick="closeModal('lostReceiptReportRejectionViewModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="lostReceiptReportRejectionViewPoLabel"></p>
+    <dl class="flex flex-col gap-3 text-[.85rem]">
+      <div>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Manager note</dt>
+        <dd class="text-redTx whitespace-pre-wrap bg-redBg border border-redTx/20 rounded-xl px-3 py-2.5" id="lostReceiptReportRejectionViewNote">—</dd>
+      </div>
+      <div class="text-[.72rem] text-textSoft" id="lostReceiptReportRejectionViewMeta">—</div>
+    </dl>
+    <button type="button" onclick="closeModal('lostReceiptReportRejectionViewModalOverlay')" class="mt-5 w-full px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none">Close</button>
   </div>
 </div>
 
@@ -1417,6 +1514,7 @@
       <div>
         <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Amount on receipt</dt>
         <dd class="text-textDark font-semibold" id="receiptViewAmount">—</dd>
+        <dd class="hidden text-[.78rem] text-redTx font-semibold mt-1 flex items-center gap-1" id="receiptViewAmountFlag"></dd>
       </div>
       <div id="receiptViewNumberWrap">
         <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Receipt / OR number</dt>
@@ -1455,8 +1553,13 @@
         <dd class="text-textDark font-semibold" id="lostReceiptViewAmount">—</dd>
       </div>
       <div>
-        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Manager note</dt>
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Note for Finance</dt>
         <dd class="text-textDark whitespace-pre-wrap bg-[#f8fafc] border border-line rounded-xl px-3 py-2.5" id="lostReceiptViewNote">—</dd>
+      </div>
+      <div id="lostReceiptViewStaffWrap" class="hidden">
+        <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Staff explanation</dt>
+        <dd class="text-textMid whitespace-pre-wrap bg-[#f8fafc] border border-line rounded-xl px-3 py-2.5 mb-1" id="lostReceiptViewStaffNote">—</dd>
+        <dd class="text-[.72rem] text-textSoft" id="lostReceiptViewStaffMeta">—</dd>
       </div>
       <div>
         <dt class="text-[.72rem] font-semibold uppercase tracking-wide text-textMid mb-1">Recorded by</dt>
@@ -1793,12 +1896,14 @@ document.addEventListener('DOMContentLoaded', function(){
     const pendingReview = o.receipt_uploaded && !o.receipt_rejected;
     const hasProof = pendingReview || o.receipt_waived;
     if(roleAtLeast('manager')){
+      if(o.receipt_lost_report_pending) return true;
       if(pendingReview || (hasProof && o.receipt_waived)) return true;
       if(o.finance_status === 'not_sent' || o.finance_status === 'disbursement_rejected') return true;
       return false;
     }
     if(o.receipt_rejected && ['funded', 'expense_pending', 'expense_recorded'].includes(o.finance_status)) return true;
-    if(o.finance_status === 'funded' && !o.receipt_uploaded && !o.receipt_waived) return true;
+    if(o.receipt_lost_report_rejected && o.finance_status === 'funded' && !o.receipt_uploaded && !o.receipt_waived) return true;
+    if(o.finance_status === 'funded' && !o.receipt_uploaded && !o.receipt_waived && !o.receipt_lost_report_pending) return true;
     return false;
   }
 
@@ -2152,6 +2257,8 @@ document.addEventListener('DOMContentLoaded', function(){
         if(o.receipt_rejected) receiptStatus = 'Rejected — needs reupload';
         else if(o.receipt_uploaded) receiptStatus = 'Uploaded';
         else if(o.receipt_waived) receiptStatus = 'Lost receipt note on file';
+        else if(o.receipt_lost_report_pending) receiptStatus = 'Lost receipt report — pending manager review';
+        else if(o.receipt_lost_report_rejected) receiptStatus = 'Lost receipt report rejected';
         const receiptDetailRows = [];
         if(o.receipt_uploaded){
           if(o.receipt_amount != null) receiptDetailRows.push(documentDetailRow('Receipt amount', peso(o.receipt_amount)));
@@ -2182,6 +2289,10 @@ document.addEventListener('DOMContentLoaded', function(){
           btns.push(`<button type="button" onclick="viewReceipt(${o.id})" class="px-4 py-2.5 rounded-xl bg-[#eef2f7] text-textMid text-[.85rem] font-semibold border-none cursor-pointer">View receipt</button>`);
         } else if(o.receipt_waived){
           btns.push(`<button type="button" onclick="viewLostReceiptNote(${o.id})" class="px-4 py-2.5 rounded-xl bg-amberBg text-amberTx text-[.85rem] font-semibold border-none cursor-pointer">Lost receipt note</button>`);
+        } else if(o.receipt_lost_report_pending && roleAtLeast('manager')){
+          btns.push(`<button type="button" onclick="openReviewLostReceiptReportModal(${o.id})" class="px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-semibold border-none cursor-pointer">Review lost receipt</button>`);
+        } else if(o.receipt_lost_report_rejected){
+          btns.push(`<button type="button" onclick="viewLostReceiptReportRejection(${o.id})" class="px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.85rem] font-semibold border-none cursor-pointer">Report rejection note</button>`);
         } else if(o.receipt_rejected){
           btns.push(`<button type="button" onclick="viewRejectedReceiptNote(${o.id})" class="px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.85rem] font-semibold border-none cursor-pointer">Rejection note</button>`);
         }
@@ -2242,6 +2353,12 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     if(order.receipt_waived){
       return `<button type="button" onclick="viewLostReceiptNote(${order.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Lost receipt note</button>`;
+    }
+    if(order.receipt_lost_report_pending){
+      return '<span class="text-amberTx text-[.75rem] font-semibold">Lost receipt — pending review</span>';
+    }
+    if(order.receipt_lost_report_rejected){
+      return `<button type="button" onclick="viewLostReceiptReportRejection(${order.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Report rejected</button>`;
     }
     return '<span class="text-textSoft text-[.75rem]">Not uploaded</span>';
   }
@@ -3964,19 +4081,28 @@ document.addEventListener('DOMContentLoaded', function(){
             ? `<button onclick="viewReceipt(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View receipt</button>`
             : (o.receipt_waived
                 ? `<button onclick="viewLostReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
-                : (o.status === 'Placed'
-                    ? `<span class="text-amberTx text-[.75rem] font-semibold">Not uploaded</span>`
-                    : `<span class="text-textSoft text-[.75rem]">—</span>`)));
-      const canUploadReceipt = o.status === 'Placed' && o.finance_status === 'funded' && !o.receipt_uploaded && !o.receipt_waived;
+                : (o.receipt_lost_report_pending
+                    ? `<span class="text-amberTx text-[.75rem] font-semibold">Lost receipt — pending review</span>`
+                    : (o.receipt_lost_report_rejected
+                        ? `<button onclick="viewLostReceiptReportRejection(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Report rejected — view note</button>`
+                        : (o.status === 'Placed'
+                            ? `<span class="text-amberTx text-[.75rem] font-semibold">Not uploaded</span>`
+                            : `<span class="text-textSoft text-[.75rem]">—</span>`)))));
+      const noReceiptProof = !o.receipt_uploaded && !o.receipt_waived;
+      const canUploadReceipt = o.status === 'Placed' && o.finance_status === 'funded' && noReceiptProof;
       const canReuploadReceipt = o.status === 'Placed' && ['funded', 'expense_pending', 'expense_recorded'].includes(o.finance_status) && o.receipt_rejected;
-      const canDeclareLostReceipt = o.status === 'Placed' && o.finance_status === 'funded' && !o.receipt_uploaded && !o.receipt_waived && roleAtLeast('manager');
+      const canReportLostReceipt = o.status === 'Placed' && o.finance_status === 'funded' && noReceiptProof && !o.receipt_lost_report_pending && !roleAtLeast('manager');
+      const canDeclareLostReceipt = o.status === 'Placed' && o.finance_status === 'funded' && noReceiptProof && !o.receipt_lost_report_pending && roleAtLeast('manager');
+      const canReviewLostReceiptReport = o.status === 'Placed' && o.receipt_lost_report_pending && roleAtLeast('manager');
       const pendingReview = o.receipt_uploaded && !o.receipt_rejected;
       const canRejectReceipt = o.status === 'Placed' && pendingReview && roleAtLeast('manager');
       const hasProof = pendingReview || o.receipt_waived;
       const canMarkReceived = o.status === 'Placed' && hasProof && roleAtLeast('manager');
       const awaitingManagerReceive = o.status === 'Placed' && hasProof && !roleAtLeast('manager');
       const awaitingReupload = o.status === 'Placed' && o.receipt_rejected && roleAtLeast('manager');
-      const awaitingFinance = o.status === 'Placed' && !o.receipt_uploaded && !o.receipt_waived && o.finance_status !== 'funded' && o.finance_status !== 'disbursement_rejected';
+      const awaitingLostReceiptReview = o.status === 'Placed' && o.receipt_lost_report_pending && roleAtLeast('manager');
+      const staffAwaitingLostReceiptReview = o.status === 'Placed' && o.receipt_lost_report_pending && !roleAtLeast('manager');
+      const awaitingFinance = o.status === 'Placed' && noReceiptProof && !o.receipt_lost_report_pending && o.finance_status !== 'funded' && o.finance_status !== 'disbursement_rejected';
       const canResendFinance = o.status === 'Placed' && roleAtLeast('manager') && (o.finance_status === 'not_sent' || o.finance_status === 'disbursement_rejected');
       return `
       <tr class="border-b border-line last:border-0">
@@ -3994,12 +4120,16 @@ document.addEventListener('DOMContentLoaded', function(){
           <div class="flex gap-2 flex-wrap">
             ${canUploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-bold border-none cursor-pointer">Upload receipt</button>` : ''}
             ${canReuploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-bold border-none cursor-pointer">Reupload receipt</button>` : ''}
+            ${canReportLostReceipt ? `<button onclick="openReportLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Report lost receipt</button>` : ''}
             ${canDeclareLostReceipt ? `<button onclick="openLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Lost receipt</button>` : ''}
+            ${canReviewLostReceiptReport ? `<button onclick="openReviewLostReceiptReportModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Review lost receipt</button>` : ''}
             ${canRejectReceipt ? `<button onclick="openRejectReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Reject receipt</button>` : ''}
             ${awaitingFinance ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for Finance</span>` : ''}
             ${canMarkReceived ? `<button onclick="markReceived(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Mark received</button>` : ''}
             ${awaitingManagerReceive ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for manager to verify &amp; receive</span>` : ''}
             ${awaitingReupload ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for staff to reupload</span>` : ''}
+            ${awaitingLostReceiptReview ? `<span class="text-textSoft text-[.75rem] italic self-center">Lost receipt report waiting for review</span>` : ''}
+            ${staffAwaitingLostReceiptReview ? `<span class="text-textSoft text-[.75rem] italic self-center">Lost receipt report sent to manager</span>` : ''}
             ${canResendFinance ? `<button onclick="resendFinance(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Resend to Finance</button>` : ''}
             ${o.status === 'Placed' && roleAtLeast('super_admin') ? `<button onclick="cancelOrder(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Cancel</button>` : ''}
             <button onclick="openOrderSlip(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Slip</button>
@@ -4019,12 +4149,19 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   };
 
+  let receiptOrderEstimate = null;
+
   window.openUploadReceiptModal = function(id){
     const order = state.orders.find(o => o.id === id);
     if(!order) return;
     document.getElementById('receiptForm').reset();
     document.getElementById('receiptPoId').value = id;
+    receiptOrderEstimate = order.amount != null ? Number(order.amount) : null;
     document.getElementById('receiptModalPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}${order.amount != null ? ` (estimated ${peso(order.amount)})` : ''}.`;
+    setReceiptScanStatus('hidden');
+    const amountWarning = document.getElementById('receiptAmountWarning');
+    amountWarning.textContent = '';
+    amountWarning.classList.add('hidden');
     const rejectionBox = document.getElementById('receiptModalRejectionNote');
     if(order.receipt_rejected){
       document.getElementById('receiptModalTitle').textContent = 'Reupload receipt';
@@ -4038,6 +4175,75 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     openModal('receiptModalOverlay');
   };
+
+  function setReceiptScanStatus(mode, html){
+    const el = document.getElementById('receiptScanStatus');
+    if(mode === 'hidden'){ el.classList.add('hidden'); return; }
+    const base = 'text-[.75rem] mt-1.5 flex items-center gap-1.5 rounded-lg px-2.5 py-2';
+    const styles = {
+      loading: `${base} text-textMid`,
+      success: `${base} text-greenTx bg-greenBg/60 border border-greenTx/20`,
+      info: `${base} text-amberTx bg-amberBg border border-amberTx/20`,
+    };
+    el.className = styles[mode] || styles.info;
+    el.innerHTML = html;
+    el.classList.remove('hidden');
+  }
+
+  function checkReceiptAmountAgainstEstimate(){
+    const warnEl = document.getElementById('receiptAmountWarning');
+    const amt = parseFloat(document.getElementById('receiptAmount').value);
+    if(receiptOrderEstimate == null || !amt || isNaN(amt)){ warnEl.classList.add('hidden'); return; }
+    const diff = Math.abs(amt - receiptOrderEstimate);
+    const pct = receiptOrderEstimate > 0 ? diff / receiptOrderEstimate : 0;
+    if(diff > 50 && pct > 0.15){
+      warnEl.innerHTML = `<i class='bx bx-error'></i> This is ${peso(diff)} off the PO estimate of ${peso(receiptOrderEstimate)} — double-check before submitting.`;
+      warnEl.classList.remove('hidden');
+    } else {
+      warnEl.classList.add('hidden');
+    }
+  }
+  document.getElementById('receiptAmount').addEventListener('input', checkReceiptAmountAgainstEstimate);
+
+  async function scanReceiptFile(file){
+    if(!file){ setReceiptScanStatus('hidden'); return; }
+    if(!file.type || !file.type.startsWith('image/')){
+      setReceiptScanStatus('hidden');
+      return;
+    }
+    setReceiptScanStatus('loading', `<i class='bx bx-loader-alt bx-spin'></i> Scanning receipt for amount &amp; OR number…`);
+    const fd = new FormData();
+    fd.append('receipt', file);
+    try {
+      const res = await fetch(`${API}ocr_receipt.php`, { method: 'POST', credentials: 'include', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if(!res.ok) throw data;
+      if(!data.ok){
+        setReceiptScanStatus('info', `<i class='bx bx-info-circle'></i> ${data.error || 'Could not read this receipt automatically — enter details manually and you can still submit.'}`);
+        return;
+      }
+      const amountField = document.getElementById('receiptAmount');
+      const numberField = document.getElementById('receiptNumber');
+      const bits = [];
+      if(data.amount != null){
+        bits.push(`amount ${peso(data.amount)}`);
+        if(!amountField.value) amountField.value = data.amount;
+      }
+      if(data.receipt_number){
+        bits.push(`OR ${data.receipt_number}`);
+        if(!numberField.value) numberField.value = data.receipt_number;
+      }
+      if(bits.length){
+        setReceiptScanStatus('success', `<i class='bx bx-check-circle'></i> Detected ${bits.join(' · ')} — please verify before submitting.`);
+      } else {
+        setReceiptScanStatus('info', `<i class='bx bx-info-circle'></i> Could not detect an amount or OR number — enter them manually and you can still submit.`);
+      }
+      checkReceiptAmountAgainstEstimate();
+    } catch (err) {
+      setReceiptScanStatus('info', `<i class='bx bx-info-circle'></i> ${(err && err.error) || 'Automatic scan unavailable — enter details manually and you can still submit.'}`);
+    }
+  }
+  document.getElementById('receiptFile').addEventListener('change', e => scanReceiptFile(e.target.files[0]));
 
   document.getElementById('receiptForm').addEventListener('submit', async function(e){
     e.preventDefault();
@@ -4078,6 +4284,19 @@ document.addEventListener('DOMContentLoaded', function(){
     receiptViewOrderId = id;
     document.getElementById('receiptViewPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}`;
     document.getElementById('receiptViewAmount').textContent = order.receipt_amount != null ? peso(order.receipt_amount) : '—';
+    const amountFlag = document.getElementById('receiptViewAmountFlag');
+    if(order.amount != null && order.receipt_amount != null){
+      const diff = Math.abs(Number(order.receipt_amount) - Number(order.amount));
+      const pct = Number(order.amount) > 0 ? diff / Number(order.amount) : 0;
+      if(diff > 50 && pct > 0.15){
+        amountFlag.innerHTML = `<i class='bx bx-error'></i> ${peso(diff)} off the PO estimate of ${peso(order.amount)}`;
+        amountFlag.classList.remove('hidden');
+      } else {
+        amountFlag.classList.add('hidden');
+      }
+    } else {
+      amountFlag.classList.add('hidden');
+    }
     const numberWrap = document.getElementById('receiptViewNumberWrap');
     if(order.receipt_number){
       numberWrap.classList.remove('hidden');
@@ -4115,6 +4334,16 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('lostReceiptViewPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}`;
     document.getElementById('lostReceiptViewAmount').textContent = order.receipt_amount != null ? peso(order.receipt_amount) : '—';
     document.getElementById('lostReceiptViewNote').textContent = order.receipt_waiver_note || '—';
+    const staffWrap = document.getElementById('lostReceiptViewStaffWrap');
+    if(order.receipt_lost_report_note){
+      staffWrap.classList.remove('hidden');
+      document.getElementById('lostReceiptViewStaffNote').textContent = order.receipt_lost_report_note;
+      const staffWhen = order.receipt_lost_report_at ? fmtDateTime(order.receipt_lost_report_at) : '—';
+      const staffWho = order.receipt_lost_report_by || '—';
+      document.getElementById('lostReceiptViewStaffMeta').textContent = `Reported by ${staffWho} · ${staffWhen}`;
+    } else {
+      staffWrap.classList.add('hidden');
+    }
     const when = order.receipt_waived_at ? fmtDate(order.receipt_waived_at) : '—';
     const who = order.receipt_waived_by || '—';
     document.getElementById('lostReceiptViewMeta').textContent = `${who} · ${when}`;
@@ -4135,7 +4364,7 @@ document.addEventListener('DOMContentLoaded', function(){
     e.preventDefault();
     const id = document.getElementById('lostReceiptPoId').value;
     const note = document.getElementById('lostReceiptNote').value.trim();
-    if(note.length < 10){ alert('Manager note must be at least 10 characters.'); return; }
+    if(note.length < 10){ alert('Note for Finance must be at least 10 characters.'); return; }
     if(!confirm('Record this as a lost receipt? The note will be sent to Financial Management.')) return;
     try {
       await apiSend(`purchase_orders.php?id=${id}`, 'PUT', {
@@ -4150,6 +4379,108 @@ document.addEventListener('DOMContentLoaded', function(){
       alert(err.error || 'Could not record lost receipt.');
     }
   });
+
+  window.openReportLostReceiptModal = function(id){
+    const order = state.orders.find(o => o.id === id);
+    if(!order) return;
+    document.getElementById('reportLostReceiptForm').reset();
+    document.getElementById('reportLostReceiptPoId').value = id;
+    document.getElementById('reportLostReceiptModalPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}${order.amount != null ? ` (estimated ${peso(order.amount)})` : ''}. Your manager must approve before this counts as proof.`;
+    if(order.amount != null) document.getElementById('reportLostReceiptAmount').value = order.amount;
+    openModal('reportLostReceiptModalOverlay');
+  };
+
+  document.getElementById('reportLostReceiptForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const id = document.getElementById('reportLostReceiptPoId').value;
+    const note = document.getElementById('reportLostReceiptNote').value.trim();
+    if(note.length < 10){ alert('Explanation must be at least 10 characters.'); return; }
+    if(!confirm('Send this lost-receipt report to your manager for review?')) return;
+    try {
+      await apiSend(`purchase_orders.php?id=${id}`, 'PUT', {
+        action: 'report_receipt_lost',
+        actual_amount: document.getElementById('reportLostReceiptAmount').value,
+        note,
+      });
+      closeModal('reportLostReceiptModalOverlay');
+      await Promise.all([loadOrders(), loadDocuments()]);
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not send lost-receipt report.');
+    }
+  });
+
+  let reviewLostReceiptReportId = null;
+
+  window.openReviewLostReceiptReportModal = function(id){
+    const order = state.orders.find(o => o.id === id);
+    if(!order || !order.receipt_lost_report_pending) return;
+    reviewLostReceiptReportId = id;
+    document.getElementById('reviewLostReceiptReportPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}${order.amount != null ? ` (PO estimate ${peso(order.amount)})` : ''}.`;
+    document.getElementById('reviewLostReceiptReportAmount').textContent = order.receipt_lost_report_amount != null ? peso(order.receipt_lost_report_amount) : '—';
+    document.getElementById('reviewLostReceiptReportNote').textContent = order.receipt_lost_report_note || '—';
+    const managerNoteField = document.getElementById('reviewLostReceiptReportManagerNote');
+    managerNoteField.value = order.receipt_lost_report_note || '';
+    const when = order.receipt_lost_report_at ? fmtDateTime(order.receipt_lost_report_at) : '—';
+    const who = order.receipt_lost_report_by || '—';
+    document.getElementById('reviewLostReceiptReportMeta').textContent = `${who} · ${when}`;
+    openModal('reviewLostReceiptReportModalOverlay');
+  };
+
+  document.getElementById('approveLostReceiptReportBtn').addEventListener('click', async function(){
+    if(reviewLostReceiptReportId == null) return;
+    const note = document.getElementById('reviewLostReceiptReportManagerNote').value.trim();
+    if(note.length < 10){ alert('Official note for Finance must be at least 10 characters.'); return; }
+    if(!confirm('Approve this lost-receipt report? Your note will be sent to Financial Management and the order can be marked received.')) return;
+    try {
+      await apiSend(`purchase_orders.php?id=${reviewLostReceiptReportId}`, 'PUT', { action: 'approve_lost_receipt_report', note });
+      closeModal('reviewLostReceiptReportModalOverlay');
+      reviewLostReceiptReportId = null;
+      await Promise.all([loadOrders(), loadDocuments()]);
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not approve lost-receipt report.');
+    }
+  });
+
+  document.getElementById('openRejectLostReceiptReportBtn').addEventListener('click', function(){
+    if(reviewLostReceiptReportId == null) return;
+    const order = state.orders.find(o => o.id === reviewLostReceiptReportId);
+    if(!order) return;
+    document.getElementById('rejectLostReceiptReportForm').reset();
+    document.getElementById('rejectLostReceiptReportPoId').value = reviewLostReceiptReportId;
+    document.getElementById('rejectLostReceiptReportPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}. Send this back to staff with a note.`;
+    closeModal('reviewLostReceiptReportModalOverlay');
+    openModal('rejectLostReceiptReportModalOverlay');
+  });
+
+  document.getElementById('rejectLostReceiptReportForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const id = document.getElementById('rejectLostReceiptReportPoId').value;
+    const note = document.getElementById('rejectLostReceiptReportNote').value.trim();
+    if(note.length < 10){ alert('Note must be at least 10 characters.'); return; }
+    if(!confirm('Reject this lost-receipt report and send the note back to staff?')) return;
+    try {
+      await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'reject_lost_receipt_report', note });
+      closeModal('rejectLostReceiptReportModalOverlay');
+      reviewLostReceiptReportId = null;
+      await Promise.all([loadOrders(), loadDocuments()]);
+      renderDashboard();
+    } catch (err) {
+      alert(err.error || 'Could not reject lost-receipt report.');
+    }
+  });
+
+  window.viewLostReceiptReportRejection = function(id){
+    const order = state.orders.find(o => o.id === id);
+    if(!order || !order.receipt_lost_report_rejected) return;
+    document.getElementById('lostReceiptReportRejectionViewPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}`;
+    document.getElementById('lostReceiptReportRejectionViewNote').textContent = order.receipt_lost_report_rejection_note || '—';
+    const when = order.receipt_lost_report_rejected_at ? fmtDate(order.receipt_lost_report_rejected_at) : '—';
+    const who = order.receipt_lost_report_rejected_by || '—';
+    document.getElementById('lostReceiptReportRejectionViewMeta').textContent = `${who} · ${when}`;
+    openModal('lostReceiptReportRejectionViewModalOverlay');
+  };
 
   window.openRejectReceiptModal = function(id){
     const order = state.orders.find(o => o.id === id);

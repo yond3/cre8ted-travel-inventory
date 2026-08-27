@@ -199,6 +199,17 @@ CREATE TABLE purchase_orders (
     receipt_rejection_note VARCHAR(500) NULL,
     receipt_rejected_at DATETIME NULL,
     receipt_rejected_by VARCHAR(100) NULL,
+    -- Staff lost-receipt report awaiting manager approval before it counts
+    -- as proof and is forwarded to Financial Management.
+    receipt_lost_report_pending TINYINT(1) NOT NULL DEFAULT 0,
+    receipt_lost_report_amount DECIMAL(10,2) NULL,
+    receipt_lost_report_note VARCHAR(500) NULL,
+    receipt_lost_report_at DATETIME NULL,
+    receipt_lost_report_by VARCHAR(100) NULL,
+    receipt_lost_report_rejected TINYINT(1) NOT NULL DEFAULT 0,
+    receipt_lost_report_rejection_note VARCHAR(500) NULL,
+    receipt_lost_report_rejected_at DATETIME NULL,
+    receipt_lost_report_rejected_by VARCHAR(100) NULL,
     FOREIGN KEY (request_id) REFERENCES purchase_requests(id),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
 ) ENGINE=InnoDB;
