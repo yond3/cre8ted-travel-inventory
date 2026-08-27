@@ -90,7 +90,6 @@
     background:#c07d10; border:2px solid #fff; pointer-events:none;
   }
   .filter-pill .pill-attention-dot.hidden{ display:none; }
-  #notifBtn .dot.hidden{ display:none; }
   .gl-table tbody tr:hover{ background:#f7f9fc; }
   .status-pill{
     display:inline-flex; align-items:center; justify-content:center;
@@ -239,9 +238,17 @@
       <span class="font-light text-[.9rem]">,&nbsp;</span>
       <div class="time font-light text-[.9rem]" id="topbarTime">--:--</div>
     </div>
-    <button class="icon-btn relative w-10 h-10 rounded-full bg-transparent border-none flex items-center justify-center text-textMid text-[1.5rem] cursor-pointer transition-all duration-200 hover:bg-[#dde3ec] hover:text-textDark" id="notifBtn" title="Notifications">
-      <i class='bx bx-bell'></i><span class="dot absolute top-[9px] right-[10px] w-2 h-2 bg-amberTx rounded-full border-2 border-card"></span>
-    </button>
+    <div class="notif-menu-wrapper relative">
+      <button class="icon-btn relative w-10 h-10 rounded-full bg-transparent border-none flex items-center justify-center text-textMid text-[1.5rem] cursor-pointer transition-all duration-200 hover:bg-[#dde3ec] hover:text-textDark" id="notifBtn" title="Notifications">
+        <i class='bx bx-bell'></i><span class="nav-attention-badge hidden" id="notifBtnBadge" style="top:4px;right:4px;"></span>
+      </button>
+      <div class="profile-menu absolute top-[calc(100%+0.5rem)] right-0 bg-white border border-line rounded-2xl shadow-menu w-[340px] max-h-[70vh] overflow-y-auto opacity-0 invisible -translate-y-2 transition-all duration-200 z-[10000]" id="notifMenu">
+        <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-[rgba(14,27,60,.08)] sticky top-0 bg-white">
+          <div class="font-bold text-textDark text-[.95rem]">Needs your attention</div>
+        </div>
+        <div id="notifMenuBody"></div>
+      </div>
+    </div>
     <div class="profile-menu-wrapper relative ml-1">
       <button class="icon-btn profile-btn w-10 h-10 min-w-10 p-0 rounded-full bg-transparent border-none flex items-center justify-center text-textMid text-[1.5rem] cursor-pointer transition-all duration-200 hover:bg-[#dde3ec] hover:text-textDark" id="profileBtn" title="Profile">
         <i class='bx bx-user-circle'></i>
@@ -1716,21 +1723,23 @@ document.addEventListener('DOMContentLoaded', function(){
   updateTopbarTime();
   setInterval(updateTopbarTime, 1000);
 
-  document.getElementById('notifBtn').addEventListener('click', () => {
-    const parts = [];
-    const c = computeAttentionCounts();
-    if(c.requests) parts.push(`${c.requests} purchase request${c.requests === 1 ? '' : 's'}`);
-    if(c.orders) parts.push(`${c.orders} purchase order${c.orders === 1 ? '' : 's'}`);
-    if(c.inventory) parts.push(`${c.inventory} low stock item${c.inventory === 1 ? '' : 's'}`);
-    if(c.stockRequests) parts.push(`${c.stockRequests} stock request${c.stockRequests === 1 ? '' : 's'}`);
-    if(c.suppliers) parts.push(`${c.suppliers} vendor quote${c.suppliers === 1 ? '' : 's'}`);
-    alert(parts.length
-      ? `Needs attention:\n\n• ${parts.join('\n• ')}`
-      : 'Nothing needs your attention right now.');
-  });
   const profileBtn = document.getElementById('profileBtn');
   const profileMenu = document.getElementById('profileMenu');
-  profileBtn.addEventListener('click', () => profileMenu.classList.toggle('show'));
+  const notifBtn = document.getElementById('notifBtn');
+  const notifMenu = document.getElementById('notifMenu');
+  notifBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const opening = !notifMenu.classList.contains('show');
+    profileMenu.classList.remove('show');
+    if(opening) renderNotifMenu();
+    notifMenu.classList.toggle('show', opening);
+  });
+  notifMenu.addEventListener('click', (e) => e.stopPropagation());
+  profileBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    notifMenu.classList.remove('show');
+    profileMenu.classList.toggle('show');
+  });
   document.getElementById('profileViewBtn').addEventListener('click', () => {
     alert(`${state.user?.name || 'User'}\nRole: ${ROLE_LABELS[state.user?.role] || '—'}`);
     profileMenu.classList.remove('show');
@@ -1742,6 +1751,7 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   document.addEventListener('click', (e) => {
     if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) profileMenu.classList.remove('show');
+    if (!notifBtn.contains(e.target) && !notifMenu.contains(e.target)) notifMenu.classList.remove('show');
   });
   window.addEventListener('resize', () => {
     if(window.innerWidth > 900){ sidebar.classList.remove('show'); overlay.classList.remove('show'); }
@@ -1923,6 +1933,11 @@ document.addEventListener('DOMContentLoaded', function(){
     return currentIds.filter(id => !dismissedSet.has(id)).length;
   }
 
+  function unseenItems(items, idFn, dismissedSet){
+    if(!dismissedSet) return items;
+    return items.filter(item => !dismissedSet.has(idFn(item)));
+  }
+
   function pendingStockRequestIds(){
     return state.stockRequests.filter(r => r.status === 'Pending').map(r => r.id);
   }
@@ -1954,15 +1969,25 @@ document.addEventListener('DOMContentLoaded', function(){
       attentionDismissed.orders = new Set(
         state.orders.filter(orderNeedsAttention).map(o => o.id)
       );
-    } else if(pageId === 'page-inventory'){
-      attentionDismissed.inventory = new Set(
-        lowStockItems().map(it => it.item_key)
-      );
-      attentionDismissed.stockRequests = new Set(pendingStockRequestIds());
     } else if(pageId === 'page-suppliers'){
       attentionDismissed.suppliers = new Set(
         state.vendorApplications.filter(a => a.status === 'Pending').map(a => a.id)
       );
+    }
+    // page-inventory is intentionally omitted — low-stock and stock-request
+    // pills dismiss only when the user opens that specific sub-tab.
+    saveAttentionDismissedToStorage();
+    updateAttentionBadges();
+  }
+
+  function dismissAttentionForInventoryPill(slug){
+    if(!state.user) return;
+    if(slug === 'low-stock'){
+      attentionDismissed.inventory = new Set(lowStockItems().map(it => it.item_key));
+    } else if(slug === 'stock-requests'){
+      attentionDismissed.stockRequests = new Set(pendingStockRequestIds());
+    } else {
+      return;
     }
     saveAttentionDismissedToStorage();
     updateAttentionBadges();
@@ -2010,7 +2035,106 @@ document.addEventListener('DOMContentLoaded', function(){
     setFilterPillAttention('low-stock', c.inventory > 0);
     setFilterPillAttention('stock-requests', c.stockRequests > 0);
     const total = c.requests + c.orders + c.inventory + c.stockRequests + c.suppliers;
-    document.querySelector('#notifBtn .dot')?.classList.toggle('hidden', total === 0);
+    const notifBadge = document.getElementById('notifBtnBadge');
+    if(notifBadge){
+      notifBadge.textContent = total > 9 ? '9+' : String(total);
+      notifBadge.classList.toggle('hidden', total === 0);
+    }
+    if(document.getElementById('notifMenu')?.classList.contains('show')) renderNotifMenu();
+  }
+
+  function notifRow(label, sublabel, onClick){
+    return `<button type="button" class="w-full text-left px-4 py-2.5 flex flex-col gap-0.5 bg-transparent border-none cursor-pointer hover:bg-[#f7f9fc]" onclick="${onClick}">
+      <span class="text-[.82rem] font-semibold text-textDark">${label}</span>
+      <span class="text-[.72rem] text-textMid">${sublabel}</span>
+    </button>`;
+  }
+
+  function notifSection(title, rowsHtml){
+    if(!rowsHtml.length) return '';
+    return `<div class="border-b border-line last:border-0">
+      <div class="px-4 pt-3 pb-1 text-[.68rem] font-bold uppercase tracking-wide text-textSoft">${title}</div>
+      ${rowsHtml.join('')}
+    </div>`;
+  }
+
+  window.goToAttentionTarget = function(target){
+    notifMenu.classList.remove('show');
+    if(target === 'requests'){
+      navigateToPage('page-requests', { updateHash: true });
+    } else if(target === 'orders'){
+      navigateToPage('page-orders', { updateHash: true });
+    } else if(target === 'low-stock'){
+      dismissAttentionForInventoryPill('low-stock');
+      navigateToPage('page-inventory', { updateHash: true });
+      location.hash = hashForInventoryTab('low-stock');
+      activateInventoryTab('low-stock');
+    } else if(target === 'stock-requests'){
+      dismissAttentionForInventoryPill('stock-requests');
+      navigateToPage('page-inventory', { updateHash: true });
+      location.hash = hashForInventoryTab('stock-requests');
+      activateInventoryTab('stock-requests');
+    } else if(target === 'suppliers'){
+      navigateToPage('page-suppliers', { updateHash: true });
+    }
+  };
+
+  function orderNotifSublabel(o){
+    if(roleAtLeast('manager')){
+      if(o.receipt_lost_report_pending) return 'Lost-receipt report needs your review';
+      if(o.receipt_uploaded && !o.receipt_rejected) return 'Receipt uploaded — needs your review';
+      if(o.receipt_waived) return 'Lost receipt recorded — ready to receive';
+      if(o.finance_status === 'not_sent' || o.finance_status === 'disbursement_rejected') return 'Not sent to Finance yet';
+      return 'Needs review';
+    }
+    if(o.receipt_rejected) return 'Your receipt was rejected — reupload needed';
+    if(o.receipt_lost_report_rejected) return 'Your lost-receipt report was rejected';
+    return 'Receipt needed — funded and awaiting proof of purchase';
+  }
+
+  function renderNotifMenu(){
+    const body = document.getElementById('notifMenuBody');
+    if(!body) return;
+
+    const requestItems = unseenItems(state.requests.filter(requestNeedsAttention), r => r.id, attentionDismissed.requests);
+    const orderItems = unseenItems(state.orders.filter(orderNeedsAttention), o => o.id, attentionDismissed.orders);
+    const lowStock = unseenItems(lowStockItems(), it => it.item_key, attentionDismissed.inventory);
+    const stockReqItems = unseenItems(state.stockRequests.filter(r => r.status === 'Pending'), r => r.id, attentionDismissed.stockRequests);
+    const vendorItems = roleAtLeast('manager')
+      ? unseenItems(state.vendorApplications.filter(a => a.status === 'Pending'), a => a.id, attentionDismissed.suppliers)
+      : [];
+
+    const sections = [
+      notifSection('Purchase requests', requestItems.map(r => notifRow(
+        escapeHtml(r.request_code),
+        `${escapeHtml(r.display_label || r.item_label)} · ${r.status}`,
+        `goToAttentionTarget('requests')`
+      ))),
+      notifSection('Purchase orders', orderItems.map(o => notifRow(
+        escapeHtml(o.po_code),
+        escapeHtml(orderNotifSublabel(o)),
+        `goToAttentionTarget('orders')`
+      ))),
+      notifSection('Low stock', lowStock.map(it => notifRow(
+        escapeHtml(it.label),
+        `${it.current_qty} ${escapeHtml(it.unit)} left · min ${it.min_qty}`,
+        `goToAttentionTarget('low-stock')`
+      ))),
+      notifSection('Stock requests', stockReqItems.map(r => notifRow(
+        escapeHtml(r.request_code),
+        `${escapeHtml(r.department)} · ${escapeHtml(r.item_label)}`,
+        `goToAttentionTarget('stock-requests')`
+      ))),
+      notifSection('Vendor quotes', vendorItems.map(a => notifRow(
+        escapeHtml(a.company_name),
+        'New vendor quote — pending review',
+        `goToAttentionTarget('suppliers')`
+      ))),
+    ].filter(Boolean);
+
+    body.innerHTML = sections.length
+      ? sections.join('')
+      : `<div class="px-4 py-6 text-center text-[.82rem] text-textMid">Nothing needs your attention right now.</div>`;
   }
 
   const PROCUREMENT_LABELS = {
@@ -2786,6 +2910,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const btn = e.target.closest('.filter-pill');
     if(!btn || btn.classList.contains('active')) return;
     const slug = btn.dataset.slug || 'all';
+    dismissAttentionForInventoryPill(slug);
     location.hash = hashForInventoryTab(slug);
   });
 
