@@ -16,9 +16,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+// Session timeouts, enforced by enforce_session_timeout() below. Declared
+// here (before session_start()) since top-level `const` statements run in
+// file order, unlike function declarations — enforce_session_timeout() is
+// called immediately after starting the session, so these must exist first.
+const SESSION_IDLE_TIMEOUT_SECONDS = 10 * 60;      // 10 minutes of inactivity
+const SESSION_ABSOLUTE_TIMEOUT_SECONDS = 60 * 60;  // 1 hour max, even if active
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
+    // Secure/HttpOnly/SameSite cookie flags. 'secure' only turns on over
+    // HTTPS — forcing it on plain http:// would silently break local dev,
+    // since browsers refuse to send secure cookies back over http.
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
+
+enforce_session_timeout();
 
 const DB_HOST = '127.0.0.1';
 const DB_NAME = 'wayfarer_inventory';
@@ -69,23 +89,35 @@ const APP_BASE_URL = 'http://127.0.0.1:8000';
  * authenticate_user()/get_session_user() to read from his auth source and
  * every require_role() call below keeps working unchanged.
  */
+// Passwords below are the same demo passwords as before (staff123 / manager123
+// / admin123) — just stored as password_hash() output instead of plaintext,
+// so nothing changes for the three demo accounts except how the hash is
+// checked (password_verify() instead of a plain ===).
 const AUTH_USERS = [
     'juan' => [
-        'password' => 'staff123',
+        'password' => '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a',
         'name' => 'Juan Dela Cruz',
         'role' => 'staff',
     ],
     'maria' => [
-        'password' => 'manager123',
+        'password' => '$2y$10$x1iYBp20Zhvbq798nnUnAemwxW8A0CDA8TApsGkoH.bj0CZaan1P.',
         'name' => 'Maria Santos',
         'role' => 'manager',
     ],
     'admin' => [
-        'password' => 'admin123',
+        'password' => '$2y$10$aZHU4bDaT0CaqOOt3GVyu.Gk2EM7tYI7JaLuN12qR5S1vGBoSdcUq',
         'name' => 'System Administrator',
         'role' => 'super_admin',
     ],
 ];
+
+// Login rate limiting (see login_attempts table + auth.php). Separate
+// per-username and per-IP thresholds: the per-IP one is looser since a
+// shared office connection can have several staff logging in at once.
+const LOGIN_MAX_ATTEMPTS_PER_USER = 5;
+const LOGIN_MAX_ATTEMPTS_PER_IP = 15;
+const LOGIN_ATTEMPT_WINDOW_MINUTES = 10;
+const LOGIN_LOCKOUT_MINUTES = 15;
 
 const ROLE_RANK = [
     'staff' => 1,
@@ -122,10 +154,34 @@ function get_session_user(): ?array
     return isset($_SESSION['user']) && is_array($_SESSION['user']) ? $_SESSION['user'] : null;
 }
 
+/**
+ * Logs out a session that's gone idle too long or has lived past its
+ * absolute lifetime, regardless of activity. Called once per request right
+ * after session_start() — every other auth check (get_session_user(),
+ * require_auth(), ...) then naturally sees "not logged in" once expired,
+ * with no extra checks needed anywhere else in the codebase.
+ */
+function enforce_session_timeout(): void
+{
+    if (!isset($_SESSION['user'])) {
+        return;
+    }
+    $now = time();
+    $lastActivity = $_SESSION['last_activity'] ?? $now;
+    $loginTime = $_SESSION['login_time'] ?? $now;
+
+    if (($now - $lastActivity) > SESSION_IDLE_TIMEOUT_SECONDS
+        || ($now - $loginTime) > SESSION_ABSOLUTE_TIMEOUT_SECONDS) {
+        logout_user();
+        return;
+    }
+    $_SESSION['last_activity'] = $now;
+}
+
 function authenticate_user(string $username, string $password): ?array
 {
     $key = strtolower(trim($username));
-    if (!isset(AUTH_USERS[$key]) || AUTH_USERS[$key]['password'] !== $password) {
+    if (!isset(AUTH_USERS[$key]) || !password_verify($password, AUTH_USERS[$key]['password'])) {
         return null;
     }
     return [
@@ -137,7 +193,12 @@ function authenticate_user(string $username, string $password): ?array
 
 function login_user(array $user): void
 {
+    // Regenerate the session ID on every successful login so a session ID
+    // seen (or fixed) before authentication can't be reused afterward.
+    session_regenerate_id(true);
     $_SESSION['user'] = $user;
+    $_SESSION['login_time'] = time();
+    $_SESSION['last_activity'] = time();
 }
 
 function logout_user(): void
@@ -146,6 +207,73 @@ function logout_user(): void
     if (session_status() === PHP_SESSION_ACTIVE) {
         session_destroy();
     }
+}
+
+function get_client_ip(): string
+{
+    return (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+}
+
+/**
+ * Records one login attempt (success or failure) for rate limiting. Only
+ * failures actually count toward a lockout (see login_lockout_seconds_remaining()),
+ * but successes are logged too so the table is a full, honest audit trail.
+ */
+function record_login_attempt(string $username, string $ip, bool $success): void
+{
+    $pdo = get_pdo();
+    $pdo->prepare('INSERT INTO login_attempts (username, ip_address, success) VALUES (?, ?, ?)')
+        ->execute([$username, $ip, $success ? 1 : 0]);
+
+    // Cheap, occasional cleanup instead of a separate cron job — fine for
+    // a small internal tool's login table.
+    if (random_int(1, 200) === 1) {
+        $pdo->exec('DELETE FROM login_attempts WHERE created_at < (NOW() - INTERVAL 1 DAY)');
+    }
+}
+
+/**
+ * Returns how many seconds remain on an active lockout for this username
+ * or IP, or 0 if neither is currently locked out. Checked before the
+ * password is even verified, so a locked-out attacker can't keep guessing.
+ *
+ * All time math (the attempt window and the remaining-lockout time) is done
+ * in SQL with NOW() rather than PHP's time()/date(), so a mismatch between
+ * PHP's configured timezone and MySQL's server timezone can't throw the
+ * lockout window off — everything is compared against MySQL's own clock.
+ */
+function login_lockout_seconds_remaining(string $username, string $ip): int
+{
+    $pdo = get_pdo();
+    $windowMinutes = LOGIN_ATTEMPT_WINDOW_MINUTES;
+    $lockoutMinutes = LOGIN_LOCKOUT_MINUTES;
+
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*) AS cnt,
+                GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), MAX(created_at) + INTERVAL {$lockoutMinutes} MINUTE)) AS remaining
+         FROM login_attempts
+         WHERE username = ? AND success = 0 AND created_at >= NOW() - INTERVAL {$windowMinutes} MINUTE"
+    );
+    $stmt->execute([$username]);
+    $userRow = $stmt->fetch();
+
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*) AS cnt,
+                GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), MAX(created_at) + INTERVAL {$lockoutMinutes} MINUTE)) AS remaining
+         FROM login_attempts
+         WHERE ip_address = ? AND success = 0 AND created_at >= NOW() - INTERVAL {$windowMinutes} MINUTE"
+    );
+    $stmt->execute([$ip]);
+    $ipRow = $stmt->fetch();
+
+    $remaining = 0;
+    if ($userRow && (int) $userRow['cnt'] >= LOGIN_MAX_ATTEMPTS_PER_USER) {
+        $remaining = max($remaining, (int) $userRow['remaining']);
+    }
+    if ($ipRow && (int) $ipRow['cnt'] >= LOGIN_MAX_ATTEMPTS_PER_IP) {
+        $remaining = max($remaining, (int) $ipRow['remaining']);
+    }
+    return $remaining;
 }
 
 function require_auth(): array

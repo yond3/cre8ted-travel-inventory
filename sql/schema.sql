@@ -5,6 +5,7 @@ CREATE DATABASE IF NOT EXISTS wayfarer_inventory CHARACTER SET utf8mb4 COLLATE u
 USE wayfarer_inventory;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS login_attempts;
 DROP TABLE IF EXISTS finance_integration_log;
 DROP TABLE IF EXISTS inventory_retirements;
 DROP TABLE IF EXISTS equipment_movements;
@@ -281,6 +282,19 @@ CREATE TABLE inventory_retirements (
     recorded_by VARCHAR(100) NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Login rate limiting: every login attempt (success or failure) is logged
+-- here so auth.php can lock out a username/IP after too many failures in a
+-- short window. See LOGIN_MAX_ATTEMPTS_PER_USER / _PER_IP in config.php.
+CREATE TABLE login_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    success TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_login_attempts_username (username, created_at),
+    INDEX idx_login_attempts_ip (ip_address, created_at)
 ) ENGINE=InnoDB;
 
 -- Department stock requests: formal ask-before-issue flow. Fulfill creates a

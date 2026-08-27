@@ -74,6 +74,9 @@ Get-Content ".\sql\migration_po_receipt_rejection.sql" | mysql -u root wayfarer_
 Get-Content ".\sql\migration_po_lost_receipt_report.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_stock_requests.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_items_assigned_department.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_inventory_retirements.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_vendor_contact_details.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_login_attempts.sql" | mysql -u root wayfarer_inventory
 ```
 
 If a migration fails with “duplicate column” or “table already exists”, that file was already applied — skip it and continue.
@@ -203,11 +206,25 @@ API: `GET/POST /api/stock_requests.php`, `PUT /api/stock_requests.php?id=<id> { 
 
 Authentication is session-based PHP, defined entirely in `php/api/config.php`:
 
-- `AUTH_USERS` — the demo account list (username → password, name, role). **This is the only place with hardcoded credentials.**
+- `AUTH_USERS` — the demo account list (username → password hash, name, role). **This is the only place with hardcoded credentials**, and passwords are stored as `password_hash()` output, never plaintext.
 - `authenticate_user()` / `get_session_user()` — look up and read the logged-in user.
 - `require_auth()`, `require_role()`, `require_staff_or_above()`, `require_manager_or_above()`, `require_super_admin()` — guards called at the top of each API endpoint.
 
 **When the lead programmer's central/super-admin login is ready:** replace `authenticate_user()` (and how `login_user()`/`get_session_user()` store the user) to read from his auth system instead of the `AUTH_USERS` array — for example, verifying his token/session and mapping his user to `{ username, name, role }`. Every `require_role()` call across the API files keeps working unchanged, since they only depend on that shape.
+
+---
+
+## Login security
+
+Three protections, all in `php/api/config.php` + `php/api/auth.php`:
+
+1. **Password hashing** — `AUTH_USERS` stores bcrypt hashes (`password_hash()`), and `authenticate_user()` checks them with `password_verify()`. Plaintext passwords are never stored or compared. The three demo passwords shown in the table above still work the same way from the login page — only how they're checked server-side changed.
+2. **Session timeouts** — enforced by `enforce_session_timeout()`, called on every API request right after the session starts:
+   - **Idle timeout: 10 minutes.** No API calls for 10 minutes → next request is treated as logged out.
+   - **Absolute timeout: 1 hour.** Session is force-ended 1 hour after login, even if active the whole time.
+   - The session ID is also regenerated on every successful login (`session_regenerate_id(true)`), and the session cookie is `HttpOnly` + `SameSite=Lax` (and `Secure` automatically once served over HTTPS).
+   - No frontend polling needed — `apiGet`/`apiSend` in `index.html` already redirect to `login.html` on any `401`, which is exactly what an expired session returns on the next request.
+3. **Login rate limiting** — every attempt (success or failure) is logged to the `login_attempts` table (`sql/migration_login_attempts.sql`). After **5 failed attempts for the same username, or 15 for the same IP, within 10 minutes**, further attempts are rejected with `429` and a generic message (`"too many failed login attempts — try again in N minutes"`) for **15 minutes** — checked *before* the password is verified, and the same generic `"invalid username or password"` is returned either way so failed logins never reveal whether the username or password was wrong.
 
 ---
 

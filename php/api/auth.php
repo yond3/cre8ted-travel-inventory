@@ -25,7 +25,22 @@ if ($method === 'POST') {
     if ($username === '' || $password === '') {
         json_error('username and password are required');
     }
+
+    $usernameKey = strtolower($username);
+    $ip = get_client_ip();
+
+    $lockoutRemaining = login_lockout_seconds_remaining($usernameKey, $ip);
+    if ($lockoutRemaining > 0) {
+        $minutes = (int) ceil($lockoutRemaining / 60);
+        json_error(
+            "too many failed login attempts — try again in {$minutes} minute" . ($minutes === 1 ? '' : 's'),
+            429
+        );
+    }
+
     $user = authenticate_user($username, $password);
+    record_login_attempt($usernameKey, $ip, $user !== null);
+
     if (!$user) {
         json_error('invalid username or password', 401);
     }
