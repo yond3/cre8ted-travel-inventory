@@ -49,6 +49,7 @@ function format_order(array $row): array
         'status' => $row['status'],
         'created_at' => $row['created_at'],
         'received_at' => $row['received_at'],
+        'received_by' => $row['received_by'] ?? null,
         'receipt_uploaded' => $row['receipt_filename'] !== null,
         'receipt_amount' => $row['receipt_amount'] !== null ? (float) $row['receipt_amount'] : null,
         'receipt_number' => $row['receipt_number'],
@@ -296,8 +297,9 @@ if ($method === 'PUT') {
         $pdo->beginTransaction();
         try {
             $user = get_session_user();
-            $pdo->prepare("UPDATE purchase_orders SET status = 'Received', received_at = NOW() WHERE id = ?")
-                ->execute([$id]);
+            $receivedBy = $user['name'] ?? 'System';
+            $pdo->prepare("UPDATE purchase_orders SET status = 'Received', received_at = NOW(), received_by = ? WHERE id = ?")
+                ->execute([$receivedBy, $id]);
             $pdo->prepare("UPDATE purchase_requests SET status = 'Completed' WHERE id = ?")
                 ->execute([$row['request_id']]);
 

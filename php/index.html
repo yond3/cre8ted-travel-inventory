@@ -92,6 +92,31 @@
   .filter-pill .pill-attention-dot.hidden{ display:none; }
   #notifBtn .dot.hidden{ display:none; }
   .gl-table tbody tr:hover{ background:#f7f9fc; }
+  .status-pill{
+    display:inline-flex; align-items:center; justify-content:center;
+    white-space:nowrap; line-height:1.2; flex-shrink:0; max-width:max-content;
+  }
+  .gl-table td.status-cell{ white-space:nowrap; width:1%; }
+  .gl-table td.date-cell,
+  .gl-table td.code-cell{
+    white-space:nowrap; width:1%;
+  }
+  .gl-table td.received-cell{ width:1%; min-width:9.5rem; }
+  .gl-table td.received-cell .received-when{ white-space:nowrap; }
+  .gl-table th.date-cell,
+  .gl-table th.code-cell,
+  .gl-table th.received-cell{ white-space:nowrap; width:1%; }
+  .dashboard-stat-card{
+    cursor:pointer; border:none; text-align:left; width:100%;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .dashboard-stat-card:hover{
+    transform:translateY(-2px); box-shadow:0 8px 24px rgba(15,42,82,.08);
+    border-color:#d4dce8;
+  }
+  .dashboard-stat-card:focus-visible{
+    outline:2px solid #0f2a52; outline-offset:2px;
+  }
   .page-section.hidden{ display:none; }
   .modal-overlay{ display:none; }
   .modal-overlay.show{ display:flex; flex-direction:column; align-items:center; overflow-y:auto; padding:1rem; }
@@ -100,6 +125,28 @@
   }
   .btn-cream:hover{ background:#FFF7E8; filter:brightness(.98); }
   .row-hidden{ display:none !important; }
+  .table-search-wrap{
+    position:relative; display:flex; align-items:center; max-width:420px;
+  }
+  .table-search-wrap .table-search-icon{
+    position:absolute; left:.85rem; color:#94a3bb; font-size:1.1rem; pointer-events:none;
+  }
+  .table-search-input{
+    width:100%; padding:.65rem .85rem .65rem 2.35rem; border-radius:12px;
+    border:1px solid #e7ecf3; background:#f8fafc; font-size:.85rem; color:#0f2242;
+  }
+  .table-search-input:focus{
+    outline:none; border-color:#173868; background:#fff; box-shadow:0 0 0 3px rgba(23,56,104,.08);
+  }
+  .table-search-input::placeholder{ color:#94a3bb; }
+  .table-search-clear{
+    position:absolute; right:.45rem; width:1.75rem; height:1.75rem; border:none; border-radius:999px;
+    background:transparent; color:#94a3bb; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .table-search-clear:hover{ background:#eef2f7; color:#5b6b85; }
+  .table-search-clear.hidden{ display:none; }
+  .doc-ref-link{ font:inherit; }
+  .doc-ref-link:hover{ text-decoration:underline; }
 
   @media (max-width:900px){
     .sidebar{ position:fixed; top:0; left:0; height:100vh; transform:translateX(-100%); overflow-y:auto; }
@@ -224,47 +271,59 @@
   </div>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-    <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <button type="button" class="dashboard-stat-card bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('items')" aria-label="View items tracked">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Items tracked</span>
         <div class="w-9 h-9 rounded-lg bg-[#eaf1fb] flex items-center justify-center text-navy800 text-[1.05rem]"><i class='bx bx-archive'></i></div>
       </div>
       <div class="font-display text-[1.8rem] font-extrabold text-textDark" id="statTotalItems">11</div>
-      <div class="text-[.78rem] text-textSoft mt-1">Across 4 storage locations</div>
-    </div>
-    <div class="bg-card rounded-card shadow-panel border border-line p-5">
+      <div class="text-[.78rem] text-textSoft mt-1" id="statTotalItemsHint">Across 4 storage locations</div>
+      <div class="text-[.72rem] text-navy800 font-semibold mt-2">Click to view list</div>
+    </button>
+    <button type="button" class="dashboard-stat-card bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('low-stock')" aria-label="View low stock items">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Low stock items</span>
         <div class="w-9 h-9 rounded-lg bg-redBg flex items-center justify-center text-redTx text-[1.05rem]"><i class='bx bx-error-circle'></i></div>
       </div>
       <div class="font-display text-[1.8rem] font-extrabold text-redTx" id="statLowStock">3</div>
       <div class="text-[.78rem] text-textSoft mt-1">Below minimum threshold</div>
-    </div>
-    <div class="bg-card rounded-card shadow-panel border border-line p-5">
+      <div class="text-[.72rem] text-navy800 font-semibold mt-2">Click to view list</div>
+    </button>
+    <button type="button" class="dashboard-stat-card bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('pending')" aria-label="View pending purchase requests">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Pending requests</span>
         <div class="w-9 h-9 rounded-lg bg-amberBg flex items-center justify-center text-amberTx text-[1.05rem]"><i class='bx bx-time-five'></i></div>
       </div>
       <div class="font-display text-[1.8rem] font-extrabold text-textDark" id="statPending">1</div>
       <div class="text-[.78rem] text-textSoft mt-1">Awaiting manager approval</div>
-    </div>
-    <div class="bg-card rounded-card shadow-panel border border-line p-5">
+      <div class="text-[.72rem] text-navy800 font-semibold mt-2">Click to view list</div>
+    </button>
+    <button type="button" class="dashboard-stat-card bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('suppliers')" aria-label="View active suppliers">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Active suppliers</span>
         <div class="w-9 h-9 rounded-lg bg-greenBg flex items-center justify-center text-greenTx text-[1.05rem]"><i class='bx bx-store'></i></div>
       </div>
       <div class="font-display text-[1.8rem] font-extrabold text-textDark" id="statSuppliers">6</div>
       <div class="text-[.78rem] text-textSoft mt-1">Nearby stores &amp; online</div>
-    </div>
+      <div class="text-[.72rem] text-navy800 font-semibold mt-2">Click to view list</div>
+    </button>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
     <div class="lg:col-span-3 bg-card rounded-card shadow-panel border border-line p-5">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-display font-bold text-[1.02rem] text-textDark">Low stock alerts</h3>
-        <span class="text-[.72rem] font-semibold text-redTx bg-redBg px-2.5 py-1 rounded-full">Needs action</span>
+      <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <h3 class="font-display font-bold text-[1.02rem] text-textDark">Demand insights</h3>
+        <span class="text-[.72rem] font-semibold text-navy800 bg-[#eaf1fb] px-2.5 py-1 rounded-full">Usage + POs</span>
       </div>
-      <div class="flex flex-col gap-3" id="lowStockAlertList"></div>
+      <p class="text-[.75rem] text-textMid mb-2">Which supplies move quickly — based on orders and monthly use over the last 90 days.</p>
+      <ul class="text-[.72rem] text-textMid mb-4 space-y-1 list-none pl-0">
+        <li><span class="font-semibold text-amberTx">Fast moving</span> — ordered 3+ times in 90 days, or used up at least twice the minimum stock each month</li>
+        <li><span class="font-semibold text-blueTx">Steady</span> — ordered 1–2 times in 90 days, or used about the minimum amount each month</li>
+        <li><span class="font-semibold text-textMid">Slow moving</span> — rarely ordered and low monthly use</li>
+      </ul>
+      <div class="flex flex-col gap-3" id="demandInsightsList">
+        <p class="text-[.85rem] text-textMid">Loading insights…</p>
+      </div>
     </div>
     <div class="lg:col-span-2 bg-card rounded-card shadow-panel border border-line p-5">
       <h3 class="font-display font-bold text-[1.02rem] text-textDark mb-4">Recent activity</h3>
@@ -314,6 +373,11 @@
         Show inactive
       </label>
     </div>
+    <div class="table-search-wrap mb-4">
+      <i class='bx bx-search table-search-icon'></i>
+      <input type="search" id="inventoryTableSearch" class="table-search-input" placeholder="Search item, type, storage location…" autocomplete="off" aria-label="Search inventory table">
+      <button type="button" class="table-search-clear hidden" id="inventoryTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+    </div>
     <div class="overflow-x-auto" id="inventoryTableWrap">
       <table class="gl-table w-full text-[.85rem] border-collapse">
         <thead>
@@ -324,7 +388,7 @@
             <th class="py-3 pr-3 font-semibold">Current qty</th>
             <th class="py-3 pr-3 font-semibold">Min</th>
             <th class="py-3 pr-3 font-semibold">Max</th>
-            <th class="py-3 pr-3 font-semibold">Status</th>
+            <th class="py-3 pr-3 font-semibold status-cell">Status</th>
             <th class="py-3 pr-3 font-semibold">Action</th>
           </tr>
         </thead>
@@ -355,14 +419,14 @@
         <table class="gl-table w-full text-[.85rem] border-collapse">
           <thead>
             <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
-              <th class="py-3 pr-3 font-semibold">Request ID</th>
+              <th class="py-3 pr-3 font-semibold code-cell">Request ID</th>
               <th class="py-3 pr-3 font-semibold">Department</th>
               <th class="py-3 pr-3 font-semibold">Type</th>
               <th class="py-3 pr-3 font-semibold">Item</th>
               <th class="py-3 pr-3 font-semibold">Qty</th>
               <th class="py-3 pr-3 font-semibold">On hand</th>
               <th class="py-3 pr-3 font-semibold">Requested by</th>
-              <th class="py-3 pr-3 font-semibold">Date</th>
+              <th class="py-3 pr-3 font-semibold date-cell">Date</th>
               <th class="py-3 pr-3 font-semibold">Status</th>
               <th class="py-3 pr-3 font-semibold">Action</th>
             </tr>
@@ -377,12 +441,11 @@
         <table class="gl-table w-full text-[.85rem] border-collapse">
           <thead>
             <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
-              <th class="py-3 pr-3 font-semibold">Date</th>
+              <th class="py-3 pr-3 font-semibold received-cell">Issued</th>
               <th class="py-3 pr-3 font-semibold">Item</th>
               <th class="py-3 pr-3 font-semibold">Qty</th>
               <th class="py-3 pr-3 font-semibold">Department</th>
               <th class="py-3 pr-3 font-semibold">Issued to</th>
-              <th class="py-3 pr-3 font-semibold">Recorded by</th>
               <th class="py-3 pr-3 font-semibold">Status</th>
               <th class="py-3 pr-3 font-semibold">Action</th>
             </tr>
@@ -397,7 +460,7 @@
         <table class="gl-table w-full text-[.85rem] border-collapse">
           <thead>
             <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
-              <th class="py-3 pr-3 font-semibold">Date</th>
+              <th class="py-3 pr-3 font-semibold date-cell">Date</th>
               <th class="py-3 pr-3 font-semibold">Item</th>
               <th class="py-3 pr-3 font-semibold">Qty</th>
               <th class="py-3 pr-3 font-semibold">Event</th>
@@ -430,18 +493,23 @@
   </div>
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <div class="table-search-wrap mb-4">
+      <i class='bx bx-search table-search-icon'></i>
+      <input type="search" id="requestsTableSearch" class="table-search-input" placeholder="Search PR ID, employee, item, department…" autocomplete="off" aria-label="Search purchase requests">
+      <button type="button" class="table-search-clear hidden" id="requestsTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+    </div>
     <div class="overflow-x-auto">
       <table class="gl-table w-full text-[.85rem] border-collapse">
         <thead>
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
-            <th class="py-3 pr-3 font-semibold">Request ID</th>
+            <th class="py-3 pr-3 font-semibold code-cell">Request ID</th>
             <th class="py-3 pr-3 font-semibold">Employee</th>
             <th class="py-3 pr-3 font-semibold">Department</th>
             <th class="py-3 pr-3 font-semibold">Item</th>
             <th class="py-3 pr-3 font-semibold">Reason</th>
             <th class="py-3 pr-3 font-semibold">Qty</th>
             <th class="py-3 pr-3 font-semibold">Est. cost</th>
-            <th class="py-3 pr-3 font-semibold">Date</th>
+            <th class="py-3 pr-3 font-semibold date-cell">Date</th>
             <th class="py-3 pr-3 font-semibold">Status</th>
             <th class="py-3 pr-3 font-semibold">Action</th>
           </tr>
@@ -469,18 +537,24 @@
   </div>
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <div class="table-search-wrap mb-4">
+      <i class='bx bx-search table-search-icon'></i>
+      <input type="search" id="ordersTableSearch" class="table-search-input" placeholder="Search PO ID, linked PR, supplier…" autocomplete="off" aria-label="Search purchase orders">
+      <button type="button" class="table-search-clear hidden" id="ordersTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+    </div>
     <div class="overflow-x-auto">
       <table class="gl-table w-full text-[.85rem] border-collapse">
         <thead>
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
-            <th class="py-3 pr-3 font-semibold">PO ID</th>
-            <th class="py-3 pr-3 font-semibold">Linked request</th>
+            <th class="py-3 pr-3 font-semibold code-cell">PO ID</th>
+            <th class="py-3 pr-3 font-semibold code-cell">Linked request</th>
             <th class="py-3 pr-3 font-semibold">Supplier</th>
             <th class="py-3 pr-3 font-semibold">Method</th>
             <th class="py-3 pr-3 font-semibold">Amount</th>
             <th class="py-3 pr-3 font-semibold">Finance</th>
             <th class="py-3 pr-3 font-semibold">Receipt</th>
-            <th class="py-3 pr-3 font-semibold">Date</th>
+            <th class="py-3 pr-3 font-semibold date-cell">Order date</th>
+            <th class="py-3 pr-3 font-semibold received-cell">Received</th>
             <th class="py-3 pr-3 font-semibold">Status</th>
             <th class="py-3 pr-3 font-semibold">Action</th>
           </tr>
@@ -578,27 +652,82 @@
       <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-folder'></i></div>
       <div>
         <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Document Tracking</h1>
-        <p class="text-[.78rem] text-textMid mt-0.5">One record per request or order — status stays in sync with the flow.</p>
+        <p class="text-[.78rem] text-textMid mt-0.5">Click a PR, PO, or quote ID to see what it is — item, supplier, employee, and more.</p>
       </div>
     </div>
   </div>
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
-    <div class="overflow-x-auto">
+    <div class="flex items-center gap-2 mb-4 flex-wrap" id="documentFilters">
+      <button type="button" class="filter-pill active px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-doc-filter="pr">Purchase requests</button>
+      <button type="button" class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-doc-filter="po">Purchase orders</button>
+      <button type="button" class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-doc-filter="vendor">Vendor quotations</button>
+    </div>
+    <div class="table-search-wrap mb-4">
+      <i class='bx bx-search table-search-icon'></i>
+      <input type="search" id="documentsTableSearch" class="table-search-input" placeholder="Search doc ID, PR ID, status…" autocomplete="off" aria-label="Search documents">
+      <button type="button" class="table-search-clear hidden" id="documentsTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+    </div>
+    <div class="overflow-x-auto" id="documentsPrTableWrap">
       <table class="gl-table w-full text-[.85rem] border-collapse">
         <thead>
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
-            <th class="py-3 pr-3 font-semibold">Doc ID</th>
-            <th class="py-3 pr-3 font-semibold">Type</th>
-            <th class="py-3 pr-3 font-semibold">Reference</th>
-            <th class="py-3 pr-3 font-semibold">Date</th>
+            <th class="py-3 pr-3 font-semibold code-cell">Doc ID</th>
+            <th class="py-3 pr-3 font-semibold">PR ID</th>
+            <th class="py-3 pr-3 font-semibold">What it is</th>
+            <th class="py-3 pr-3 font-semibold date-cell">Date</th>
             <th class="py-3 pr-3 font-semibold">Status</th>
           </tr>
         </thead>
-        <tbody id="documentsTableBody"></tbody>
+        <tbody id="documentsPrTableBody"></tbody>
+      </table>
+    </div>
+    <div class="overflow-x-auto hidden" id="documentsPoTableWrap">
+      <table class="gl-table w-full text-[.85rem] border-collapse">
+        <thead>
+          <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+            <th class="py-3 pr-3 font-semibold code-cell">Doc ID</th>
+            <th class="py-3 pr-3 font-semibold code-cell">PO ID</th>
+            <th class="py-3 pr-3 font-semibold">What it is</th>
+            <th class="py-3 pr-3 font-semibold code-cell">Linked PR</th>
+            <th class="py-3 pr-3 font-semibold date-cell">Date</th>
+            <th class="py-3 pr-3 font-semibold">Status</th>
+            <th class="py-3 pr-3 font-semibold">Receipt</th>
+          </tr>
+        </thead>
+        <tbody id="documentsPoTableBody"></tbody>
+      </table>
+    </div>
+    <div class="overflow-x-auto hidden" id="documentsVendorTableWrap">
+      <table class="gl-table w-full text-[.85rem] border-collapse">
+        <thead>
+          <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+            <th class="py-3 pr-3 font-semibold code-cell">Doc ID</th>
+            <th class="py-3 pr-3 font-semibold code-cell">Quote ID</th>
+            <th class="py-3 pr-3 font-semibold">What it is</th>
+            <th class="py-3 pr-3 font-semibold date-cell">Date</th>
+            <th class="py-3 pr-3 font-semibold">Status</th>
+          </tr>
+        </thead>
+        <tbody id="documentsVendorTableBody"></tbody>
       </table>
     </div>
   </div>
 </section>
+
+<!-- ===================== MODAL: DOCUMENT DETAIL ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2100]" id="documentDetailModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6 my-4 shrink-0">
+    <div class="flex items-start justify-between gap-3 mb-1">
+      <div>
+        <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="documentDetailTitle">PR-2026-065</h3>
+        <p class="text-[.78rem] text-textMid mt-0.5" id="documentDetailSubtitle">Purchase request</p>
+      </div>
+      <button type="button" onclick="closeModal('documentDetailModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem] shrink-0"><i class='bx bx-x'></i></button>
+    </div>
+    <div class="mt-4 mb-5 rounded-xl border border-line bg-[#f8fafc] px-4 py-1" id="documentDetailBody"></div>
+    <div class="flex flex-wrap gap-2" id="documentDetailActions"></div>
+  </div>
+</div>
 
 <!-- ===================== MODAL: NEW PURCHASE REQUEST ===================== -->
 <div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="requestModalOverlay">
@@ -956,6 +1085,19 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: DASHBOARD STAT DETAIL ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2050]" id="dashboardStatModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6 max-h-[85vh] flex flex-col">
+    <div class="flex items-center justify-between mb-1 shrink-0">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="dashboardStatModalTitle">Details</h3>
+      <button type="button" onclick="closeModal('dashboardStatModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4 shrink-0" id="dashboardStatModalSubtitle"></p>
+    <div class="flex flex-col gap-2 overflow-y-auto flex-1 min-h-0 pr-1" id="dashboardStatModalBody"></div>
+    <button type="button" id="dashboardStatModalGoBtn" onclick="goFromDashboardStat()" class="mt-4 shrink-0 w-full px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Open full page</button>
+  </div>
+</div>
+
 <!-- ===================== MODAL: EDIT SUPPLIER ===================== -->
 <div class="modal-overlay fixed inset-0 bg-black/45 z-[2150]" id="supplierEditModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
@@ -966,15 +1108,9 @@
     <p class="text-[.8rem] text-textMid mb-4">Update contact details and the price list for this vendor.</p>
     <form id="supplierEditForm" class="flex flex-col gap-4">
       <input type="hidden" id="supEditId" value="">
-      <div class="grid grid-cols-2 gap-3">
-        <div>
+      <div>
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Contact</label>
           <input id="supEditContact" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Phone / Viber / email">
-        </div>
-        <div>
-          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Rating (0–5)</label>
-          <input id="supEditRating" type="number" min="0" max="5" step="0.1" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
-        </div>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Procurement methods</label>
@@ -1262,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', function(){
      load time and touches attention-badge state, so both must exist
      before that first call — otherwise it's a temporal-dead-zone error
      that silently aborts the rest of this script. */
-  const state = { user: null, locations: [], inventory: [], vouchers: [], stockIssues: [], stockRequests: [], equipmentMovements: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
+  const state = { user: null, locations: [], inventory: [], vouchers: [], stockIssues: [], stockRequests: [], equipmentMovements: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], demandInsights: null, demandInsightsError: null, showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
   const attentionDismissed = { requests: null, orders: null, inventory: null, stockRequests: null, suppliers: null };
 
   const DEPARTMENTS = [
@@ -1315,11 +1451,16 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function activateInventoryTab(slug){
+    const prevActive = document.querySelector('#inventoryFilters .filter-pill.active');
+    const prevView = prevActive?.dataset.view || 'items';
     const btn = document.querySelector(`#inventoryFilters .filter-pill[data-slug="${slug}"]`)
       || document.querySelector('#inventoryFilters .filter-pill[data-slug="all"]');
     if(!btn) return;
+    const nextView = btn.dataset.view || 'items';
     document.querySelectorAll('#inventoryFilters .filter-pill').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    if(prevView !== nextView) clearTableSearch('inventoryTableSearch');
+    updateInventorySearchPlaceholder(slug);
     if(btn.dataset.view === 'vouchers'){
       showVoucherPanel();
     } else if(btn.dataset.view === 'issues'){
@@ -1723,11 +1864,299 @@ document.addEventListener('DOMContentLoaded', function(){
     const d = new Date(mysqlDatetime.replace(' ', 'T'));
     return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
   }
+  function fmtDateTime(mysqlDatetime){
+    if(!mysqlDatetime) return '—';
+    const d = new Date(mysqlDatetime.replace(' ', 'T'));
+    return d.toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
+  }
+  function poReceivedCell(o){
+    if(o.status !== 'Received' || !o.received_at){
+      return '<span class="text-textSoft text-[.75rem]">—</span>';
+    }
+    const who = o.received_by ? escapeHtml(o.received_by) : '<span class="text-textSoft">—</span>';
+    return `<div class="received-when text-[.78rem] text-textDark">${fmtDateTime(o.received_at)}</div><div class="text-[.72rem] text-textMid">${who}</div>`;
+  }
+  function issueIssuedCell(iss){
+    if(!iss.created_at){
+      return '<span class="text-textSoft text-[.75rem]">—</span>';
+    }
+    const who = iss.recorded_by ? escapeHtml(iss.recorded_by) : '<span class="text-textSoft">—</span>';
+    return `<div class="received-when text-[.78rem] text-textDark">${fmtDateTime(iss.created_at)}</div><div class="text-[.72rem] text-textMid">${who}</div>`;
+  }
   function peso(n){ return n == null ? '—' : `₱${Number(n).toLocaleString()}`; }
   function escapeHtml(value){
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
       '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;',
     })[ch]);
+  }
+
+  function tableSearchQuery(inputId){
+    return (document.getElementById(inputId)?.value || '').trim().toLowerCase();
+  }
+
+  function rowMatchesSearch(query, ...parts){
+    if(!query) return true;
+    const text = parts.map(p => String(p ?? '')).join(' ').toLowerCase();
+    return text.includes(query);
+  }
+
+  function tableSearchEmptyMessage(colspan, query, defaultMessage){
+    return `<tr><td colspan="${colspan}" class="py-6 text-center text-textMid">${query ? 'No rows match your search.' : defaultMessage}</td></tr>`;
+  }
+
+  function clearTableSearch(inputId){
+    const input = document.getElementById(inputId);
+    if(!input) return;
+    input.value = '';
+    document.getElementById(inputId + 'Clear')?.classList.add('hidden');
+  }
+
+  function syncTableSearchClear(inputId){
+    const input = document.getElementById(inputId);
+    document.getElementById(inputId + 'Clear')?.classList.toggle('hidden', !input?.value);
+  }
+
+  function wireTableSearch(inputId, onSearch){
+    const input = document.getElementById(inputId);
+    if(!input || input.dataset.wired) return;
+    input.dataset.wired = '1';
+    const clearBtn = document.getElementById(inputId + 'Clear');
+    input.addEventListener('input', () => {
+      syncTableSearchClear(inputId);
+      onSearch();
+    });
+    clearBtn?.addEventListener('click', () => {
+      clearTableSearch(inputId);
+      onSearch();
+      input.focus();
+    });
+  }
+
+  const DOC_TYPE_BY_FILTER = {
+    pr: 'Purchase request',
+    po: 'Purchase order',
+    vendor: 'Vendor quotation',
+  };
+
+  const DOCUMENT_SEARCH_PLACEHOLDERS = {
+    pr: 'Search PR ID, item, employee, department…',
+    po: 'Search PO ID, item, supplier, linked PR…',
+    vendor: 'Search quote ID, company, contact…',
+  };
+
+  function requestForRef(refCode){
+    return state.requests.find(r => r.request_code === refCode);
+  }
+
+  function vendorAppForRef(refCode){
+    return state.vendorApplications.find(a => a.application_code === refCode);
+  }
+
+  function documentRefLink(kind, refCode){
+    if(!refCode) return '—';
+    const safe = escapeHtml(refCode);
+    return `<button type="button" onclick="openDocumentDetail('${kind}', '${safe}')" class="doc-ref-link font-semibold text-navy800 bg-transparent border-none cursor-pointer p-0 text-left">${safe}</button>`;
+  }
+
+  function documentDetailRow(label, value){
+    return `<div class="flex justify-between gap-4 py-2.5 border-b border-line last:border-0"><span class="text-[.78rem] text-textMid shrink-0">${label}</span><span class="text-[.85rem] font-semibold text-textDark text-right">${value}</span></div>`;
+  }
+
+  function documentPrSummaryText(refCode){
+    const r = requestForRef(refCode);
+    if(!r) return '—';
+    const dept = purchaseRequestDepartmentLabel(r);
+    const parts = [`${r.qty} ${r.unit} of ${r.display_label || r.item_label}`, r.employee];
+    if(dept !== '—') parts.push(dept);
+    return parts.join(' · ');
+  }
+
+  function documentPoSummaryText(order){
+    if(!order) return '—';
+    const parts = [`${order.qty} ${order.unit} of ${order.item_label}`];
+    if(order.supplier_name) parts.push(order.supplier_name);
+    return parts.join(' · ');
+  }
+
+  function documentVendorSummaryText(refCode){
+    const a = vendorAppForRef(refCode);
+    if(!a) return '—';
+    const n = a.prices?.length || 0;
+    return n ? `${a.company_name} · ${n} item${n === 1 ? '' : 's'} quoted` : a.company_name;
+  }
+
+  function documentPrSearchFields(r){
+    if(!r) return [];
+    return [r.employee, r.display_label, r.item_label, purchaseRequestDepartmentLabel(r),
+      r.reason ? PURCHASE_REASON_LABELS[r.reason] : '', r.status];
+  }
+
+  function documentPoSearchFields(order){
+    if(!order) return [];
+    return [order.item_label, order.supplier_name, order.request_code, order.status,
+      PROCUREMENT_LABELS[order.procurement_method], FINANCE_STATUS_LABELS[order.finance_status]];
+  }
+
+  function documentVendorSearchFields(app){
+    if(!app) return [];
+    return [app.company_name, app.contact, app.status, ...(app.prices || []).map(p => p.label)];
+  }
+
+  window.openDocumentDetail = function(kind, refCode){
+    const body = document.getElementById('documentDetailBody');
+    const actions = document.getElementById('documentDetailActions');
+    document.getElementById('documentDetailTitle').textContent = refCode;
+    body.innerHTML = '';
+    actions.innerHTML = '';
+
+    if(kind === 'pr'){
+      const r = requestForRef(refCode);
+      document.getElementById('documentDetailSubtitle').textContent = 'Purchase request — employee asking to buy something';
+      if(!r){
+        body.innerHTML = `<p class="py-3 text-[.85rem] text-textMid">No matching request found for <strong>${escapeHtml(refCode)}</strong>. It may have been removed or not loaded yet.</p>`;
+      } else {
+        body.innerHTML = [
+          documentDetailRow('Item', escapeHtml(r.display_label || r.item_label)),
+          documentDetailRow('Quantity', `${r.qty} ${escapeHtml(r.unit)}`),
+          documentDetailRow('Requested by', escapeHtml(r.employee)),
+          documentDetailRow('Department', escapeHtml(purchaseRequestDepartmentLabel(r))),
+          documentDetailRow('Reason', escapeHtml(r.reason ? PURCHASE_REASON_LABELS[r.reason] || r.reason : '—')),
+          documentDetailRow('Est. cost', peso(r.estimate_cost)),
+          documentDetailRow('Status', statusPill(r.status)),
+          documentDetailRow('Submitted', fmtDate(r.created_at)),
+        ].join('');
+        actions.innerHTML = `<button type="button" onclick="closeModal('documentDetailModalOverlay'); navigateToPage('page-requests', { updateHash: true });" class="px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-bold border-none cursor-pointer">Open in Purchase Requests</button>`;
+      }
+    } else if(kind === 'po'){
+      const o = orderForPoRef(refCode);
+      document.getElementById('documentDetailSubtitle').textContent = 'Purchase order — approved buy sent to a supplier';
+      if(!o){
+        body.innerHTML = `<p class="py-3 text-[.85rem] text-textMid">No matching order found for <strong>${escapeHtml(refCode)}</strong>.</p>`;
+      } else {
+        let receiptStatus = 'Not uploaded';
+        if(o.receipt_rejected) receiptStatus = 'Rejected — needs reupload';
+        else if(o.receipt_uploaded) receiptStatus = 'Uploaded';
+        else if(o.receipt_waived) receiptStatus = 'Lost receipt note on file';
+        body.innerHTML = [
+          documentDetailRow('Item', escapeHtml(o.item_label)),
+          documentDetailRow('Quantity', `${o.qty} ${escapeHtml(o.unit)}`),
+          documentDetailRow('Supplier', escapeHtml(o.supplier_name || '—')),
+          documentDetailRow('Method', escapeHtml(PROCUREMENT_LABELS[o.procurement_method] || o.procurement_method || '—')),
+          documentDetailRow('Amount', peso(o.amount)),
+          documentDetailRow('Linked PR', escapeHtml(o.request_code || '—')),
+          documentDetailRow('Assigned to', escapeHtml(o.assigned_to || '—')),
+          documentDetailRow('Finance', financeStatusPill(o.finance_status)),
+          documentDetailRow('Receipt', receiptStatus),
+          documentDetailRow('Order status', statusPill(o.status)),
+          documentDetailRow('Order date', fmtDate(o.created_at)),
+          documentDetailRow('Received at', o.status === 'Received' && o.received_at ? fmtDateTime(o.received_at) : '—'),
+          documentDetailRow('Received by', escapeHtml(o.received_by || '—')),
+        ].join('');
+        const btns = [];
+        if(o.receipt_uploaded){
+          btns.push(`<button type="button" onclick="viewReceipt(${o.id})" class="px-4 py-2.5 rounded-xl bg-[#eef2f7] text-textMid text-[.85rem] font-semibold border-none cursor-pointer">View receipt</button>`);
+        } else if(o.receipt_waived){
+          btns.push(`<button type="button" onclick="viewLostReceiptNote(${o.id})" class="px-4 py-2.5 rounded-xl bg-amberBg text-amberTx text-[.85rem] font-semibold border-none cursor-pointer">Lost receipt note</button>`);
+        } else if(o.receipt_rejected){
+          btns.push(`<button type="button" onclick="viewRejectedReceiptNote(${o.id})" class="px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.85rem] font-semibold border-none cursor-pointer">Rejection note</button>`);
+        }
+        btns.push(`<button type="button" onclick="openOrderSlip(${o.id})" class="px-4 py-2.5 rounded-xl bg-[#eef2f7] text-textMid text-[.85rem] font-semibold border-none cursor-pointer">PO slip</button>`);
+        btns.push(`<button type="button" onclick="closeModal('documentDetailModalOverlay'); navigateToPage('page-orders', { updateHash: true });" class="px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-bold border-none cursor-pointer">Open in Purchase Orders</button>`);
+        actions.innerHTML = btns.join('');
+      }
+    } else {
+      const a = vendorAppForRef(refCode);
+      document.getElementById('documentDetailSubtitle').textContent = 'Vendor quotation — supplier price list submitted online';
+      if(!a){
+        body.innerHTML = `<p class="py-3 text-[.85rem] text-textMid">No matching vendor quote found for <strong>${escapeHtml(refCode)}</strong>.</p>`;
+      } else {
+        const methods = (a.procurement_methods || []).map(m => PROCUREMENT_LABELS[m] || m).join(', ') || '—';
+        const priceLines = (a.prices || []).length
+          ? `<div class="mt-2 space-y-1">${a.prices.map(p => `<div class="text-[.82rem] text-textDark">${escapeHtml(p.label)} — ${peso(p.price)} / ${escapeHtml(p.unit)}</div>`).join('')}</div>`
+          : '<span class="text-textMid">No line items</span>';
+        body.innerHTML = [
+          documentDetailRow('Company', escapeHtml(a.company_name)),
+          documentDetailRow('Contact', escapeHtml(a.contact || '—')),
+          documentDetailRow('Methods', escapeHtml(methods)),
+          documentDetailRow('Status', statusPill(a.status)),
+          documentDetailRow('Submitted', fmtDate(a.created_at)),
+          `<div class="py-2.5 border-b border-line"><span class="text-[.78rem] text-textMid block mb-1">Items quoted</span>${priceLines}</div>`,
+        ].join('');
+        actions.innerHTML = `<button type="button" onclick="closeModal('documentDetailModalOverlay'); navigateToPage('page-suppliers', { updateHash: true });" class="px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-bold border-none cursor-pointer">Open in Supplier Directory</button>`;
+      }
+    }
+    openModal('documentDetailModalOverlay');
+  };
+
+  function activeDocumentFilter(){
+    return document.querySelector('#documentFilters .filter-pill.active')?.dataset.docFilter || 'pr';
+  }
+
+  function documentsForActiveTab(){
+    const docType = DOC_TYPE_BY_FILTER[activeDocumentFilter()];
+    return state.documents.filter(d => d.doc_type === docType);
+  }
+
+  function orderForPoRef(refCode){
+    return state.orders.find(o => o.po_code === refCode);
+  }
+
+  function documentPoReceiptCell(refCode){
+    const order = orderForPoRef(refCode);
+    if(!order){
+      return '<span class="text-textSoft text-[.75rem]">—</span>';
+    }
+    if(order.receipt_rejected){
+      return `<button type="button" onclick="viewRejectedReceiptNote(${order.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Rejected — view note</button>`;
+    }
+    if(order.receipt_uploaded){
+      return `<button type="button" onclick="viewReceipt(${order.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View receipt</button>`;
+    }
+    if(order.receipt_waived){
+      return `<button type="button" onclick="viewLostReceiptNote(${order.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Lost receipt note</button>`;
+    }
+    return '<span class="text-textSoft text-[.75rem]">Not uploaded</span>';
+  }
+
+  function updateDocumentSearchPlaceholder(filter){
+    const input = document.getElementById('documentsTableSearch');
+    if(!input) return;
+    input.placeholder = DOCUMENT_SEARCH_PLACEHOLDERS[filter] || DOCUMENT_SEARCH_PLACEHOLDERS.pr;
+  }
+
+  function showDocumentTab(filter){
+    filter = filter || 'pr';
+    document.getElementById('documentsPrTableWrap').classList.toggle('hidden', filter !== 'pr');
+    document.getElementById('documentsPoTableWrap').classList.toggle('hidden', filter !== 'po');
+    document.getElementById('documentsVendorTableWrap').classList.toggle('hidden', filter !== 'vendor');
+    updateDocumentSearchPlaceholder(filter);
+    renderDocuments();
+  }
+
+  const INVENTORY_SEARCH_PLACEHOLDERS = {
+    all: 'Search item, type, storage location…',
+    'low-stock': 'Search low-stock items…',
+    'in-stock': 'Search in-stock items…',
+    equipment: 'Search equipment name, location…',
+    vouchers: 'Search voucher, tour package…',
+    'stock-requests': 'Search request ID, item, department…',
+    'issue-log': 'Search item, department, issued to, issuer…',
+    'equipment-history': 'Search item, PO/issue reference…',
+  };
+
+  function updateInventorySearchPlaceholder(slug){
+    const input = document.getElementById('inventoryTableSearch');
+    if(!input) return;
+    input.placeholder = INVENTORY_SEARCH_PLACEHOLDERS[slug] || INVENTORY_SEARCH_PLACEHOLDERS.all;
+  }
+
+  function rerenderActiveInventoryTable(){
+    const active = document.querySelector('#inventoryFilters .filter-pill.active');
+    if(active?.dataset.view === 'vouchers') renderVouchers();
+    else if(active?.dataset.view === 'issues') renderStockIssues();
+    else if(active?.dataset.view === 'stock-requests') renderStockRequests();
+    else if(active?.dataset.view === 'equipment-history') renderEquipmentHistory();
+    else renderInventory(active?.dataset.filter || 'all');
   }
 
   function statusPill(status){
@@ -1753,7 +2182,7 @@ document.addEventListener('DOMContentLoaded', function(){
       'Active': 'bg-greenBg text-greenTx',
       'Voided': 'bg-redBg text-redTx',
     };
-    return `<span class="px-2.5 py-1 rounded-full text-[.72rem] font-semibold ${map[status] || 'bg-[#eef2f7] text-textMid'}">${status}</span>`;
+    return `<span class="status-pill px-2.5 py-1 rounded-full text-[.72rem] font-semibold ${map[status] || 'bg-[#eef2f7] text-textMid'}">${status}</span>`;
   }
 
   const FINANCE_STATUS_LABELS = {
@@ -1775,7 +2204,17 @@ document.addEventListener('DOMContentLoaded', function(){
   function financeStatusPill(status){
     const label = FINANCE_STATUS_LABELS[status] || status;
     const cls = FINANCE_STATUS_CLASSES[status] || 'bg-[#eef2f7] text-textMid';
-    return `<span class="px-2.5 py-1 rounded-full text-[.72rem] font-semibold ${cls}">${label}</span>`;
+    return `<span class="status-pill px-2.5 py-1 rounded-full text-[.72rem] font-semibold ${cls}">${label}</span>`;
+  }
+
+  function velocityTierPill(tier){
+    const map = {
+      fast: 'bg-amberBg text-amberTx',
+      steady: 'bg-blueBg text-blueTx',
+      slow: 'bg-[#eef2f7] text-textMid',
+    };
+    const labels = { fast: 'Fast moving', steady: 'Steady', slow: 'Slow moving' };
+    return `<span class="status-pill px-2 py-0.5 rounded-full text-[.68rem] font-semibold ${map[tier] || map.steady}">${labels[tier] || tier}</span>`;
   }
 
   /* ---------- locations ---------- */
@@ -1963,6 +2402,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderInventory(filter){
     filter = filter || 'all';
+    const query = tableSearchQuery('inventoryTableSearch');
     const visible = (state.showInactiveInventory ? state.inventory : activeItems())
       .filter(it => {
         if(filter === 'all') return true;
@@ -1970,10 +2410,11 @@ document.addEventListener('DOMContentLoaded', function(){
         if(filter === 'In storage') return it.status === 'In storage' || it.status === 'Mixed';
         if(filter === 'In use') return it.status === 'In use' || it.status === 'Mixed';
         return it.status === filter;
-      });
+      })
+      .filter(it => rowMatchesSearch(query, it.label, it.item_key, it.item_type, itemPlacementLabel(it), it.status, it.location_name));
     const tbody = document.getElementById('inventoryTableBody');
     if(!visible.length){
-      tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-textMid">${state.showInactiveInventory ? 'No items match this filter.' : 'No active items. Turn on “Show inactive” to see hidden items.'}</td></tr>`;
+      tbody.innerHTML = tableSearchEmptyMessage(8, query, state.showInactiveInventory ? 'No items match this filter.' : 'No active items. Turn on “Show inactive” to see hidden items.');
       return;
     }
     tbody.innerHTML = visible.map(it => `
@@ -1984,7 +2425,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">${equipmentQtyLabel(it)}</td>
         <td class="py-3 pr-3 text-textMid">${it.min_qty ?? '—'}</td>
         <td class="py-3 pr-3 text-textMid">${it.max_qty ?? '—'}</td>
-        <td class="py-3 pr-3">${statusPill(it.status)}</td>
+        <td class="py-3 pr-3 status-cell">${statusPill(it.status)}</td>
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
             ${it.active && it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
@@ -2062,12 +2503,14 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function renderVouchers(){
+    const query = tableSearchQuery('inventoryTableSearch');
+    const visible = state.vouchers.filter(v => rowMatchesSearch(query, v.label, v.tour_package, v.notes));
     const tbody = document.getElementById('voucherTableBody');
-    if(!state.vouchers.length){
-      tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-textMid">No voucher types yet. Click Add voucher to create one.</td></tr>`;
+    if(!visible.length){
+      tbody.innerHTML = tableSearchEmptyMessage(6, query, 'No voucher types yet. Click Add voucher to create one.');
       return;
     }
-    tbody.innerHTML = state.vouchers.map(v => `
+    tbody.innerHTML = visible.map(v => `
       <tr class="border-b border-line last:border-0">
         <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(v.label)}</td>
         <td class="py-3 pr-3 text-textMid">${escapeHtml(v.tour_package || '—')}</td>
@@ -2270,25 +2713,29 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
   function renderStockRequests(){
+    const query = tableSearchQuery('inventoryTableSearch');
+    const visible = state.stockRequests.filter(sr => rowMatchesSearch(
+      query, sr.request_code, sr.department, sr.item_label, sr.item_type, sr.requested_by, sr.status, sr.fulfilled_issue_code
+    ));
     const tbody = document.getElementById('stockRequestsTableBody');
-    if(!state.stockRequests.length){
-      tbody.innerHTML = `<tr><td colspan="10" class="py-6 text-center text-textMid">No stock requests yet. Click Request from stock to ask inventory for items on the shelf.</td></tr>`;
+    if(!visible.length){
+      tbody.innerHTML = tableSearchEmptyMessage(10, query, 'No stock requests yet. Click Request from stock to ask inventory for items on the shelf.');
       return;
     }
-    tbody.innerHTML = state.stockRequests.map(sr => {
+    tbody.innerHTML = visible.map(sr => {
       const canFulfill = sr.status === 'Pending' && roleAtLeast('staff');
       const canCancel = sr.status === 'Pending' && (sr.requested_by === state.user?.name || roleAtLeast('staff'));
       const enoughStock = sr.current_qty == null || sr.qty <= sr.current_qty;
       return `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(sr.request_code)}</td>
+        <td class="py-3 pr-3 font-semibold text-textDark code-cell">${escapeHtml(sr.request_code)}</td>
         <td class="py-3 pr-3">${escapeHtml(sr.department)}</td>
         <td class="py-3 pr-3 text-textMid capitalize">${sr.item_type === 'equipment' ? 'Equipment' : 'Supply'}</td>
         <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(sr.item_label)}</td>
         <td class="py-3 pr-3">${sr.qty} ${escapeHtml(sr.unit)}</td>
         <td class="py-3 pr-3 ${enoughStock ? 'text-textMid' : 'text-redTx font-semibold'}">${sr.current_qty ?? '—'} ${escapeHtml(sr.unit)}</td>
         <td class="py-3 pr-3 text-textMid">${escapeHtml(sr.requested_by)}</td>
-        <td class="py-3 pr-3 text-textMid">${fmtDate(sr.created_at)}</td>
+        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(sr.created_at)}</td>
         <td class="py-3 pr-3">${statusPill(sr.status)}${sr.fulfilled_issue_code ? `<div class="text-[.72rem] text-textSoft mt-1">${escapeHtml(sr.fulfilled_issue_code)}</div>` : ''}</td>
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
@@ -2368,38 +2815,46 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function renderEquipmentHistory(){
+    const query = tableSearchQuery('inventoryTableSearch');
+    const visible = state.equipmentMovements.filter(m => rowMatchesSearch(
+      query, m.item_label, m.reference_code, EQUIPMENT_MOVEMENT_LABELS[m.movement_type], m.movement_type,
+      m.department, m.location_name, m.recorded_by, m.status
+    ));
     const tbody = document.getElementById('equipmentHistoryTableBody');
-    if(!state.equipmentMovements.length){
-      tbody.innerHTML = '<tr><td colspan="8" class="py-6 text-center text-textMid">No equipment movements yet — issues from storage and purchase receipts will appear here.</td></tr>';
+    if(!visible.length){
+      tbody.innerHTML = tableSearchEmptyMessage(8, query, 'No equipment movements yet — issues from storage and purchase receipts will appear here.');
       return;
     }
-    tbody.innerHTML = state.equipmentMovements.map(m => `
+    tbody.innerHTML = visible.map(m => `
       <tr class="border-b border-line last:border-0 ${m.status === 'Voided' ? 'opacity-70' : ''}">
-        <td class="py-3 pr-3 text-textMid">${fmtDate(m.created_at)}</td>
+        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(m.created_at)}</td>
         <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(m.item_label)}</td>
         <td class="py-3 pr-3">${m.qty} ${escapeHtml(m.unit)}</td>
         <td class="py-3 pr-3 text-textMid">${EQUIPMENT_MOVEMENT_LABELS[m.movement_type] || m.movement_type}</td>
         <td class="py-3 pr-3 text-textMid">${equipmentMovementDestination(m)}</td>
-        <td class="py-3 pr-3 text-textMid font-semibold">${escapeHtml(m.reference_code || '—')}</td>
+        <td class="py-3 pr-3 text-textMid font-semibold code-cell">${escapeHtml(m.reference_code || '—')}</td>
         <td class="py-3 pr-3 text-textMid">${escapeHtml(m.recorded_by)}</td>
         <td class="py-3 pr-3">${statusPill(m.status)}${m.status === 'Voided' && m.voided_reason ? `<div class="text-[.68rem] text-textSoft mt-1">${escapeHtml(m.voided_reason)}</div>` : ''}</td>
       </tr>`).join('');
   }
 
   function renderStockIssues(){
+    const query = tableSearchQuery('inventoryTableSearch');
+    const visible = state.stockIssues.filter(iss => rowMatchesSearch(
+      query, iss.item_label, iss.department, iss.issued_to, iss.recorded_by, iss.status
+    ));
     const tbody = document.getElementById('issueTableBody');
-    if(!state.stockIssues.length){
-      tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-textMid">No stock issued yet. Use the Issue button on an item to record a checkout.</td></tr>`;
+    if(!visible.length){
+      tbody.innerHTML = tableSearchEmptyMessage(7, query, 'No stock issued yet. Use the Issue button on an item to record a checkout.');
       return;
     }
-    tbody.innerHTML = state.stockIssues.map(iss => `
+    tbody.innerHTML = visible.map(iss => `
       <tr class="border-b border-line last:border-0 ${iss.status === 'Voided' ? 'opacity-60' : ''}">
-        <td class="py-3 pr-3 text-textMid">${fmtDate(iss.created_at)}</td>
+        <td class="py-3 pr-3 received-cell">${issueIssuedCell(iss)}</td>
         <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(iss.item_label)}</td>
         <td class="py-3 pr-3">${iss.qty} ${iss.unit}</td>
         <td class="py-3 pr-3">${escapeHtml(iss.department)}</td>
         <td class="py-3 pr-3 text-textMid">${escapeHtml(iss.issued_to || '—')}</td>
-        <td class="py-3 pr-3 text-textMid">${escapeHtml(iss.recorded_by)}</td>
         <td class="py-3 pr-3">${statusPill(iss.status)}</td>
         <td class="py-3 pr-3">
           ${iss.status === 'Active' && roleAtLeast('manager') ? `<button onclick="voidIssue(${iss.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Void</button>` : (iss.status === 'Voided' ? `<span class="text-textSoft text-[.78rem]">${escapeHtml(iss.voided_reason || 'Voided')}</span>` : '—')}
@@ -2690,6 +3145,7 @@ document.addEventListener('DOMContentLoaded', function(){
       });
       closeModal('closeMonthModalOverlay');
       await loadInventory();
+      await loadDemandInsights();
       renderDashboard();
       alert(`${monthLabel} closed.\n\nUsage logged: ${result.computed_usage} ${it?.unit || ''}\nStock on hand: ${result.new_current_qty} ${it?.unit || ''}\n\nOpen AI Demand Forecast to see the updated prediction.`);
     } catch (err) {
@@ -2807,25 +3263,170 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
   /* ---------- dashboard ---------- */
+  async function loadDemandInsights(){
+    try {
+      state.demandInsights = await apiGet('demand_insights.php?limit=8');
+      state.demandInsightsError = null;
+    } catch (err) {
+      state.demandInsights = { items: [], meta: null };
+      state.demandInsightsError = err?.error || 'Could not load demand insights.';
+    }
+    renderDemandInsights();
+  }
+
+  function renderDemandInsights(){
+    const el = document.getElementById('demandInsightsList');
+    if(!el) return;
+    if(state.demandInsightsError){
+      el.innerHTML = `<p class="text-[.85rem] text-redTx">${escapeHtml(state.demandInsightsError)}</p>`;
+      return;
+    }
+    const items = state.demandInsights?.items || [];
+    if(!items.length){
+      const ranked = state.demandInsights?.meta?.consumables_ranked ?? 0;
+      const pos = state.demandInsights?.meta?.recent_po_rows ?? 0;
+      el.innerHTML = ranked > 0 || pos > 0
+        ? '<p class="text-[.85rem] text-textMid">No ranked consumables yet. Usage history or purchase orders will populate this list.</p>'
+        : '<p class="text-[.85rem] text-textMid">No consumable usage or purchase orders in the last 90 days yet.</p>';
+      return;
+    }
+    el.innerHTML = items.map(it => {
+      const usageLine = it.avg_monthly_usage > 0
+        ? `~${it.avg_monthly_usage} ${escapeHtml(it.unit)}/mo`
+        : 'No usage logged yet';
+      const poLine = it.po_count_90d > 0
+        ? `${it.po_count_90d} order${it.po_count_90d === 1 ? '' : 's'} (90d) · ${it.po_qty_90d} ${escapeHtml(it.unit)}${it.po_placed_90d > 0 && it.po_received_90d > 0 ? ` (${it.po_received_90d} received, ${it.po_placed_90d} open)` : it.po_placed_90d > 0 ? ' (open POs)' : ''}`
+        : 'No orders in last 90 days';
+      return `<div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-line bg-[#f8fafc] flex-wrap">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 flex-wrap mb-1">
+            <span class="font-semibold text-[.88rem] text-textDark">${escapeHtml(it.label)}</span>
+            ${velocityTierPill(it.velocity_tier)}
+            ${it.is_low_stock ? '<span class="status-pill px-2 py-0.5 rounded-full text-[.68rem] font-semibold bg-redBg text-redTx">Low stock</span>' : ''}
+          </div>
+          <div class="text-[.75rem] text-textMid">${usageLine} · ${poLine}</div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0 flex-wrap">
+          ${it.is_low_stock ? `<button type="button" onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Create request</button>` : ''}
+          <button type="button" onclick="openForecastFromInsight('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Forecast</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  window.openForecastFromInsight = function(itemKey){
+    navigateToPage('page-forecast', { updateHash: true });
+    const sel = document.getElementById('forecastItemSelect');
+    if(sel){
+      sel.value = itemKey;
+      renderForecast(itemKey);
+    }
+  };
+
+  function dashboardStatEmpty(message){
+    return `<p class="text-[.85rem] text-textMid py-2">${message}</p>`;
+  }
+
+  function dashboardStatRow(title, meta, pillHtml){
+    return `<div class="flex items-start justify-between gap-3 p-3 rounded-xl border border-line bg-[#f8fafc]">
+      <div class="min-w-0">
+        <div class="font-semibold text-[.88rem] text-textDark">${title}</div>
+        ${meta ? `<div class="text-[.75rem] text-textMid mt-0.5">${meta}</div>` : ''}
+      </div>
+      ${pillHtml ? `<div class="shrink-0">${pillHtml}</div>` : ''}
+    </div>`;
+  }
+
+  window.openDashboardStatDetail = function(type){
+    const titleEl = document.getElementById('dashboardStatModalTitle');
+    const subtitleEl = document.getElementById('dashboardStatModalSubtitle');
+    const bodyEl = document.getElementById('dashboardStatModalBody');
+    const goBtn = document.getElementById('dashboardStatModalGoBtn');
+    goBtn.dataset.stat = type;
+    let html = '';
+
+    if(type === 'items'){
+      const items = activeItems();
+      titleEl.textContent = `Items tracked (${items.length})`;
+      subtitleEl.textContent = 'Active catalog items in office storage and equipment.';
+      goBtn.textContent = 'Open inventory';
+      html = items.length ? items.map(it => dashboardStatRow(
+        escapeHtml(it.label),
+        `${escapeHtml(it.item_type)} · ${escapeHtml(itemPlacementLabel(it))} · ${escapeHtml(equipmentQtyLabel(it))}`,
+        statusPill(it.status)
+      )).join('') : dashboardStatEmpty('No active items on record.');
+    } else if(type === 'low-stock'){
+      const items = activeItems().filter(it => it.status === 'Low stock');
+      titleEl.textContent = `Low stock items (${items.length})`;
+      subtitleEl.textContent = 'Consumables at or below minimum threshold.';
+      goBtn.textContent = 'Open inventory — low stock';
+      html = items.length ? items.map(it => dashboardStatRow(
+        escapeHtml(it.label),
+        `${it.current_qty} ${escapeHtml(it.unit)} left · min ${it.min_qty} · ${escapeHtml(it.location_name || '—')}`,
+        statusPill(it.status)
+      )).join('') : dashboardStatEmpty('No low stock items right now.');
+    } else if(type === 'pending'){
+      const pending = state.requests.filter(r => r.status === 'Pending');
+      titleEl.textContent = `Pending requests (${pending.length})`;
+      subtitleEl.textContent = 'Purchase requests waiting for manager approval.';
+      goBtn.textContent = 'Open purchase requests';
+      html = pending.length ? pending.map(r => dashboardStatRow(
+        escapeHtml(r.request_code),
+        `${escapeHtml(r.employee)} · ${escapeHtml(r.display_label || r.item_label)} · ${r.qty} ${escapeHtml(r.unit)}`,
+        statusPill(r.status)
+      )).join('') : dashboardStatEmpty('No pending purchase requests.');
+    } else if(type === 'suppliers'){
+      const suppliers = activeSuppliers();
+      titleEl.textContent = `Active suppliers (${suppliers.length})`;
+      subtitleEl.textContent = 'Vendors in the supplier directory.';
+      goBtn.textContent = 'Open supplier directory';
+      html = suppliers.length ? suppliers.map(s => {
+        const methods = (s.procurement_methods || []).map(m => PROCUREMENT_LABELS[m] || m).join(', ') || '—';
+        const priceCount = (s.prices || []).length;
+        return dashboardStatRow(
+          escapeHtml(s.name),
+          `${escapeHtml(s.contact || 'No contact')} · ${methods} · ${priceCount} priced item${priceCount === 1 ? '' : 's'}`,
+          `<span class="status-pill px-2 py-1 rounded-full text-[.72rem] font-semibold bg-greenBg text-greenTx">Active</span>`
+        );
+      }).join('') : dashboardStatEmpty('No active suppliers on record.');
+    } else {
+      return;
+    }
+
+    bodyEl.innerHTML = html;
+    openModal('dashboardStatModalOverlay');
+  };
+
+  window.goFromDashboardStat = function(){
+    const type = document.getElementById('dashboardStatModalGoBtn').dataset.stat;
+    closeModal('dashboardStatModalOverlay');
+    if(type === 'items'){
+      navigateToPage('page-inventory', { updateHash: true });
+      location.hash = hashForInventoryTab('all');
+      activateInventoryTab('all');
+    } else if(type === 'low-stock'){
+      navigateToPage('page-inventory', { updateHash: true });
+      location.hash = hashForInventoryTab('low-stock');
+      activateInventoryTab('low-stock');
+    } else if(type === 'pending'){
+      navigateToPage('page-requests', { updateHash: true });
+    } else if(type === 'suppliers'){
+      navigateToPage('page-suppliers', { updateHash: true });
+    }
+  };
+
   function renderDashboard(){
     const lowStock = activeItems().filter(it => it.status === 'Low stock');
     const storageLocCount = activeLocations().filter(l => l.location_type === 'storage').length;
 
     document.getElementById('statTotalItems').textContent = activeItems().length;
-    document.querySelector('#statTotalItems').parentElement.querySelector('.text-textSoft').textContent =
+    document.getElementById('statTotalItemsHint').textContent =
       `Across ${storageLocCount} storage location${storageLocCount === 1 ? '' : 's'}`;
     document.getElementById('statLowStock').textContent = lowStock.length;
     document.getElementById('statPending').textContent = state.requests.filter(r => r.status === 'Pending').length;
     document.getElementById('statSuppliers').textContent = activeSuppliers().length;
 
-    document.getElementById('lowStockAlertList').innerHTML = lowStock.length ? lowStock.map(it => `
-      <div class="flex items-center justify-between p-3 rounded-xl bg-[#fdf6f6] border border-[#f6dede]">
-        <div>
-          <div class="font-semibold text-[.88rem] text-textDark">${it.label}</div>
-          <div class="text-[.75rem] text-textMid">${it.current_qty} left · minimum ${it.min_qty} · ${it.location_name || '—'}</div>
-        </div>
-        <button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer shrink-0">Create request</button>
-      </div>`).join('') : `<p class="text-[.85rem] text-textMid">No low stock items right now.</p>`;
+    if(state.demandInsights !== null) renderDemandInsights();
 
     document.getElementById('recentActivityList').innerHTML = state.documents.slice(0,5).map(d => `
       <div class="flex items-start gap-3">
@@ -2843,20 +3444,32 @@ document.addEventListener('DOMContentLoaded', function(){
   async function loadRequests(){
     state.requests = await apiGet('purchase_requests.php');
     renderRequests();
+    if(document.getElementById('page-documents') && !document.getElementById('page-documents').classList.contains('hidden')){
+      renderDocuments();
+    }
   }
 
   function renderRequests(){
+    const query = tableSearchQuery('requestsTableSearch');
+    const visible = state.requests.filter(r => rowMatchesSearch(
+      query, r.request_code, r.employee, purchaseRequestDepartmentLabel(r), r.display_label, r.item_label,
+      r.reason ? PURCHASE_REASON_LABELS[r.reason] : '', r.status, r.item_type
+    ));
     const tbody = document.getElementById('requestsTableBody');
-    tbody.innerHTML = state.requests.map(r => `
+    if(!visible.length){
+      tbody.innerHTML = tableSearchEmptyMessage(10, query, 'No purchase requests yet.');
+      return;
+    }
+    tbody.innerHTML = visible.map(r => `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark">${r.request_code}</td>
+        <td class="py-3 pr-3 font-semibold text-textDark code-cell">${r.request_code}</td>
         <td class="py-3 pr-3">${escapeHtml(r.employee)}</td>
         <td class="py-3 pr-3 text-textMid">${escapeHtml(purchaseRequestDepartmentLabel(r))}</td>
         <td class="py-3 pr-3">${escapeHtml(r.display_label || r.item_label)}${r.needs_catalog_link ? ' <span class="text-[.68rem] text-amberTx">(not in catalog yet)</span>' : ''}${r.item_type === 'equipment' ? ' <span class="text-[.68rem] text-textSoft">(equipment)</span>' : ''}</td>
         <td class="py-3 pr-3 text-textMid">${r.reason ? PURCHASE_REASON_LABELS[r.reason] || r.reason : '—'}</td>
         <td class="py-3 pr-3">${r.qty} ${r.unit}</td>
         <td class="py-3 pr-3">${peso(r.estimate_cost)}${r.best_supplier ? `<div class="text-[.68rem] text-textSoft">est., ${r.best_supplier}</div>` : ''}</td>
-        <td class="py-3 pr-3 text-textMid">${fmtDate(r.created_at)}</td>
+        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(r.created_at)}</td>
         <td class="py-3 pr-3">${statusPill(r.status)}</td>
         <td class="py-3 pr-3">${
           r.status === 'Pending' ? (roleAtLeast('manager') ? `
@@ -2962,7 +3575,7 @@ document.addEventListener('DOMContentLoaded', function(){
             ${idx===0 ? '<span class="px-2 py-0.5 rounded-full bg-greenBg text-greenTx text-[.7rem] font-semibold">Lowest price</span>' : ''}
           </div>
           <div class="text-[.82rem] text-textMid">₱${price} / unit × ${req.qty} = <span class="font-semibold text-textDark">${peso(price * req.qty)}</span></div>
-          <div class="text-[.72rem] text-textSoft mt-1 flex items-center gap-1"><i class='bx bxs-star text-[.8rem]'></i>${s.rating ?? '—'} rating · ${(s.procurement_methods || []).map(m => PROCUREMENT_LABELS[m]).join(', ')}</div>
+          <div class="text-[.72rem] text-textSoft mt-1">${(s.procurement_methods || []).map(m => PROCUREMENT_LABELS[m]).join(', ') || '—'}</div>
         </button>`).join('');
     }
   }
@@ -3023,11 +3636,23 @@ document.addEventListener('DOMContentLoaded', function(){
   async function loadOrders(){
     state.orders = await apiGet('purchase_orders.php');
     renderOrders();
+    if(document.getElementById('page-documents') && !document.getElementById('page-documents').classList.contains('hidden')){
+      renderDocuments();
+    }
   }
 
   function renderOrders(){
+    const query = tableSearchQuery('ordersTableSearch');
+    const visible = state.orders.filter(o => rowMatchesSearch(
+      query, o.po_code, o.request_code, o.supplier_name, PROCUREMENT_LABELS[o.procurement_method],
+      o.finance_status, FINANCE_STATUS_LABELS[o.finance_status], o.status, o.received_by
+    ));
     const tbody = document.getElementById('ordersTableBody');
-    tbody.innerHTML = state.orders.map(o => {
+    if(!visible.length){
+      tbody.innerHTML = tableSearchEmptyMessage(11, query, 'No purchase orders yet.');
+      return;
+    }
+    tbody.innerHTML = visible.map(o => {
       const receiptCell = o.receipt_rejected
         ? `<button onclick="viewRejectedReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Rejected — view note</button>`
         : (o.receipt_uploaded
@@ -3050,14 +3675,15 @@ document.addEventListener('DOMContentLoaded', function(){
       const canResendFinance = o.status === 'Placed' && roleAtLeast('manager') && (o.finance_status === 'not_sent' || o.finance_status === 'disbursement_rejected');
       return `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark">${o.po_code}</td>
-        <td class="py-3 pr-3 text-textMid">${o.request_code}</td>
+        <td class="py-3 pr-3 font-semibold text-textDark code-cell">${o.po_code}</td>
+        <td class="py-3 pr-3 text-textMid code-cell">${o.request_code}</td>
         <td class="py-3 pr-3">${o.supplier_name || '—'}</td>
         <td class="py-3 pr-3 text-textMid">${PROCUREMENT_LABELS[o.procurement_method] || o.procurement_method}</td>
         <td class="py-3 pr-3">${peso(o.amount)}</td>
         <td class="py-3 pr-3">${financeStatusPill(o.finance_status)}</td>
         <td class="py-3 pr-3">${receiptCell}</td>
-        <td class="py-3 pr-3 text-textMid">${fmtDate(o.created_at)}</td>
+        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(o.created_at)}</td>
+        <td class="py-3 pr-3 received-cell">${poReceivedCell(o)}</td>
         <td class="py-3 pr-3">${statusPill(o.status)}</td>
         <td class="py-3 pr-3">
           <div class="flex gap-2 flex-wrap">
@@ -3233,7 +3859,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!confirm(`Confirm ${order.qty} ${order.unit} of ${order.item_label} were received, and that the receipt/lost-receipt note matches this order?`)) return;
     try {
       const result = await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'receive' });
-      await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory(), loadEquipmentMovements()]);
+      await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory(), loadEquipmentMovements(), loadDemandInsights()]);
       renderDashboard();
       alert(`${result.qty_added} ${result.unit} of ${result.item_label} added to inventory. Stock is now ${result.new_stock}.`);
     } catch (err) {
@@ -3296,7 +3922,7 @@ document.addEventListener('DOMContentLoaded', function(){
         storage_location_id: deploy ? null : storageLocationId,
       });
       closeModal('receiveEquipmentModalOverlay');
-      await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory(), loadEquipmentMovements()]);
+      await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory(), loadEquipmentMovements(), loadDemandInsights()]);
       renderDashboard();
       if(result.received_to === 'department'){
         alert(`${result.qty_added} ${result.unit} of ${result.item_label} received and deployed to ${result.deployed_to}. Check the Equipment tab.`);
@@ -3392,7 +4018,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const internalLines = [
       `Internal PO: ${o.po_code}`,
-      `Date: ${fmtDate(o.created_at)}`,
+      `Order date: ${fmtDate(o.created_at)}`,
+      o.status === 'Received' && o.received_at
+        ? `Received: ${fmtDateTime(o.received_at)}${o.received_by ? ` · ${o.received_by}` : ''}`
+        : '',
       '',
       `Supplier: ${o.supplier_name || '(none listed)'}`,
       `Contact (call / message them): ${contact}`,
@@ -3434,6 +4063,9 @@ document.addEventListener('DOMContentLoaded', function(){
       state.vendorApplications = [];
     }
     renderPendingVendors();
+    if(document.getElementById('page-documents') && !document.getElementById('page-documents').classList.contains('hidden')){
+      renderDocuments();
+    }
   }
 
   function renderPendingVendors(){
@@ -3469,7 +4101,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!app) return;
     if(!confirm(`Approve ${app.company_name} and add their quoted prices to the Supplier Directory?`)) return;
     try {
-      await apiSend(`vendor_applications.php?id=${id}`, 'PUT', { action: 'approve', rating: 4.0 });
+      await apiSend(`vendor_applications.php?id=${id}`, 'PUT', { action: 'approve' });
       await Promise.all([loadVendorApplications(), loadSuppliers(), loadDocuments()]);
       alert(`${app.company_name} is now in the Supplier Directory.`);
     } catch (err) {
@@ -3539,7 +4171,6 @@ document.addEventListener('DOMContentLoaded', function(){
           <h4 class="font-display font-bold text-[.95rem] text-textDark">${escapeHtml(s.name)}</h4>
           <div class="flex items-center gap-2 shrink-0">
             ${!s.active ? `<span class="px-2 py-0.5 rounded-full text-[.68rem] font-semibold bg-[#eef2f7] text-textMid">Inactive</span>` : ''}
-            <span class="text-[.75rem] font-semibold text-amberTx flex items-center gap-1"><i class='bx bxs-star text-[.85rem]'></i>${s.rating ?? '—'}</span>
           </div>
         </div>
         <div class="text-[.78rem] text-textMid mb-2">${escapeHtml(s.contact || '—')}</div>
@@ -3547,7 +4178,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="flex flex-wrap gap-1.5 mb-3">${s.prices.map(p => {
           const best = bestSupplierFor(p.item_key);
           const isBest = s.active && best && best.supplier.id === s.id;
-          return `<span class="px-2 py-1 rounded-full text-[.7rem] font-medium ${isBest ? 'bg-greenBg text-greenTx' : 'bg-[#eef2f7] text-textMid'}">${escapeHtml(p.label)} — ₱${p.price}${isBest ? ' ★' : ''}</span>`;
+          return `<span class="px-2 py-1 rounded-full text-[.7rem] font-medium ${isBest ? 'bg-greenBg text-greenTx' : 'bg-[#eef2f7] text-textMid'}">${escapeHtml(p.label)} — ₱${p.price}${isBest ? ' · best price' : ''}</span>`;
         }).join('')}</div>
         <div class="text-[.72rem] text-textSoft mb-3">Last purchase: ${s.prices[0]?.last_purchase_date ? fmtDate(s.prices[0].last_purchase_date) : '—'}</div>
         <div class="flex flex-wrap gap-2">
@@ -3620,7 +4251,6 @@ document.addEventListener('DOMContentLoaded', function(){
     supEditRemoved = [];
     document.getElementById('supplierEditModalTitle').textContent = `Edit — ${s.name}`;
     document.getElementById('supEditContact').value = s.contact || '';
-    document.getElementById('supEditRating').value = s.rating ?? '';
     document.getElementById('supEditNotes').value = s.notes || '';
     document.querySelectorAll('.supEditMethodChk').forEach(chk => {
       chk.checked = (s.procurement_methods || []).includes(chk.value);
@@ -3651,7 +4281,6 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!editingSupplierId) return;
     const body = {
       contact: document.getElementById('supEditContact').value.trim() || null,
-      rating: document.getElementById('supEditRating').value !== '' ? Number(document.getElementById('supEditRating').value) : null,
       notes: document.getElementById('supEditNotes').value.trim() || null,
       procurement_methods: Array.from(document.querySelectorAll('.supEditMethodChk:checked')).map(c => c.value),
       prices: supEditPrices.map(p => ({ item_key: p.item_key, price: Number(p.price) })),
@@ -3674,15 +4303,75 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function renderDocuments(){
-    document.getElementById('documentsTableBody').innerHTML = state.documents.map(d => `
+    const filter = activeDocumentFilter();
+    const query = tableSearchQuery('documentsTableSearch');
+    const base = documentsForActiveTab();
+    const emptyDefaults = {
+      pr: 'No purchase request documents yet.',
+      po: 'No purchase order documents yet.',
+      vendor: 'No vendor quotation documents yet.',
+    };
+
+    if(filter === 'po'){
+      const visible = base.filter(d => {
+        const order = orderForPoRef(d.ref_code);
+        return rowMatchesSearch(query, d.doc_code, d.ref_code, documentPoSummaryText(order), ...documentPoSearchFields(order));
+      });
+      const tbody = document.getElementById('documentsPoTableBody');
+      if(!visible.length){
+        tbody.innerHTML = tableSearchEmptyMessage(7, query, emptyDefaults.po);
+        return;
+      }
+      tbody.innerHTML = visible.map(d => {
+        const order = orderForPoRef(d.ref_code);
+        return `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark">${d.doc_code}</td>
-        <td class="py-3 pr-3">${d.doc_type}</td>
-        <td class="py-3 pr-3 text-textMid">${d.ref_code || '—'}</td>
-        <td class="py-3 pr-3 text-textMid">${fmtDate(d.created_at)}</td>
+        <td class="py-3 pr-3 font-semibold text-textDark code-cell">${escapeHtml(d.doc_code)}</td>
+        <td class="py-3 pr-3 code-cell">${documentRefLink('po', d.ref_code)}</td>
+        <td class="py-3 pr-3 text-textMid">${escapeHtml(documentPoSummaryText(order))}</td>
+        <td class="py-3 pr-3 code-cell">${order?.request_code ? documentRefLink('pr', order.request_code) : '<span class="text-textMid">—</span>'}</td>
+        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(d.created_at)}</td>
+        <td class="py-3 pr-3">${statusPill(d.status)}</td>
+        <td class="py-3 pr-3">${documentPoReceiptCell(d.ref_code)}</td>
+      </tr>`;
+      }).join('');
+      return;
+    }
+
+    const tbodyId = filter === 'vendor' ? 'documentsVendorTableBody' : 'documentsPrTableBody';
+    const colspan = 5;
+    const kind = filter === 'vendor' ? 'vendor' : 'pr';
+    const visible = base.filter(d => {
+      if(filter === 'vendor'){
+        const app = vendorAppForRef(d.ref_code);
+        return rowMatchesSearch(query, d.doc_code, d.ref_code, documentVendorSummaryText(d.ref_code), ...documentVendorSearchFields(app));
+      }
+      const r = requestForRef(d.ref_code);
+      return rowMatchesSearch(query, d.doc_code, d.ref_code, documentPrSummaryText(d.ref_code), ...documentPrSearchFields(r));
+    });
+    const tbody = document.getElementById(tbodyId);
+    if(!visible.length){
+      tbody.innerHTML = tableSearchEmptyMessage(colspan, query, emptyDefaults[filter] || 'No documents yet.');
+      return;
+    }
+    tbody.innerHTML = visible.map(d => `
+      <tr class="border-b border-line last:border-0">
+        <td class="py-3 pr-3 font-semibold text-textDark code-cell">${escapeHtml(d.doc_code)}</td>
+        <td class="py-3 pr-3 code-cell">${documentRefLink(kind, d.ref_code)}</td>
+        <td class="py-3 pr-3 text-textMid">${escapeHtml(filter === 'vendor' ? documentVendorSummaryText(d.ref_code) : documentPrSummaryText(d.ref_code))}</td>
+        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(d.created_at)}</td>
         <td class="py-3 pr-3">${statusPill(d.status)}</td>
       </tr>`).join('');
   }
+
+  document.getElementById('documentFilters').addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-pill');
+    if(!btn || btn.classList.contains('active')) return;
+    document.querySelectorAll('#documentFilters .filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    clearTableSearch('documentsTableSearch');
+    showDocumentTab(btn.dataset.docFilter);
+  });
 
   /* ---------- forecast (AI demand forecasting — consumables only) ---------- */
   let forecastChart;
@@ -4018,13 +4707,19 @@ document.addEventListener('DOMContentLoaded', function(){
     renderLocationManageList();
   });
 
+  wireTableSearch('inventoryTableSearch', rerenderActiveInventoryTable);
+  wireTableSearch('requestsTableSearch', renderRequests);
+  wireTableSearch('ordersTableSearch', renderOrders);
+  wireTableSearch('documentsTableSearch', renderDocuments);
+  showDocumentTab('pr');
+
   /* ---------- init ---------- */
   (async function init(){
     if(!(await ensureAuth())) return;
     updateProfileUI();
     applyRoleUI();
     await loadLocations();
-    await Promise.all([loadInventory(), loadVouchers(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments()]);
+    await Promise.all([loadInventory(), loadVouchers(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments(), loadDemandInsights()]);
     populateDepartmentSelect('issueDepartment', DEPARTMENTS[0]);
     renderDashboard();
     dismissAttentionForPage(pageIdFromHash(location.hash));

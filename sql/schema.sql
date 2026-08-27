@@ -169,6 +169,7 @@ CREATE TABLE purchase_orders (
     finance_expense_sent_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     received_at DATETIME NULL,
+    received_by VARCHAR(100) NULL,
     -- A receipt must be attached (see purchase_orders.php) before a Placed
     -- order can be marked Received; kept on file for audits and, later,
     -- handoff to Financial Management.
