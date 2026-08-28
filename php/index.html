@@ -102,6 +102,75 @@
   }
   .gl-table td.received-cell{ width:1%; min-width:9.5rem; }
   .gl-table td.received-cell .received-when{ white-space:nowrap; }
+  .equip-placement{ display:flex; flex-wrap:wrap; gap:.35rem; max-width:22rem; }
+  .equip-chip{
+    display:inline-flex; align-items:center; gap:.35rem; padding:.2rem .55rem;
+    border-radius:999px; font-size:.72rem; line-height:1.35; border:1px solid #e7ecf3;
+    background:#f8fafc; color:#5b6b85; max-width:100%;
+  }
+  .equip-chip-storage{ background:#eef4ff; border-color:#d6e4ff; color:#1e3a6e; }
+  .equip-chip-dept{ background:#fff; }
+  .equip-chip-label{
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:9.5rem;
+  }
+  .equip-chip-value{
+    font-weight:700; color:#0f2242; background:#fff; border:1px solid #e7ecf3;
+    border-radius:999px; min-width:1.25rem; height:1.25rem; padding:0 .35rem;
+    display:inline-flex; align-items:center; justify-content:center; font-size:.68rem;
+  }
+  .equip-chip-storage .equip-chip-value{ background:#fff; border-color:#c8d9f5; }
+  .equip-chip-meta{
+    font-size:.65rem; color:#94a3bb; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:6rem;
+  }
+  .equip-qty-summary{ display:flex; flex-direction:column; gap:.15rem; min-width:5.5rem; }
+  .equip-qty-total{ font-weight:600; color:#0f2242; white-space:nowrap; }
+  .equip-qty-split{ font-size:.72rem; color:#5b6b85; white-space:nowrap; }
+  .gl-table td.placement-cell{ min-width:14rem; max-width:24rem; vertical-align:top; }
+  .gl-table td.qty-cell{ white-space:nowrap; vertical-align:top; }
+  .cell-stack{ display:flex; flex-direction:column; gap:.2rem; min-width:0; }
+  .cell-primary{ font-weight:600; color:#0f2242; line-height:1.35; }
+  .cell-meta{ font-size:.72rem; color:#5b6b85; line-height:1.35; }
+  .cell-empty{ color:#94a3bb; font-size:.78rem; }
+  .cell-code{ font-weight:600; color:#0f2242; font-size:.82rem; letter-spacing:.01em; white-space:nowrap; }
+  .cell-chip{
+    display:inline-flex; align-items:center; gap:.3rem; padding:.18rem .55rem;
+    border-radius:999px; font-size:.72rem; line-height:1.35; border:1px solid #e7ecf3;
+    background:#f8fafc; color:#5b6b85; max-width:100%;
+  }
+  .cell-chip-dept{ background:#fff; color:#1e3a6e; border-color:#dbe4f0; }
+  .cell-chip-loc{ background:#eef4ff; color:#1e3a6e; border-color:#d6e4ff; }
+  .cell-chip-storage{ background:#eef4ff; color:#1e3a6e; border-color:#d6e4ff; }
+  .cell-chip-move{ background:#f5f3ff; color:#4338ca; border-color:#ddd6fe; }
+  .cell-chip-reason{ background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+  .cell-tags{ display:inline-flex; flex-wrap:wrap; gap:.25rem; margin-left:.35rem; vertical-align:middle; }
+  .cell-tag{
+    display:inline-flex; align-items:center; padding:.12rem .45rem; border-radius:999px;
+    font-size:.64rem; font-weight:600; line-height:1.2; white-space:nowrap;
+  }
+  .cell-tag-equipment{ background:#eef4ff; color:#1e3a6e; }
+  .cell-tag-supply{ background:#f0fdf4; color:#166534; }
+  .cell-tag-warn{ background:#fff7ed; color:#c2410c; }
+  .cell-tag-danger{ background:#fef2f2; color:#b91c1c; }
+  .cell-tag-muted{ background:#eef2f7; color:#5b6b85; }
+  .cell-item-row{ display:flex; flex-wrap:wrap; align-items:center; gap:.25rem; }
+  .cell-qty{ font-weight:600; color:#0f2242; white-space:nowrap; }
+  .cell-qty-warn{ color:#c2410c; }
+  .cell-qty-unit{ font-weight:500; color:#5b6b85; font-size:.78rem; }
+  .cell-money{ font-weight:600; color:#0f2242; white-space:nowrap; }
+  .cell-person-date{ font-size:.78rem; color:#0f2242; line-height:1.35; white-space:nowrap; }
+  .cell-person-who{ font-size:.72rem; color:#5b6b85; line-height:1.35; }
+  .cell-hint{
+    display:inline-flex; align-items:center; padding:.2rem .55rem; border-radius:999px;
+    font-size:.68rem; font-weight:600; line-height:1.2; white-space:nowrap;
+    background:#eef2f7; color:#5b6b85;
+  }
+  .cell-hint-warn{ background:#fff7ed; color:#c2410c; }
+  .cell-hint-info{ background:#eef4ff; color:#1e3a6e; }
+  .cell-action-stack{ display:flex; flex-direction:column; align-items:flex-start; gap:.35rem; min-width:8rem; }
+  .cell-summary-line{ font-size:.82rem; color:#0f2242; line-height:1.4; }
+  .cell-summary-sub{ font-size:.72rem; color:#5b6b85; line-height:1.35; margin-top:.15rem; }
+  .gl-table td{ vertical-align:top; }
+  .gl-table td.action-cell{ min-width:10rem; }
   .gl-table th.date-cell,
   .gl-table th.code-cell,
   .gl-table th.received-cell{ white-space:nowrap; width:1%; }
@@ -433,8 +502,7 @@
               <th class="py-3 pr-3 font-semibold">Qty</th>
               <th class="py-3 pr-3 font-semibold">On hand</th>
               <th class="py-3 pr-3 font-semibold">Requested by</th>
-              <th class="py-3 pr-3 font-semibold date-cell">Date</th>
-              <th class="py-3 pr-3 font-semibold">Status</th>
+              <th class="py-3 pr-3 font-semibold status-cell">Status</th>
               <th class="py-3 pr-3 font-semibold">Action</th>
             </tr>
           </thead>
@@ -510,14 +578,13 @@
         <thead>
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
             <th class="py-3 pr-3 font-semibold code-cell">Request ID</th>
-            <th class="py-3 pr-3 font-semibold">Employee</th>
+            <th class="py-3 pr-3 font-semibold">Requested by</th>
             <th class="py-3 pr-3 font-semibold">Department</th>
             <th class="py-3 pr-3 font-semibold">Item</th>
             <th class="py-3 pr-3 font-semibold">Reason</th>
             <th class="py-3 pr-3 font-semibold">Qty</th>
             <th class="py-3 pr-3 font-semibold">Est. cost</th>
-            <th class="py-3 pr-3 font-semibold date-cell">Date</th>
-            <th class="py-3 pr-3 font-semibold">Status</th>
+            <th class="py-3 pr-3 font-semibold status-cell">Status</th>
             <th class="py-3 pr-3 font-semibold">Action</th>
           </tr>
         </thead>
@@ -1607,6 +1674,18 @@ document.addEventListener('DOMContentLoaded', function(){
     'Tour Operations',
     'Back-office',
   ];
+  const DEPT_SHORT = {
+    'Human resource management': 'HR',
+    'Financial management': 'Finance',
+    'Fleet & Transportation management': 'Fleet & Transport',
+    'Facilities & Administration management': 'Facilities & Admin',
+    'Tour Operations': 'Tour Ops',
+    'Back-office': 'Back-office',
+  };
+
+  function deptShortLabel(name){
+    return DEPT_SHORT[name] || name;
+  }
 
   function populateDepartmentSelect(selectEl, selectedValue){
     if(typeof selectEl === 'string') selectEl = document.getElementById(selectEl);
@@ -2176,6 +2255,17 @@ document.addEventListener('DOMContentLoaded', function(){
     return m.department ? escapeHtml(m.department) : '—';
   }
 
+  function renderMovementDestinationCell(m){
+    if(m.movement_type === 'retired'){
+      if(m.department) return cellDeptChip(m.department);
+      return m.location_name ? cellLocationChip(m.location_name) : cellHint('Storage', 'info');
+    }
+    if(m.movement_type === 'receive_to_storage'){
+      return m.location_name ? cellLocationChip(m.location_name) : cellHint('Storage', 'info');
+    }
+    return m.department ? cellDeptChip(m.department) : cellEmpty();
+  }
+
   function purchaseRequestDepartmentLabel(r){
     if(r.reason === 'stock_up') return 'Central storage';
     return r.department || '—';
@@ -2200,24 +2290,167 @@ document.addEventListener('DOMContentLoaded', function(){
     return d.toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
   }
   function poReceivedCell(o){
-    if(o.status !== 'Received' || !o.received_at){
-      return '<span class="text-textSoft text-[.75rem]">—</span>';
-    }
-    const who = o.received_by ? escapeHtml(o.received_by) : '<span class="text-textSoft">—</span>';
-    return `<div class="received-when text-[.78rem] text-textDark">${fmtDateTime(o.received_at)}</div><div class="text-[.72rem] text-textMid">${who}</div>`;
+    if(o.status !== 'Received' || !o.received_at) return cellEmpty();
+    return cellPersonStamp(o.received_at, o.received_by);
   }
   function issueIssuedCell(iss){
-    if(!iss.created_at){
-      return '<span class="text-textSoft text-[.75rem]">—</span>';
-    }
-    const who = iss.recorded_by ? escapeHtml(iss.recorded_by) : '<span class="text-textSoft">—</span>';
-    return `<div class="received-when text-[.78rem] text-textDark">${fmtDateTime(iss.created_at)}</div><div class="text-[.72rem] text-textMid">${who}</div>`;
+    if(!iss.created_at) return cellEmpty();
+    return cellPersonStamp(iss.created_at, iss.recorded_by);
   }
   function peso(n){ return n == null ? '—' : `₱${Number(n).toLocaleString()}`; }
   function escapeHtml(value){
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
       '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;',
     })[ch]);
+  }
+
+  function cellEmpty(){
+    return '<span class="cell-empty">—</span>';
+  }
+
+  function cellStack(primary, meta){
+    if(!meta) return `<div class="cell-stack"><div class="cell-primary">${primary}</div></div>`;
+    return `<div class="cell-stack"><div class="cell-primary">${primary}</div><div class="cell-meta">${meta}</div></div>`;
+  }
+
+  function cellCode(code){
+    return `<span class="cell-code">${escapeHtml(code)}</span>`;
+  }
+
+  function cellQty(qty, unit, { warn = false } = {}){
+    const cls = warn ? 'cell-qty cell-qty-warn' : 'cell-qty';
+    return `<span class="${cls}">${qty} <span class="cell-qty-unit">${escapeHtml(unit)}</span></span>`;
+  }
+
+  function cellMoney(amount, meta){
+    const main = `<span class="cell-money">${peso(amount)}</span>`;
+    return meta ? cellStack(main, escapeHtml(meta)) : main;
+  }
+
+  function cellDeptChip(name){
+    if(!name || name === '—') return cellEmpty();
+    const short = deptShortLabel(name);
+    return `<span class="cell-chip cell-chip-dept" title="${escapeHtml(name)}">${escapeHtml(short)}</span>`;
+  }
+
+  function cellLocationChip(name){
+    if(!name) return cellEmpty();
+    return `<span class="cell-chip cell-chip-loc">${escapeHtml(name)}</span>`;
+  }
+
+  function cellTypeTag(type){
+    const isEq = type === 'equipment';
+    return `<span class="cell-tag ${isEq ? 'cell-tag-equipment' : 'cell-tag-supply'}">${isEq ? 'Equipment' : 'Supply'}</span>`;
+  }
+
+  function cellReasonTag(reason){
+    if(!reason) return cellEmpty();
+    const label = PURCHASE_REASON_LABELS[reason] || reason;
+    return `<span class="cell-chip cell-chip-reason">${escapeHtml(label)}</span>`;
+  }
+
+  function cellProcurementTag(method){
+    if(!method) return cellEmpty();
+    return `<span class="cell-chip">${escapeHtml(PROCUREMENT_LABELS[method] || method)}</span>`;
+  }
+
+  function cellMovementType(type){
+    const label = EQUIPMENT_MOVEMENT_LABELS[type] || type;
+    return `<span class="cell-chip cell-chip-move">${escapeHtml(label)}</span>`;
+  }
+
+  function cellHint(label, variant = 'muted'){
+    const cls = variant === 'warn' ? 'cell-hint cell-hint-warn' : variant === 'info' ? 'cell-hint cell-hint-info' : 'cell-hint';
+    return `<span class="${cls}">${escapeHtml(label)}</span>`;
+  }
+
+  function cellPersonStamp(when, who){
+    if(!when) return cellEmpty();
+    const whoHtml = who ? escapeHtml(who) : '<span class="cell-empty">—</span>';
+    return `<div class="cell-stack"><div class="cell-person-date">${fmtDateTime(when)}</div><div class="cell-person-who">${whoHtml}</div></div>`;
+  }
+
+  function cellItem(label, { type, badge, sub } = {}){
+    const tags = [];
+    if(type === 'equipment') tags.push(cellTypeTag('equipment'));
+    if(badge) tags.push(`<span class="cell-tag cell-tag-warn">${escapeHtml(badge)}</span>`);
+    const tagHtml = tags.length ? `<span class="cell-tags">${tags.join('')}</span>` : '';
+    const main = `<div class="cell-item-row"><span class="cell-primary">${escapeHtml(label)}</span>${tagHtml}</div>`;
+    if(sub) return `<div class="cell-stack">${main}<div class="cell-meta">${escapeHtml(sub)}</div></div>`;
+    return main;
+  }
+
+  function cellSummary(primary, sub){
+    if(!primary) return cellEmpty();
+    if(!sub) return `<div class="cell-summary-line">${primary}</div>`;
+    return `<div><div class="cell-summary-line">${primary}</div><div class="cell-summary-sub">${sub}</div></div>`;
+  }
+
+  function renderConsumableQtyCell(it){
+    const low = it.status === 'Low stock';
+    const meta = it.min_qty != null ? `Min ${it.min_qty}${it.max_qty != null ? ` · Max ${it.max_qty}` : ''}` : '';
+    return meta ? cellStack(cellQty(it.current_qty, it.unit, { warn: low }), meta) : cellQty(it.current_qty, it.unit, { warn: low });
+  }
+
+  function orderReceiptStatusCell(o){
+    if(o.receipt_rejected){
+      return cellStack(
+        cellHint('Rejected', 'warn'),
+        `<button type="button" onclick="viewRejectedReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
+      );
+    }
+    if(o.receipt_uploaded){
+      return cellStack(
+        cellHint('Uploaded', 'info'),
+        `<button type="button" onclick="viewReceipt(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View receipt</button>`
+      );
+    }
+    if(o.receipt_waived){
+      return cellStack(
+        cellHint('Lost receipt', 'warn'),
+        `<button type="button" onclick="viewLostReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
+      );
+    }
+    if(o.receipt_lost_report_pending){
+      return cellHint('Report pending', 'warn');
+    }
+    if(o.receipt_lost_report_rejected){
+      return cellStack(
+        cellHint('Report rejected', 'warn'),
+        `<button type="button" onclick="viewLostReceiptReportRejection(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
+      );
+    }
+    if(o.status === 'Placed') return cellHint('Not uploaded', 'muted');
+    return cellEmpty();
+  }
+
+  function renderPrSummaryCell(r){
+    if(!r) return cellEmpty();
+    const dept = purchaseRequestDepartmentLabel(r);
+    const subParts = [r.employee];
+    if(dept !== '—') subParts.push(deptShortLabel(dept));
+    return cellSummary(
+      `${r.qty} ${escapeHtml(r.unit)} · ${escapeHtml(r.display_label || r.item_label)}`,
+      escapeHtml(subParts.join(' · '))
+    );
+  }
+
+  function renderPoSummaryCell(order){
+    if(!order) return cellEmpty();
+    const sub = order.supplier_name ? escapeHtml(order.supplier_name) : '';
+    return cellSummary(
+      `${order.qty} ${escapeHtml(order.unit)} · ${escapeHtml(order.item_label)}`,
+      sub
+    );
+  }
+
+  function renderVendorSummaryCell(refCode){
+    const app = vendorAppForRef(refCode);
+    if(!app) return cellEmpty();
+    return cellSummary(
+      escapeHtml(app.company_name),
+      `${app.prices?.length || 0} item${app.prices?.length === 1 ? '' : 's'} quoted`
+    );
   }
 
   function tableSearchQuery(inputId){
@@ -2468,25 +2701,8 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function documentPoReceiptCell(refCode){
     const order = orderForPoRef(refCode);
-    if(!order){
-      return '<span class="text-textSoft text-[.75rem]">—</span>';
-    }
-    if(order.receipt_rejected){
-      return `<button type="button" onclick="viewRejectedReceiptNote(${order.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Rejected — view note</button>`;
-    }
-    if(order.receipt_uploaded){
-      return `<button type="button" onclick="viewReceipt(${order.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View receipt</button>`;
-    }
-    if(order.receipt_waived){
-      return `<button type="button" onclick="viewLostReceiptNote(${order.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Lost receipt note</button>`;
-    }
-    if(order.receipt_lost_report_pending){
-      return '<span class="text-amberTx text-[.75rem] font-semibold">Lost receipt — pending review</span>';
-    }
-    if(order.receipt_lost_report_rejected){
-      return `<button type="button" onclick="viewLostReceiptReportRejection(${order.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Report rejected</button>`;
-    }
-    return '<span class="text-textSoft text-[.75rem]">Not uploaded</span>';
+    if(!order) return cellEmpty();
+    return orderReceiptStatusCell(order);
   }
 
   function updateDocumentSearchPlaceholder(filter){
@@ -2658,6 +2874,22 @@ document.addEventListener('DOMContentLoaded', function(){
     return `${storage} ${it.unit}`;
   }
 
+  function renderEquipmentQtyCell(it){
+    if(it.item_type !== 'equipment'){
+      return renderConsumableQtyCell(it);
+    }
+    const storage = it.storage_qty ?? it.current_qty ?? 0;
+    const deployed = it.deployed_qty ?? 0;
+    const total = storage + deployed;
+    if(deployed > 0){
+      return `<div class="equip-qty-summary">
+        <span class="equip-qty-total">${total} ${escapeHtml(it.unit)} total</span>
+        <span class="equip-qty-split">${storage} in storage · ${deployed} deployed</span>
+      </div>`;
+    }
+    return `${storage} ${escapeHtml(it.unit)}`;
+  }
+
   function itemPlacementLabel(it){
     if(it.item_type !== 'equipment') return it.location_name || '—';
     const parts = [];
@@ -2669,6 +2901,37 @@ document.addEventListener('DOMContentLoaded', function(){
       parts.push(`${d.department}: ${d.qty}`);
     });
     return parts.join(' · ') || '—';
+  }
+
+  function renderPlacementCell(it){
+    if(it.item_type !== 'equipment'){
+      return cellLocationChip(it.location_name);
+    }
+    const storage = it.storage_qty ?? it.current_qty ?? 0;
+    const deps = it.deployments || [];
+    const chips = [];
+    if(storage > 0){
+      const loc = it.location_name
+        ? `<span class="equip-chip-meta" title="${escapeHtml(it.location_name)}">${escapeHtml(it.location_name)}</span>`
+        : '';
+      chips.push(
+        `<span class="equip-chip equip-chip-storage" title="In storage${it.location_name ? `: ${escapeHtml(it.location_name)}` : ''}">
+          <span class="equip-chip-label">Storage</span>
+          <span class="equip-chip-value">${storage}</span>${loc}
+        </span>`
+      );
+    }
+    deps.slice().sort((a, b) => a.department.localeCompare(b.department)).forEach(d => {
+      const short = deptShortLabel(d.department);
+      chips.push(
+        `<span class="equip-chip equip-chip-dept" title="${escapeHtml(d.department)}: ${d.qty} ${escapeHtml(it.unit)}">
+          <span class="equip-chip-label">${escapeHtml(short)}</span>
+          <span class="equip-chip-value">${d.qty}</span>
+        </span>`
+      );
+    });
+    if(!chips.length) return '<span class="text-textMid">—</span>';
+    return `<div class="equip-placement">${chips.join('')}</div>`;
   }
 
   function canRetireItem(it){
@@ -2888,12 +3151,12 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     tbody.innerHTML = visible.map(it => `
       <tr class="border-b border-line last:border-0 ${it.active ? '' : 'opacity-70'}">
-        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(it.label)}</td>
-        <td class="py-3 pr-3 text-textMid capitalize">${it.item_type}</td>
-        <td class="py-3 pr-3 text-textMid">${escapeHtml(itemPlacementLabel(it))}</td>
-        <td class="py-3 pr-3">${equipmentQtyLabel(it)}</td>
-        <td class="py-3 pr-3 text-textMid">${it.min_qty ?? '—'}</td>
-        <td class="py-3 pr-3 text-textMid">${it.max_qty ?? '—'}</td>
+        <td class="py-3 pr-3">${cellItem(it.label, { badge: !it.active ? 'Inactive' : null })}</td>
+        <td class="py-3 pr-3">${cellTypeTag(it.item_type)}</td>
+        <td class="py-3 pr-3 text-textMid placement-cell">${renderPlacementCell(it)}</td>
+        <td class="py-3 pr-3 qty-cell">${renderEquipmentQtyCell(it)}</td>
+        <td class="py-3 pr-3 text-textMid">${it.item_type === 'consumable' && it.min_qty != null ? it.min_qty : '<span class="cell-empty">—</span>'}</td>
+        <td class="py-3 pr-3 text-textMid">${it.item_type === 'consumable' && it.max_qty != null ? it.max_qty : '<span class="cell-empty">—</span>'}</td>
         <td class="py-3 pr-3 status-cell">${statusPill(it.status)}</td>
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
@@ -2983,13 +3246,11 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     tbody.innerHTML = visible.map(v => `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(v.label)}</td>
-        <td class="py-3 pr-3 text-textMid">${escapeHtml(v.tour_package || '—')}</td>
-        <td class="py-3 pr-3">
-          <span class="${v.current_qty === 0 ? 'text-redTx' : 'text-greenTx'} font-semibold">${v.current_qty}</span>
-        </td>
-        <td class="py-3 pr-3 text-textMid">${v.last_added_qty ? `+${v.last_added_qty} · ${fmtDate(v.last_restocked_at)}` : '—'}</td>
-        <td class="py-3 pr-3 text-textMid">${escapeHtml(v.notes || '—')}</td>
+        <td class="py-3 pr-3">${cellItem(v.label)}</td>
+        <td class="py-3 pr-3 text-textMid">${v.tour_package ? escapeHtml(v.tour_package) : cellEmpty()}</td>
+        <td class="py-3 pr-3">${cellQty(v.current_qty, 'left', { warn: v.current_qty === 0 })}</td>
+        <td class="py-3 pr-3">${v.last_added_qty ? cellStack(`+${v.last_added_qty}`, fmtDate(v.last_restocked_at)) : cellEmpty()}</td>
+        <td class="py-3 pr-3 text-textMid">${v.notes ? escapeHtml(v.notes) : cellEmpty()}</td>
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
             ${v.current_qty > 0 ? `<button onclick="useVoucher(${v.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Use 1</button>` : ''}
@@ -3190,7 +3451,7 @@ document.addEventListener('DOMContentLoaded', function(){
     ));
     const tbody = document.getElementById('stockRequestsTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(10, query, 'No stock requests yet. Click Request from stock to ask inventory for items on the shelf.');
+      tbody.innerHTML = tableSearchEmptyMessage(9, query, 'No stock requests yet. Click Request from stock to ask inventory for items on the shelf.');
       return;
     }
     tbody.innerHTML = visible.map(sr => {
@@ -3199,15 +3460,14 @@ document.addEventListener('DOMContentLoaded', function(){
       const enoughStock = sr.current_qty == null || sr.qty <= sr.current_qty;
       return `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark code-cell">${escapeHtml(sr.request_code)}</td>
-        <td class="py-3 pr-3">${escapeHtml(sr.department)}</td>
-        <td class="py-3 pr-3 text-textMid capitalize">${sr.item_type === 'equipment' ? 'Equipment' : 'Supply'}</td>
-        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(sr.item_label)}</td>
-        <td class="py-3 pr-3">${sr.qty} ${escapeHtml(sr.unit)}</td>
-        <td class="py-3 pr-3 ${enoughStock ? 'text-textMid' : 'text-redTx font-semibold'}">${sr.current_qty ?? '—'} ${escapeHtml(sr.unit)}</td>
-        <td class="py-3 pr-3 text-textMid">${escapeHtml(sr.requested_by)}</td>
-        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(sr.created_at)}</td>
-        <td class="py-3 pr-3">${statusPill(sr.status)}${sr.fulfilled_issue_code ? `<div class="text-[.72rem] text-textSoft mt-1">${escapeHtml(sr.fulfilled_issue_code)}</div>` : ''}</td>
+        <td class="py-3 pr-3 code-cell">${cellCode(sr.request_code)}</td>
+        <td class="py-3 pr-3">${cellDeptChip(sr.department)}</td>
+        <td class="py-3 pr-3">${cellTypeTag(sr.item_type)}</td>
+        <td class="py-3 pr-3">${cellItem(sr.item_label)}</td>
+        <td class="py-3 pr-3 qty-cell">${cellQty(sr.qty, sr.unit)}</td>
+        <td class="py-3 pr-3 qty-cell">${sr.current_qty == null ? cellEmpty() : cellQty(sr.current_qty, sr.unit, { warn: !enoughStock })}</td>
+        <td class="py-3 pr-3">${cellStack(escapeHtml(sr.requested_by), fmtDate(sr.created_at))}</td>
+        <td class="py-3 pr-3">${statusPill(sr.status)}${sr.fulfilled_issue_code ? `<div class="cell-meta mt-1">${escapeHtml(sr.fulfilled_issue_code)}</div>` : ''}</td>
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
             ${canFulfill ? `<button onclick="fulfillStockRequest(${sr.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Issue</button>` : ''}
@@ -3305,14 +3565,14 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     tbody.innerHTML = visible.map(m => `
       <tr class="border-b border-line last:border-0 ${m.status === 'Voided' ? 'opacity-70' : ''}">
-        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(m.created_at)}</td>
-        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(m.item_label)}</td>
-        <td class="py-3 pr-3">${m.qty} ${escapeHtml(m.unit)}</td>
-        <td class="py-3 pr-3 text-textMid">${EQUIPMENT_MOVEMENT_LABELS[m.movement_type] || m.movement_type}</td>
-        <td class="py-3 pr-3 text-textMid">${equipmentMovementDestination(m)}</td>
-        <td class="py-3 pr-3 text-textMid font-semibold code-cell">${escapeHtml(m.reference_code || '—')}</td>
+        <td class="py-3 pr-3 date-cell"><div class="cell-person-date">${fmtDateTime(m.created_at)}</div></td>
+        <td class="py-3 pr-3">${cellItem(m.item_label)}</td>
+        <td class="py-3 pr-3 qty-cell">${cellQty(m.qty, m.unit)}</td>
+        <td class="py-3 pr-3">${cellMovementType(m.movement_type)}</td>
+        <td class="py-3 pr-3">${renderMovementDestinationCell(m)}</td>
+        <td class="py-3 pr-3 code-cell">${m.reference_code ? cellCode(m.reference_code) : cellEmpty()}</td>
         <td class="py-3 pr-3 text-textMid">${escapeHtml(m.recorded_by)}</td>
-        <td class="py-3 pr-3">${statusPill(m.status)}${m.status === 'Voided' && m.voided_reason ? `<div class="text-[.68rem] text-textSoft mt-1">${escapeHtml(m.voided_reason)}</div>` : ''}</td>
+        <td class="py-3 pr-3">${statusPill(m.status)}${m.status === 'Voided' && m.voided_reason ? `<div class="cell-meta mt-1">${escapeHtml(m.voided_reason)}</div>` : ''}</td>
       </tr>`).join('');
   }
 
@@ -3341,30 +3601,26 @@ document.addEventListener('DOMContentLoaded', function(){
         return `
       <tr class="border-b border-line last:border-0 ${iss.status === 'Voided' ? 'opacity-60' : ''}">
         <td class="py-3 pr-3 received-cell">${issueIssuedCell(iss)}</td>
-        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(iss.item_label)}</td>
-        <td class="py-3 pr-3">${iss.qty} ${iss.unit}</td>
-        <td class="py-3 pr-3">${escapeHtml(iss.department)}</td>
-        <td class="py-3 pr-3 text-textMid">${escapeHtml(iss.issued_to || '—')}</td>
-        <td class="py-3 pr-3">${statusPill(iss.status)}</td>
+        <td class="py-3 pr-3">${cellItem(iss.item_label)}</td>
+        <td class="py-3 pr-3 qty-cell">${cellQty(iss.qty, iss.unit)}</td>
+        <td class="py-3 pr-3">${cellDeptChip(iss.department)}</td>
+        <td class="py-3 pr-3 text-textMid">${iss.issued_to ? escapeHtml(iss.issued_to) : cellEmpty()}</td>
+        <td class="py-3 pr-3 status-cell">${statusPill(iss.status)}</td>
         <td class="py-3 pr-3">
-          ${iss.status === 'Active' && roleAtLeast('manager') ? `<button onclick="voidIssue(${iss.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Void</button>` : (iss.status === 'Voided' ? `<span class="text-textSoft text-[.78rem]">${escapeHtml(iss.voided_reason || 'Voided')}</span>` : '—')}
+          ${iss.status === 'Active' && roleAtLeast('manager') ? `<button onclick="voidIssue(${iss.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Void</button>` : (iss.status === 'Voided' ? cellHint(iss.voided_reason || 'Voided', 'warn') : cellEmpty())}
         </td>
       </tr>`;
       }
       const r = row.data;
-      const who = r.recorded_by ? escapeHtml(r.recorded_by) : '<span class="text-textSoft">—</span>';
-      const details = r.notes
-        ? `${escapeHtml(r.reason_label)} — ${escapeHtml(r.notes)}`
-        : escapeHtml(r.reason_label);
       return `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 received-cell"><div class="received-when text-[.78rem] text-textDark">${fmtDateTime(r.created_at)}</div><div class="text-[.72rem] text-textMid">${who}</div></td>
-        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(r.item_label)}</td>
-        <td class="py-3 pr-3">${r.qty} ${r.unit}</td>
-        <td class="py-3 pr-3 text-textMid">Storage</td>
-        <td class="py-3 pr-3 text-textMid">${details}</td>
-        <td class="py-3 pr-3"><span class="status-pill px-2.5 py-1 rounded-full text-[.68rem] font-semibold bg-redBg text-redTx">Retired</span></td>
-        <td class="py-3 pr-3 text-textSoft text-[.78rem]">${escapeHtml(r.retirement_code)}</td>
+        <td class="py-3 pr-3 received-cell">${cellPersonStamp(r.created_at, r.recorded_by)}</td>
+        <td class="py-3 pr-3">${cellItem(r.item_label)}</td>
+        <td class="py-3 pr-3 qty-cell">${cellQty(r.qty, r.unit)}</td>
+        <td class="py-3 pr-3">${cellHint('Storage', 'info')}</td>
+        <td class="py-3 pr-3">${cellStack(escapeHtml(r.reason_label), r.notes ? escapeHtml(r.notes) : '')}</td>
+        <td class="py-3 pr-3"><span class="cell-tag cell-tag-danger">Retired</span></td>
+        <td class="py-3 pr-3 code-cell">${cellCode(r.retirement_code)}</td>
       </tr>`;
     }).join('');
   }
@@ -4006,31 +4262,30 @@ document.addEventListener('DOMContentLoaded', function(){
     ));
     const tbody = document.getElementById('requestsTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(10, query, 'No purchase requests yet.');
+      tbody.innerHTML = tableSearchEmptyMessage(9, query, 'No purchase requests yet.');
       return;
     }
     tbody.innerHTML = visible.map(r => `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark code-cell">${r.request_code}</td>
-        <td class="py-3 pr-3">${escapeHtml(r.employee)}</td>
-        <td class="py-3 pr-3 text-textMid">${escapeHtml(purchaseRequestDepartmentLabel(r))}</td>
-        <td class="py-3 pr-3">${escapeHtml(r.display_label || r.item_label)}${r.needs_catalog_link ? ' <span class="text-[.68rem] text-amberTx">(not in catalog yet)</span>' : ''}${r.item_type === 'equipment' ? ' <span class="text-[.68rem] text-textSoft">(equipment)</span>' : ''}</td>
-        <td class="py-3 pr-3 text-textMid">${r.reason ? PURCHASE_REASON_LABELS[r.reason] || r.reason : '—'}</td>
-        <td class="py-3 pr-3">${r.qty} ${r.unit}</td>
-        <td class="py-3 pr-3">${peso(r.estimate_cost)}${r.best_supplier ? `<div class="text-[.68rem] text-textSoft">est., ${r.best_supplier}</div>` : ''}</td>
-        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(r.created_at)}</td>
-        <td class="py-3 pr-3">${statusPill(r.status)}</td>
-        <td class="py-3 pr-3">${
+        <td class="py-3 pr-3 code-cell">${cellCode(r.request_code)}</td>
+        <td class="py-3 pr-3">${cellStack(escapeHtml(r.employee), fmtDate(r.created_at))}</td>
+        <td class="py-3 pr-3">${cellDeptChip(purchaseRequestDepartmentLabel(r))}</td>
+        <td class="py-3 pr-3">${cellItem(r.display_label || r.item_label, { type: r.item_type === 'equipment' ? 'equipment' : null, badge: r.needs_catalog_link ? 'Not in catalog' : null })}</td>
+        <td class="py-3 pr-3">${cellReasonTag(r.reason)}</td>
+        <td class="py-3 pr-3 qty-cell">${cellQty(r.qty, r.unit)}</td>
+        <td class="py-3 pr-3">${cellMoney(r.estimate_cost, r.best_supplier ? `via ${r.best_supplier}` : '')}</td>
+        <td class="py-3 pr-3 status-cell">${statusPill(r.status)}</td>
+        <td class="py-3 pr-3 action-cell">${
           r.status === 'Pending' ? (roleAtLeast('manager') ? `
           <div class="flex gap-2">
             <button onclick="approveRequest(${r.id})" class="px-3 py-1.5 rounded-lg bg-greenTx text-white text-[.75rem] font-semibold border-none cursor-pointer">Approve</button>
             <button onclick="rejectRequest(${r.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Reject</button>
-          </div>` : '<span class="text-textSoft text-[.8rem]">Awaiting manager</span>')
+          </div>` : cellHint('Awaiting manager', 'muted'))
           : (r.status === 'Approved' && !r.has_po) ? (roleAtLeast('manager') ? `
-            <button onclick="openSupplierChoice(${r.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Create PO</button>` : '<span class="text-textSoft text-[.8rem]">Awaiting manager</span>')
-          : r.status === 'Ordered' ? '<span class="text-textSoft text-[.8rem]">Open Purchase Orders → Mark received</span>'
-          : r.status === 'Completed' ? '<span class="text-textSoft text-[.8rem]">Done</span>'
-          : '<span class="text-textSoft text-[.8rem]">—</span>'
+            <button onclick="openSupplierChoice(${r.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Create PO</button>` : cellHint('Awaiting manager', 'muted'))
+          : r.status === 'Ordered' ? cellHint('See Purchase Orders', 'info')
+          : r.status === 'Completed' ? cellHint('Done', 'muted')
+          : cellEmpty()
         }</td>
       </tr>`).join('');
   }
@@ -4202,19 +4457,6 @@ document.addEventListener('DOMContentLoaded', function(){
       return;
     }
     tbody.innerHTML = visible.map(o => {
-      const receiptCell = o.receipt_rejected
-        ? `<button onclick="viewRejectedReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Rejected — view note</button>`
-        : (o.receipt_uploaded
-            ? `<button onclick="viewReceipt(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View receipt</button>`
-            : (o.receipt_waived
-                ? `<button onclick="viewLostReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
-                : (o.receipt_lost_report_pending
-                    ? `<span class="text-amberTx text-[.75rem] font-semibold">Lost receipt — pending review</span>`
-                    : (o.receipt_lost_report_rejected
-                        ? `<button onclick="viewLostReceiptReportRejection(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Report rejected — view note</button>`
-                        : (o.status === 'Placed'
-                            ? `<span class="text-amberTx text-[.75rem] font-semibold">Not uploaded</span>`
-                            : `<span class="text-textSoft text-[.75rem]">—</span>`)))));
       const noReceiptProof = !o.receipt_uploaded && !o.receipt_waived;
       const canUploadReceipt = o.status === 'Placed' && o.finance_status === 'funded' && noReceiptProof;
       const canReuploadReceipt = o.status === 'Placed' && ['funded', 'expense_pending', 'expense_recorded'].includes(o.finance_status) && o.receipt_rejected;
@@ -4233,30 +4475,30 @@ document.addEventListener('DOMContentLoaded', function(){
       const canResendFinance = o.status === 'Placed' && roleAtLeast('manager') && (o.finance_status === 'not_sent' || o.finance_status === 'disbursement_rejected');
       return `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark code-cell">${o.po_code}</td>
-        <td class="py-3 pr-3 text-textMid code-cell">${o.request_code}</td>
-        <td class="py-3 pr-3">${o.supplier_name || '—'}</td>
-        <td class="py-3 pr-3 text-textMid">${PROCUREMENT_LABELS[o.procurement_method] || o.procurement_method}</td>
-        <td class="py-3 pr-3">${peso(o.amount)}</td>
-        <td class="py-3 pr-3">${financeStatusPill(o.finance_status)}</td>
-        <td class="py-3 pr-3">${receiptCell}</td>
-        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(o.created_at)}</td>
+        <td class="py-3 pr-3 code-cell">${cellCode(o.po_code)}</td>
+        <td class="py-3 pr-3 code-cell">${o.request_code ? cellCode(o.request_code) : cellEmpty()}</td>
+        <td class="py-3 pr-3">${o.supplier_name ? cellItem(o.supplier_name) : cellEmpty()}</td>
+        <td class="py-3 pr-3">${cellProcurementTag(o.procurement_method)}</td>
+        <td class="py-3 pr-3">${cellMoney(o.amount)}</td>
+        <td class="py-3 pr-3 status-cell">${financeStatusPill(o.finance_status)}</td>
+        <td class="py-3 pr-3">${orderReceiptStatusCell(o)}</td>
+        <td class="py-3 pr-3 date-cell"><div class="cell-person-date">${fmtDate(o.created_at)}</div></td>
         <td class="py-3 pr-3 received-cell">${poReceivedCell(o)}</td>
-        <td class="py-3 pr-3">${statusPill(o.status)}</td>
-        <td class="py-3 pr-3">
-          <div class="flex gap-2 flex-wrap">
+        <td class="py-3 pr-3 status-cell">${statusPill(o.status)}</td>
+        <td class="py-3 pr-3 action-cell">
+          <div class="cell-action-stack">
             ${canUploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-bold border-none cursor-pointer">Upload receipt</button>` : ''}
             ${canReuploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-bold border-none cursor-pointer">Reupload receipt</button>` : ''}
             ${canReportLostReceipt ? `<button onclick="openReportLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Report lost receipt</button>` : ''}
             ${canDeclareLostReceipt ? `<button onclick="openLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Lost receipt</button>` : ''}
             ${canReviewLostReceiptReport ? `<button onclick="openReviewLostReceiptReportModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Review lost receipt</button>` : ''}
             ${canRejectReceipt ? `<button onclick="openRejectReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Reject receipt</button>` : ''}
-            ${awaitingFinance ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for Finance</span>` : ''}
+            ${awaitingFinance ? cellHint('Awaiting Finance', 'muted') : ''}
             ${canMarkReceived ? `<button onclick="markReceived(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Mark received</button>` : ''}
-            ${awaitingManagerReceive ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for manager to verify &amp; receive</span>` : ''}
-            ${awaitingReupload ? `<span class="text-textSoft text-[.75rem] italic self-center">Waiting for staff to reupload</span>` : ''}
-            ${awaitingLostReceiptReview ? `<span class="text-textSoft text-[.75rem] italic self-center">Lost receipt report waiting for review</span>` : ''}
-            ${staffAwaitingLostReceiptReview ? `<span class="text-textSoft text-[.75rem] italic self-center">Lost receipt report sent to manager</span>` : ''}
+            ${awaitingManagerReceive ? cellHint('Awaiting manager', 'info') : ''}
+            ${awaitingReupload ? cellHint('Awaiting reupload', 'warn') : ''}
+            ${awaitingLostReceiptReview ? cellHint('Review lost receipt', 'warn') : ''}
+            ${staffAwaitingLostReceiptReview ? cellHint('Sent to manager', 'info') : ''}
             ${canResendFinance ? `<button onclick="resendFinance(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Resend to Finance</button>` : ''}
             ${o.status === 'Placed' && roleAtLeast('super_admin') ? `<button onclick="cancelOrder(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Cancel</button>` : ''}
             <button onclick="openOrderSlip(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Slip</button>
@@ -5185,12 +5427,12 @@ document.addEventListener('DOMContentLoaded', function(){
         const order = orderForPoRef(d.ref_code);
         return `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark code-cell">${escapeHtml(d.doc_code)}</td>
+        <td class="py-3 pr-3 code-cell">${cellCode(d.doc_code)}</td>
         <td class="py-3 pr-3 code-cell">${documentRefLink('po', d.ref_code)}</td>
-        <td class="py-3 pr-3 text-textMid">${escapeHtml(documentPoSummaryText(order))}</td>
-        <td class="py-3 pr-3 code-cell">${order?.request_code ? documentRefLink('pr', order.request_code) : '<span class="text-textMid">—</span>'}</td>
-        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(d.created_at)}</td>
-        <td class="py-3 pr-3">${statusPill(d.status)}</td>
+        <td class="py-3 pr-3">${renderPoSummaryCell(order)}</td>
+        <td class="py-3 pr-3 code-cell">${order?.request_code ? documentRefLink('pr', order.request_code) : cellEmpty()}</td>
+        <td class="py-3 pr-3 date-cell"><div class="cell-person-date">${fmtDate(d.created_at)}</div></td>
+        <td class="py-3 pr-3 status-cell">${statusPill(d.status)}</td>
         <td class="py-3 pr-3">${documentPoReceiptCell(d.ref_code)}</td>
       </tr>`;
       }).join('');
@@ -5215,11 +5457,11 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     tbody.innerHTML = visible.map(d => `
       <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3 font-semibold text-textDark code-cell">${escapeHtml(d.doc_code)}</td>
+        <td class="py-3 pr-3 code-cell">${cellCode(d.doc_code)}</td>
         <td class="py-3 pr-3 code-cell">${documentRefLink(kind, d.ref_code)}</td>
-        <td class="py-3 pr-3 text-textMid">${escapeHtml(filter === 'vendor' ? documentVendorSummaryText(d.ref_code) : documentPrSummaryText(d.ref_code))}</td>
-        <td class="py-3 pr-3 text-textMid date-cell">${fmtDate(d.created_at)}</td>
-        <td class="py-3 pr-3">${statusPill(d.status)}</td>
+        <td class="py-3 pr-3">${filter === 'vendor' ? renderVendorSummaryCell(d.ref_code) : renderPrSummaryCell(requestForRef(d.ref_code))}</td>
+        <td class="py-3 pr-3 date-cell"><div class="cell-person-date">${fmtDate(d.created_at)}</div></td>
+        <td class="py-3 pr-3 status-cell">${statusPill(d.status)}</td>
       </tr>`).join('');
   }
 
