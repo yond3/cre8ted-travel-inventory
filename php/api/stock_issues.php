@@ -82,6 +82,8 @@ if ($method === 'POST') {
         json_error('invalid department — choose one of the official departments');
     }
 
+    $issuedTo = parse_optional_person_name($body['issued_to'] ?? null);
+
     $item = get_item_or_404($itemKey);
     if ((int) ($item['active'] ?? 1) !== 1) {
         json_error('cannot issue an inactive item');
@@ -103,7 +105,7 @@ if ($method === 'POST') {
             $itemKey,
             $qty,
             $department,
-            trim($body['issued_to'] ?? '') ?: null,
+            $issuedTo,
             trim($body['notes'] ?? '') ?: null,
             $user['name'],
             'Active',
@@ -124,7 +126,7 @@ if ($method === 'POST') {
                 $user['name'],
                 $department,
                 null,
-                trim($body['issued_to'] ?? '') ?: null,
+                $issuedTo,
                 trim($body['notes'] ?? '') ?: null,
                 'stock_issue',
                 $issueId,

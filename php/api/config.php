@@ -140,6 +140,30 @@ function is_valid_department(string $department): bool
     return in_array($department, DEPARTMENTS, true);
 }
 
+function is_valid_person_name(string $name): bool
+{
+    $name = trim($name);
+    if ($name === '') {
+        return false;
+    }
+
+    return (bool) preg_match("/^[A-Za-z][A-Za-z\s.'-]*$/", $name);
+}
+
+/** Optional person name; null when blank. Rejects digits and other non-name input. */
+function parse_optional_person_name(?string $value, string $fieldLabel = 'Issued to'): ?string
+{
+    $value = trim($value ?? '');
+    if ($value === '') {
+        return null;
+    }
+    if (!is_valid_person_name($value)) {
+        json_error("$fieldLabel must be a person's name (letters only — no numbers)");
+    }
+
+    return $value;
+}
+
 function public_user(array $user): array
 {
     return [

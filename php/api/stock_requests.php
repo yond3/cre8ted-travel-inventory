@@ -168,7 +168,10 @@ if ($method === 'PUT') {
         }
 
         $issueCode = next_code('ISS', 'stock_issues', 'issue_code');
-        $issuedTo = trim($body['issued_to'] ?? '') ?: $row['requested_by'];
+        $issuedToInput = trim($body['issued_to'] ?? '');
+        $issuedTo = $issuedToInput !== ''
+            ? parse_optional_person_name($issuedToInput)
+            : $row['requested_by'];
         $notes = trim($body['notes'] ?? '') ?: $row['notes'];
 
         $pdo->beginTransaction();
