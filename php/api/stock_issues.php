@@ -106,7 +106,7 @@ if ($method === 'POST') {
             $qty,
             $department,
             $issuedTo,
-            trim($body['notes'] ?? '') ?: null,
+            parse_optional_note($body['notes'] ?? null),
             $user['name'],
             'Active',
         ]);
@@ -127,7 +127,7 @@ if ($method === 'POST') {
                 $department,
                 null,
                 $issuedTo,
-                trim($body['notes'] ?? '') ?: null,
+                parse_optional_note($body['notes'] ?? null),
                 'stock_issue',
                 $issueId,
                 $code
@@ -164,11 +164,13 @@ if ($method === 'PUT') {
         json_error("issue is already '{$row['status']}'", 409);
     }
 
+    $voidReason = parse_optional_note($body['reason'] ?? null, 'Void reason');
+
     $pdo->beginTransaction();
     try {
         $pdo->prepare(
             "UPDATE stock_issues SET status = 'Voided', voided_reason = ?, voided_at = NOW() WHERE id = ?"
-        )->execute([trim($body['reason'] ?? '') ?: null, $id]);
+        )->execute([$voidReason, $id]);
 
         // Reverse the deduction so the stock originally decremented is
         // credited back — mirrors how cancelling a PO restores its request.
@@ -181,7 +183,7 @@ if ($method === 'PUT') {
             $pdo,
             'stock_issue',
             $id,
-            trim($body['reason'] ?? '') ?: null
+            $voidReason
         );
 
         $pdo->commit();

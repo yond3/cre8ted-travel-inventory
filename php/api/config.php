@@ -150,12 +150,195 @@ function is_valid_person_name(string $name): bool
     return (bool) preg_match("/^[A-Za-z][A-Za-z\s.'-]*$/", $name);
 }
 
+const LIMIT_PR_ITEM = 100;
+const LIMIT_ITEM_LABEL = 60;
+const LIMIT_EQUIP_GROUP = 40;
+const LIMIT_EQUIP_VARIANT = 60;
+const LIMIT_UNIT = 15;
+const LIMIT_PERSON_NAME = 50;
+const LIMIT_NOTE = 200;
+const LIMIT_SUPPLIER_CONTACT = 180;
+const LIMIT_SUPPLIER_ADDRESS = 200;
+const LIMIT_VENDOR_COMPANY = 80;
+const LIMIT_VENDOR_PHONES = 120;
+const LIMIT_VENDOR_PHONE_LINE = 25;
+const LIMIT_VENDOR_EMAILS = 120;
+const LIMIT_VENDOR_EMAIL_LINE = 80;
+const LIMIT_VENDOR_ADDRESS = 200;
+const LIMIT_LOCATION_NAME = 60;
+const LIMIT_LOCATION_DESC = 200;
+const LIMIT_VENDOR_CONTACT_LINES = 3;
+
+function text_length(string $value): int
+{
+    return mb_strlen($value);
+}
+
+function parse_required_text(?string $value, int $maxLen, string $fieldLabel): string
+{
+    $value = trim($value ?? '');
+    if ($value === '') {
+        json_error("$fieldLabel is required");
+    }
+    if (text_length($value) > $maxLen) {
+        json_error("$fieldLabel must be at most $maxLen characters");
+    }
+
+    return $value;
+}
+
+function parse_optional_text(?string $value, int $maxLen, string $fieldLabel): ?string
+{
+    $value = trim($value ?? '');
+    if ($value === '') {
+        return null;
+    }
+    if (text_length($value) > $maxLen) {
+        json_error("$fieldLabel must be at most $maxLen characters");
+    }
+
+    return $value;
+}
+
+function parse_optional_note(?string $value, string $fieldLabel = 'Notes'): ?string
+{
+    return parse_optional_text($value, LIMIT_NOTE, $fieldLabel);
+}
+
+/** Strip formatting so OR 0001-052026-01845 matches 000105202601845. */
+function normalize_receipt_number(?string $value): string
+{
+    $v = strtoupper(trim($value ?? ''));
+    if ($v === '') {
+        return '';
+    }
+    $v = preg_replace('/^(OR|O\.R\.|OFFICIAL RECEIPT)\s*[#:\-]?\s*/i', '', $v);
+
+    return preg_replace('/[^A-Z0-9]/', '', $v);
+}
+
+/** Other POs that already use this OR number (excluding $excludePoId). */
+function find_receipt_number_duplicates(PDO $pdo, string $receiptNumber, int $excludePoId = 0): array
+{
+    $needle = normalize_receipt_number($receiptNumber);
+    if ($needle === '') {
+        return [];
+    }
+
+    $stmt = $pdo->query(
+        "SELECT id, po_code, receipt_number, receipt_uploaded_at
+         FROM purchase_orders
+         WHERE receipt_number IS NOT NULL AND TRIM(receipt_number) <> ''"
+    );
+    $matches = [];
+    foreach ($stmt->fetchAll() as $row) {
+        if ($excludePoId > 0 && (int) $row['id'] === $excludePoId) {
+            continue;
+        }
+        if (normalize_receipt_number($row['receipt_number']) !== $needle) {
+            continue;
+        }
+        $matches[] = [
+            'id' => (int) $row['id'],
+            'po_code' => $row['po_code'],
+            'receipt_number' => $row['receipt_number'],
+            'receipt_uploaded_at' => $row['receipt_uploaded_at'],
+        ];
+    }
+
+    return $matches;
+}
+
+function split_contact_lines(?string $value): array
+{
+    if ($value === null || trim($value) === '') {
+        return [];
+    }
+    $parts = [];
+    foreach (preg_split('/[\r\n,]+/', $value) as $line) {
+        $line = trim($line);
+        if ($line !== '') {
+            $parts[] = $line;
+        }
+    }
+
+    return $parts;
+}
+
+function is_valid_phone_line(string $line): bool
+{
+    return (bool) preg_match('/^[\d\s()+.-]{7,25}$/', $line);
+}
+
+function is_valid_email_line(string $line): bool
+{
+    if (text_length($line) > LIMIT_VENDOR_EMAIL_LINE) {
+        return false;
+    }
+
+    return (bool) filter_var($line, FILTER_VALIDATE_EMAIL);
+}
+
+function parse_vendor_phones(?string $value): ?string
+{
+    $lines = split_contact_lines($value);
+    if ($lines === []) {
+        return null;
+    }
+    if (count($lines) > LIMIT_VENDOR_CONTACT_LINES) {
+        json_error('provide at most ' . LIMIT_VENDOR_CONTACT_LINES . ' phone numbers');
+    }
+    $normalized = [];
+    foreach ($lines as $line) {
+        if (text_length($line) > LIMIT_VENDOR_PHONE_LINE) {
+            json_error('each phone number must be at most ' . LIMIT_VENDOR_PHONE_LINE . ' characters');
+        }
+        if (!is_valid_phone_line($line)) {
+            json_error('invalid phone number — use digits and + - ( ) spaces only');
+        }
+        $normalized[] = $line;
+    }
+    $joined = implode("\n", $normalized);
+    if (text_length($joined) > LIMIT_VENDOR_PHONES) {
+        json_error('phone numbers must fit within ' . LIMIT_VENDOR_PHONES . ' characters total');
+    }
+
+    return $joined;
+}
+
+function parse_vendor_emails(?string $value): ?string
+{
+    $lines = split_contact_lines($value);
+    if ($lines === []) {
+        return null;
+    }
+    if (count($lines) > LIMIT_VENDOR_CONTACT_LINES) {
+        json_error('provide at most ' . LIMIT_VENDOR_CONTACT_LINES . ' email addresses');
+    }
+    $normalized = [];
+    foreach ($lines as $line) {
+        if (!is_valid_email_line($line)) {
+            json_error('invalid email address — use a format like sales@abc.com');
+        }
+        $normalized[] = $line;
+    }
+    $joined = implode("\n", $normalized);
+    if (text_length($joined) > LIMIT_VENDOR_EMAILS) {
+        json_error('email addresses must fit within ' . LIMIT_VENDOR_EMAILS . ' characters total');
+    }
+
+    return $joined;
+}
+
 /** Optional person name; null when blank. Rejects digits and other non-name input. */
 function parse_optional_person_name(?string $value, string $fieldLabel = 'Issued to'): ?string
 {
     $value = trim($value ?? '');
     if ($value === '') {
         return null;
+    }
+    if (text_length($value) > LIMIT_PERSON_NAME) {
+        json_error("$fieldLabel must be at most " . LIMIT_PERSON_NAME . ' characters');
     }
     if (!is_valid_person_name($value)) {
         json_error("$fieldLabel must be a person's name (letters only — no numbers)");
@@ -659,7 +842,8 @@ function log_equipment_movement(
     ?string $notes = null,
     ?string $referenceType = null,
     ?int $referenceId = null,
-    ?string $referenceCode = null
+    ?string $referenceCode = null,
+    ?string $returnCondition = null
 ): void {
     if ($qty <= 0) {
         return;
@@ -668,7 +852,7 @@ function log_equipment_movement(
     if (($item['item_type'] ?? '') !== 'equipment') {
         return;
     }
-    $allowed = ['issue_from_storage', 'receive_to_storage', 'deploy_from_purchase', 'retired'];
+    $allowed = ['issue_from_storage', 'receive_to_storage', 'deploy_from_purchase', 'retired', 'return_to_storage'];
     if (!in_array($movementType, $allowed, true)) {
         return;
     }
@@ -677,8 +861,8 @@ function log_equipment_movement(
     $pdo->prepare(
         'INSERT INTO equipment_movements
          (movement_code, item_key, qty, movement_type, department, location_id, issued_to, notes,
-          recorded_by, reference_type, reference_id, reference_code, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          return_condition, recorded_by, reference_type, reference_id, reference_code, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )->execute([
         $code,
         $itemKey,
@@ -688,6 +872,7 @@ function log_equipment_movement(
         $locationId,
         $issuedTo,
         $notes,
+        $returnCondition,
         $recordedBy,
         $referenceType,
         $referenceId,
@@ -712,6 +897,153 @@ function void_equipment_movements_for_reference(
 
 const PURCHASE_REASONS = ['replacement', 'new_need', 'other', 'stock_up'];
 const RETIREMENT_REASONS = ['broken', 'lost', 'expired', 'damaged', 'other'];
+const RETURN_CONDITIONS = ['good', 'damaged', 'broken'];
+
+function return_condition_label(string $condition): string
+{
+    $labels = [
+        'good' => 'Good',
+        'damaged' => 'Damaged',
+        'broken' => 'Broken',
+    ];
+
+    return $labels[$condition] ?? $condition;
+}
+
+/**
+ * Record equipment returned from a department. Good/damaged units re-enter storage;
+ * broken units are written off without increasing storage qty.
+ *
+ * @return array Equipment movement row (same shape as equipment_movements GET).
+ */
+function apply_equipment_return(PDO $pdo, array $body, array $user): array
+{
+    $itemKey = trim($body['item_key'] ?? '');
+    $department = trim($body['department'] ?? '');
+    $qty = isset($body['qty']) ? (float) $body['qty'] : 0;
+    $condition = strtolower(trim($body['condition'] ?? ''));
+    $notes = parse_optional_note($body['notes'] ?? null);
+    $returnedBy = parse_optional_person_name($body['returned_by'] ?? null, 'Returned by');
+
+    if ($itemKey === '' || $department === '' || $qty <= 0) {
+        json_error('item_key, department, and qty greater than 0 are required');
+    }
+    if (!is_valid_department($department)) {
+        json_error('invalid department — choose one of the official departments');
+    }
+    if (!in_array($condition, RETURN_CONDITIONS, true)) {
+        json_error('condition must be one of: good, damaged, broken');
+    }
+    if ($condition === 'broken' && (ROLE_RANK[$user['role'] ?? ''] ?? 0) < ROLE_RANK['manager']) {
+        json_error('broken returns require a manager — ask a manager to record this write-off', 403);
+    }
+
+    $item = get_item_or_404($itemKey);
+    if ((int) ($item['active'] ?? 1) !== 1) {
+        json_error('cannot record a return for an inactive item');
+    }
+    if (($item['item_type'] ?? '') !== 'equipment') {
+        json_error('returns only apply to equipment items');
+    }
+
+    $stmt = $pdo->prepare('SELECT qty FROM equipment_deployments WHERE item_key = ? AND department = ?');
+    $stmt->execute([$itemKey, $department]);
+    $deployed = (float) $stmt->fetchColumn();
+    if ($deployed <= 0) {
+        json_error("no units deployed to $department", 409);
+    }
+    if ($qty > $deployed) {
+        json_error("only $deployed {$item['unit']} at $department — cannot return $qty", 409);
+    }
+
+    $recordedBy = $user['name'] ?? 'System';
+    $retirementId = null;
+    $retirementCode = null;
+    $locationId = !empty($item['location_id']) ? (int) $item['location_id'] : null;
+
+    $pdo->beginTransaction();
+    try {
+        subtract_equipment_deployment($pdo, $itemKey, $department, $qty);
+
+        if ($condition === 'broken') {
+            $retirementCode = next_code('RET', 'inventory_retirements', 'retirement_code');
+            $pdo->prepare(
+                'INSERT INTO inventory_retirements
+                 (retirement_code, item_key, qty, source, department, reason, notes, recorded_by)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            )->execute([
+                $retirementCode,
+                $itemKey,
+                $qty,
+                'department',
+                $department,
+                'broken',
+                $notes,
+                $recordedBy,
+            ]);
+            $retirementId = (int) $pdo->lastInsertId();
+            $locationId = null;
+        } else {
+            $pdo->prepare('UPDATE items SET current_qty = current_qty + ? WHERE item_key = ?')
+                ->execute([$qty, $itemKey]);
+        }
+
+        log_equipment_movement(
+            $pdo,
+            $itemKey,
+            $qty,
+            'return_to_storage',
+            $recordedBy,
+            $department,
+            $locationId,
+            $returnedBy,
+            $notes,
+            $retirementId ? 'inventory_retirement' : null,
+            $retirementId,
+            $retirementCode,
+            $condition
+        );
+
+        $pdo->commit();
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        json_error('failed to record return: ' . $e->getMessage(), 500);
+    }
+
+    $extra = items_have_equipment_group($pdo) ? 'i.equipment_group, i.item_type,' : 'i.item_type,';
+    $movement = $pdo->query(
+        'SELECT em.*, i.label, ' . $extra . ' i.unit, l.name AS location_name
+         FROM equipment_movements em
+         JOIN items i ON i.item_key = em.item_key
+         LEFT JOIN locations l ON l.id = em.location_id
+         WHERE em.item_key = ' . $pdo->quote($itemKey) . '
+         ORDER BY em.id DESC LIMIT 1'
+    )->fetch();
+
+    return [
+        'id' => (int) $movement['id'],
+        'movement_code' => $movement['movement_code'],
+        'item_key' => $movement['item_key'],
+        'item_label' => equipment_item_display_label($movement),
+        'unit' => $movement['unit'],
+        'qty' => (float) $movement['qty'],
+        'movement_type' => $movement['movement_type'],
+        'department' => $movement['department'],
+        'location_id' => $movement['location_id'] !== null ? (int) $movement['location_id'] : null,
+        'location_name' => $movement['location_name'],
+        'issued_to' => $movement['issued_to'],
+        'notes' => $movement['notes'],
+        'condition' => $movement['return_condition'],
+        'recorded_by' => $movement['recorded_by'],
+        'reference_type' => $movement['reference_type'],
+        'reference_id' => $movement['reference_id'] !== null ? (int) $movement['reference_id'] : null,
+        'reference_code' => $movement['reference_code'],
+        'status' => $movement['status'],
+        'voided_reason' => $movement['voided_reason'],
+        'created_at' => $movement['created_at'],
+        'voided_at' => $movement['voided_at'],
+    ];
+}
 
 function retirement_reason_label(string $reason): string
 {
@@ -742,7 +1074,7 @@ function apply_inventory_retirement(PDO $pdo, array $body, array $user): array
     $source = $body['source'] ?? 'storage';
     $department = trim($body['department'] ?? '') ?: null;
     $reason = strtolower(trim($body['reason'] ?? ''));
-    $notes = trim($body['notes'] ?? '') ?: null;
+    $notes = parse_optional_note($body['notes'] ?? null);
 
     if ($itemKey === '' || $qty <= 0) {
         json_error('item_key and qty greater than 0 are required');

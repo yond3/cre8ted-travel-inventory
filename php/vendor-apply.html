@@ -27,6 +27,8 @@
           line: '#e7ecf3',
           greenBg: '#e3f8ec',
           greenTx: '#1a9b58',
+          redBg: '#fef2f2',
+          redTx: '#b91c1c',
         },
         fontFamily: {
           sans: ['Inter', 'sans-serif'],
@@ -41,6 +43,38 @@
     }
   }
 </script>
+<style>
+  .field-wrap{ display:flex; flex-direction:column; }
+  .field-wrap input.field-invalid,
+  .field-wrap textarea.field-invalid{
+    border-color:#d5362f !important;
+    box-shadow:0 0 0 3px rgba(213,54,47,.12);
+  }
+  .field-meta{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:.75rem;
+    margin-top:.35rem;
+  }
+  .field-hint{ font-size:.72rem; line-height:1.35; color:#94a3bb; flex:1; min-width:0; }
+  .field-counter{
+    font-size:.72rem; line-height:1.35; color:#94a3bb; white-space:nowrap; shrink:0;
+  }
+  .field-counter.is-warn{ color:#c07d10; font-weight:600; }
+  .field-counter.is-over{ color:#d5362f; font-weight:700; }
+  .field-error{
+    font-size:.72rem; line-height:1.35; color:#d5362f; margin-top:.3rem; font-weight:600;
+  }
+  .field-error.hidden{ display:none; }
+  .modal-overlay{ display:none; position:fixed; inset:0; z-index:2500; background:rgba(0,0,0,.45); }
+  .modal-overlay.show{ display:flex; flex-direction:column; align-items:center; justify-content:center; overflow-y:auto; padding:1rem; }
+  .app-toast{
+    position:fixed; bottom:1.25rem; left:50%; transform:translateX(-50%); z-index:3000;
+    max-width:min(92vw, 420px); padding:.75rem 1.1rem; border-radius:12px;
+    background:#0f2a52; color:#fff; font-size:.84rem; font-weight:600;
+    box-shadow:0 10px 30px rgba(15,42,82,.28); pointer-events:none;
+    white-space:pre-wrap; text-align:center;
+  }
+  .app-toast.hidden{ display:none; }
+</style>
 </head>
 <body class="font-sans bg-bg text-textDark min-h-screen py-8 px-4">
   <div class="max-w-2xl mx-auto">
@@ -59,23 +93,41 @@
       <p class="text-[.85rem] text-textMid mb-5">Tell us your company details and unit prices for office supplies and equipment you can supply. Our team will review and add approved vendors to our supplier directory.</p>
 
       <form id="quoteForm" class="flex flex-col gap-4">
-        <div>
+        <div class="field-wrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Company name</label>
-          <input id="companyName" required maxlength="150" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. ABC Office Supply">
+          <input id="companyName" required maxlength="80" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. ABC Office Supply">
+          <div class="field-meta">
+            <p class="field-hint">Any characters allowed. Max 80 characters.</p>
+            <span class="field-counter" aria-live="polite">0/80</span>
+          </div>
+          <p class="field-error hidden" role="alert"></p>
         </div>
-        <div>
+        <div class="field-wrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Phone number(s)</label>
-          <textarea id="phones" rows="2" maxlength="500" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. 0917-123-4567&#10;(02) 8123-4567"></textarea>
-          <p class="text-[.72rem] text-textSoft mt-1">One per line, or separate with commas. Provide at least one phone or email below.</p>
+          <textarea id="phones" rows="2" maxlength="120" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. 0917-123-4567&#10;(02) 8123-4567"></textarea>
+          <div class="field-meta">
+            <p class="field-hint">Up to 3 numbers, one per line. Digits and + - ( ) spaces only, 25 chars each.</p>
+            <span class="field-counter" aria-live="polite">0/120</span>
+          </div>
+          <p class="field-error hidden" role="alert"></p>
         </div>
-        <div>
+        <div class="field-wrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Email address(es)</label>
-          <textarea id="emails" rows="2" maxlength="500" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. sales@abc.com&#10;orders@abc.com"></textarea>
-          <p class="text-[.72rem] text-textSoft mt-1">Optional if you provided a phone number. One per line or comma-separated.</p>
+          <textarea id="emails" rows="2" maxlength="120" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. sales@abc.com&#10;orders@abc.com"></textarea>
+          <div class="field-meta">
+            <p class="field-hint">Optional if you provided a phone. Up to 3 emails, one per line.</p>
+            <span class="field-counter" aria-live="polite">0/120</span>
+          </div>
+          <p class="field-error hidden" role="alert"></p>
         </div>
-        <div>
+        <div class="field-wrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Business address</label>
-          <textarea id="address" rows="3" maxlength="500" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Unit 12, SM Megamall, Mandaluyong City"></textarea>
+          <textarea id="address" rows="3" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Unit 12, SM Megamall, Mandaluyong City"></textarea>
+          <div class="field-meta">
+            <p class="field-hint">Any characters allowed. Max 200 characters.</p>
+            <span class="field-counter" aria-live="polite">0/200</span>
+          </div>
+          <p class="field-error hidden" role="alert"></p>
         </div>
         <div>
           <label class="text-[.78rem] font-semibold text-textMid block mb-2">How can we buy from you?</label>
@@ -93,9 +145,14 @@
             <p class="text-[.85rem] text-textMid">Loading items…</p>
           </div>
         </div>
-        <div>
+        <div class="field-wrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
-          <textarea id="notes" rows="2" maxlength="255" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. minimum order 10 pcs, prices valid 30 days"></textarea>
+          <textarea id="notes" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. minimum order 10 pcs, prices valid 30 days"></textarea>
+          <div class="field-meta">
+            <p class="field-hint">Any characters allowed. Max 200 characters.</p>
+            <span class="field-counter" aria-live="polite">0/200</span>
+          </div>
+          <p class="field-error hidden" role="alert"></p>
         </div>
         <button type="submit" id="submitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 text-[.88rem] font-bold cursor-pointer border border-creamBorder shadow-btn">Submit quotation</button>
       </form>
@@ -109,11 +166,217 @@
     </div>
   </div>
 
+<div class="modal-overlay" id="noticeModalOverlay">
+  <div class="bg-card rounded-card shadow-panel border border-line w-full max-w-md p-6">
+    <h3 class="font-display font-extrabold text-[1.1rem] text-textDark mb-2" id="noticeModalTitle">Notice</h3>
+    <p class="text-[.85rem] text-textMid whitespace-pre-wrap mb-5" id="noticeModalMessage"></p>
+    <button type="button" id="noticeModalOkBtn" class="w-full px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn">OK</button>
+  </div>
+</div>
+<div id="appToast" class="app-toast hidden" role="status" aria-live="polite"></div>
+
 <script>
 const API = 'api/';
+let toastTimer = null;
+
+function showToast(message, ms = 3200){
+  const el = document.getElementById('appToast');
+  if(!el) return;
+  el.textContent = message;
+  el.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('hidden'), ms);
+}
+
+function showNoticeModal({ title = 'Notice', message = '', okText = 'OK', variant = 'default' } = {}){
+  return new Promise(resolve => {
+    const overlay = document.getElementById('noticeModalOverlay');
+    const finish = () => {
+      overlay.classList.remove('show');
+      document.getElementById('noticeModalOkBtn').removeEventListener('click', finish);
+      resolve();
+    };
+    document.getElementById('noticeModalTitle').textContent = title;
+    document.getElementById('noticeModalMessage').textContent = message || title;
+    const okBtn = document.getElementById('noticeModalOkBtn');
+    okBtn.textContent = okText;
+    okBtn.className = variant === 'error'
+      ? 'w-full px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border-none shadow-btn'
+      : 'w-full px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn';
+    okBtn.addEventListener('click', finish);
+    overlay.classList.add('show');
+  });
+}
+
+function showError(message, title = 'Something went wrong'){
+  return showNoticeModal({ title, message: String(message || title), variant: 'error' });
+}
 
 function escapeHtml(text){
   return String(text ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function splitContactLines(value){
+  return String(value ?? '').split(/[\r\n,]+/).map(v => v.trim()).filter(Boolean);
+}
+
+const VENDOR_LIMITS = {
+  company: 80,
+  phones: 120,
+  phoneLine: 25,
+  emails: 120,
+  emailLine: 80,
+  address: 200,
+  notes: 200,
+  contactLines: 3,
+};
+const PHONE_LINE_RE = /^[\d\s()+.-]{7,25}$/;
+const EMAIL_LINE_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function fieldWrapFor(input){
+  return input?.closest('.field-wrap') || input?.parentElement;
+}
+
+function fieldErrorEl(input){
+  const wrap = fieldWrapFor(input);
+  return wrap?.querySelector('.field-error');
+}
+
+function setFieldError(input, message){
+  if(!input) return;
+  input.classList.add('field-invalid');
+  const err = fieldErrorEl(input);
+  if(err){
+    err.textContent = message;
+    err.classList.remove('hidden');
+  }
+}
+
+function clearFieldError(input){
+  if(!input) return;
+  input.classList.remove('field-invalid');
+  const err = fieldErrorEl(input);
+  if(err){
+    err.textContent = '';
+    err.classList.add('hidden');
+  }
+}
+
+function clearFormFieldErrors(form){
+  if(!form) return;
+  form.querySelectorAll('.field-invalid').forEach(el => el.classList.remove('field-invalid'));
+  form.querySelectorAll('.field-error').forEach(el => {
+    el.textContent = '';
+    el.classList.add('hidden');
+  });
+}
+
+function focusFirstFieldError(form){
+  const bad = form?.querySelector('.field-invalid');
+  if(!bad) return false;
+  bad.focus();
+  bad.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  return true;
+}
+
+function updateFieldCounter(input){
+  if(!input) return;
+  const wrap = fieldWrapFor(input);
+  const counter = wrap?.querySelector('.field-counter');
+  const max = Number(input.maxLength);
+  if(!counter || !max || max <= 0) return;
+  const len = input.value.length;
+  counter.textContent = `${len}/${max}`;
+  counter.classList.toggle('is-warn', len >= Math.max(1, max - 10) && len <= max);
+  counter.classList.toggle('is-over', len > max);
+}
+
+function wireLimitedField(input){
+  if(!input || input.dataset.fieldWired === '1') return;
+  input.dataset.fieldWired = '1';
+  input.addEventListener('input', () => {
+    clearFieldError(input);
+    updateFieldCounter(input);
+  });
+  updateFieldCounter(input);
+}
+
+function wireAllLimitedFields(root){
+  (root || document).querySelectorAll('.field-wrap input[maxlength], .field-wrap textarea[maxlength]').forEach(wireLimitedField);
+}
+
+function validateTextField(input, { max, label, required = false, allowEmpty = true } = {}){
+  if(!input) return true;
+  clearFieldError(input);
+  const v = input.value.trim();
+  if(required && !v){
+    setFieldError(input, `${label} is required.`);
+    return false;
+  }
+  if(!allowEmpty && !v){
+    setFieldError(input, `${label} is required.`);
+    return false;
+  }
+  if(v.length > max){
+    setFieldError(input, `${label} must be at most ${max} characters.`);
+    return false;
+  }
+  return true;
+}
+
+function validateVendorPhonesField(input){
+  if(!input) return true;
+  clearFieldError(input);
+  const raw = input.value.trim();
+  if(!raw) return true;
+  const lines = splitContactLines(raw);
+  if(lines.length > VENDOR_LIMITS.contactLines){
+    setFieldError(input, `Enter at most ${VENDOR_LIMITS.contactLines} phone numbers (one per line).`);
+    return false;
+  }
+  for(const line of lines){
+    if(line.length > VENDOR_LIMITS.phoneLine || !PHONE_LINE_RE.test(line)){
+      setFieldError(input, 'Use digits and + - ( ) spaces only, up to 25 characters per number.');
+      return false;
+    }
+  }
+  if(lines.join('\n').length > VENDOR_LIMITS.phones){
+    setFieldError(input, `Phone numbers must fit within ${VENDOR_LIMITS.phones} characters total.`);
+    return false;
+  }
+  return true;
+}
+
+function validateVendorEmailsField(input){
+  if(!input) return true;
+  clearFieldError(input);
+  const raw = input.value.trim();
+  if(!raw) return true;
+  const lines = splitContactLines(raw);
+  if(lines.length > VENDOR_LIMITS.contactLines){
+    setFieldError(input, `Enter at most ${VENDOR_LIMITS.contactLines} email addresses (one per line).`);
+    return false;
+  }
+  for(const line of lines){
+    if(line.length > VENDOR_LIMITS.emailLine || !EMAIL_LINE_RE.test(line)){
+      setFieldError(input, 'Enter valid emails like sales@abc.com (one per line).');
+      return false;
+    }
+  }
+  if(lines.join('\n').length > VENDOR_LIMITS.emails){
+    setFieldError(input, `Email addresses must fit within ${VENDOR_LIMITS.emails} characters total.`);
+    return false;
+  }
+  return true;
+}
+
+function validateContactRequired(phonesEl, emailsEl){
+  const phones = phonesEl.value.trim();
+  const emails = emailsEl.value.trim();
+  if(phones || emails) return true;
+  setFieldError(phonesEl, 'Enter at least one phone number or email address.');
+  setFieldError(emailsEl, 'Enter at least one phone number or email address.');
+  return false;
 }
 
 async function loadQuotableItems(){
@@ -205,17 +468,29 @@ function collectPrices(){
 
 document.getElementById('quoteForm').addEventListener('submit', async function(e){
   e.preventDefault();
+  clearFormFieldErrors(this);
   const prices = collectPrices();
   if(!prices.length){
-    alert('Check at least one item and enter a unit price greater than zero.');
+    showError('Check at least one item and enter a unit price greater than zero.', 'Item prices required');
     return;
   }
-  const phones = document.getElementById('phones').value.trim();
-  const emails = document.getElementById('emails').value.trim();
-  if(!phones && !emails){
-    alert('Enter at least one phone number or email address.');
-    return;
-  }
+  const companyEl = document.getElementById('companyName');
+  const phonesEl = document.getElementById('phones');
+  const emailsEl = document.getElementById('emails');
+  const addressEl = document.getElementById('address');
+  const notesEl = document.getElementById('notes');
+  let ok = validateTextField(companyEl, { max: VENDOR_LIMITS.company, label: 'Company name', required: true })
+    && validateContactRequired(phonesEl, emailsEl)
+    && validateVendorPhonesField(phonesEl)
+    && validateVendorEmailsField(emailsEl)
+    && validateTextField(addressEl, { max: VENDOR_LIMITS.address, label: 'Business address', allowEmpty: true })
+    && validateTextField(notesEl, { max: VENDOR_LIMITS.notes, label: 'Notes', allowEmpty: true });
+  if(!ok){ focusFirstFieldError(this); return; }
+  const companyName = companyEl.value.trim();
+  const phones = phonesEl.value.trim();
+  const emails = emailsEl.value.trim();
+  const address = addressEl.value.trim();
+  const notes = notesEl.value.trim();
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.textContent = 'Submitting…';
@@ -224,12 +499,12 @@ document.getElementById('quoteForm').addEventListener('submit', async function(e
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        company_name: document.getElementById('companyName').value.trim(),
+        company_name: companyName,
         phones: phones || null,
         emails: emails || null,
-        address: document.getElementById('address').value.trim() || null,
+        address: address || null,
         procurement_methods: selectedMethods(),
-        notes: document.getElementById('notes').value.trim() || null,
+        notes: notes || null,
         prices,
       }),
     });
@@ -239,13 +514,14 @@ document.getElementById('quoteForm').addEventListener('submit', async function(e
     document.getElementById('successPanel').classList.remove('hidden');
     document.getElementById('successCode').textContent = data.application_code;
   } catch (err) {
-    alert(err.error || 'Could not submit quotation. Please try again.');
+    showError(err.error || 'Could not submit quotation. Please try again.');
     btn.disabled = false;
     btn.textContent = 'Submit quotation';
   }
 });
 
 (async function init(){
+  wireAllLimitedFields();
   try {
     const items = await loadQuotableItems();
     renderItemRows(items);

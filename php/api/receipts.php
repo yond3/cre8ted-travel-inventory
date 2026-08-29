@@ -9,6 +9,7 @@
  *         one (PUT purchase_orders.php action=reject_receipt); it replaces
  *         the file and clears the rejection.
  * GET  /api/receipts.php?po_id=<id>   -> streams the stored receipt file (auth required).
+ * GET  /api/receipts.php?check_number=<or>&exclude_po_id=<id> -> duplicate OR check (auth required).
  */
 require __DIR__ . '/config.php';
 require __DIR__ . '/finance_client.php';
@@ -17,9 +18,7 @@ $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];
 
 $poId = (int) ($_GET['po_id'] ?? 0);
-if (!$poId) {
-    json_error('missing required query param: po_id');
-}
+$checkNumber = trim($_GET['check_number'] ?? '');
 
 function fetch_po_or_404(PDO $pdo, int $id): array
 {
@@ -34,6 +33,21 @@ function fetch_po_or_404(PDO $pdo, int $id): array
 
 if ($method === 'GET') {
     require_auth();
+
+    if ($checkNumber !== '') {
+        $excludePoId = (int) ($_GET['exclude_po_id'] ?? 0);
+        $matches = find_receipt_number_duplicates($pdo, $checkNumber, $excludePoId);
+        echo json_encode([
+            'duplicate' => count($matches) > 0,
+            'matches' => $matches,
+        ]);
+        exit;
+    }
+
+    if (!$poId) {
+        json_error('missing required query param: po_id');
+    }
+
     $po = fetch_po_or_404($pdo, $poId);
     if (!$po['receipt_filename']) {
         json_error('no receipt uploaded for this purchase order', 404);
@@ -50,6 +64,9 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    if (!$poId) {
+        json_error('missing required query param: po_id');
+    }
     $user = require_staff_or_above();
     $po = fetch_po_or_404($pdo, $poId);
 
@@ -103,6 +120,15 @@ if ($method === 'POST') {
         json_error('receipt amount is required');
     }
 
+    $receiptNumber = trim($_POST['receipt_number'] ?? '') ?: null;
+    if ($receiptNumber) {
+        $dupes = find_receipt_number_duplicates($pdo, $receiptNumber, $poId);
+        if ($dupes) {
+            $codes = implode(', ', array_column($dupes, 'po_code'));
+            json_error("This OR number is already on file for $codes — use a different receipt or verify with a manager.", 409);
+        }
+    }
+
     if (!is_dir(RECEIPT_UPLOAD_DIR) && !mkdir(RECEIPT_UPLOAD_DIR, 0775, true) && !is_dir(RECEIPT_UPLOAD_DIR)) {
         json_error('receipt storage directory is not available', 500);
     }
@@ -141,7 +167,7 @@ if ($method === 'POST') {
         $file['name'],
         $mime,
         (float) $amount,
-        trim($_POST['receipt_number'] ?? '') ?: null,
+        $receiptNumber,
         trim($_POST['notes'] ?? '') ?: null,
         $user['name'],
         $poId,

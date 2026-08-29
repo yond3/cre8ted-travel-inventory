@@ -187,10 +187,7 @@ if ($method === 'GET') {
 
 if ($method === 'POST') {
     $body = read_json_body();
-    $companyName = trim($body['company_name'] ?? '');
-    if ($companyName === '') {
-        json_error('company_name is required');
-    }
+    $companyName = parse_required_text($body['company_name'] ?? '', LIMIT_VENDOR_COMPANY, 'Company name');
 
     $prices = $body['prices'] ?? [];
     if (!is_array($prices) || empty($prices)) {
@@ -222,10 +219,10 @@ if ($method === 'POST') {
 
     $code = next_code('VQ', 'vendor_applications', 'application_code');
     $methods = normalize_methods($body['procurement_methods'] ?? ['walk_in']);
-    $phones = normalize_contact_list($body['phones'] ?? null);
-    $emails = normalize_contact_list($body['emails'] ?? null);
-    $address = trim($body['address'] ?? '') ?: null;
-    $legacyContact = trim($body['contact'] ?? '') ?: null;
+    $phones = parse_vendor_phones($body['phones'] ?? null);
+    $emails = parse_vendor_emails($body['emails'] ?? null);
+    $address = parse_optional_text($body['address'] ?? null, LIMIT_VENDOR_ADDRESS, 'Business address');
+    $legacyContact = parse_optional_text($body['contact'] ?? null, LIMIT_SUPPLIER_CONTACT, 'Contact');
 
     if ($phones === null && $emails === null && $legacyContact === null) {
         json_error('provide at least one phone number or email address');
@@ -248,7 +245,7 @@ if ($method === 'POST') {
             $emails,
             $address,
             $methods,
-            trim($body['notes'] ?? '') ?: null,
+            parse_optional_note($body['notes'] ?? null),
             'Pending',
         ]);
         $appId = (int) $pdo->lastInsertId();

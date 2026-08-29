@@ -111,6 +111,12 @@ if ($method === 'POST') {
     } elseif ((float) $item['current_qty'] <= 0) {
         json_error('no stock on hand for that item', 409);
     }
+    if ($qty > (float) $item['current_qty']) {
+        json_error(
+            "only {$item['current_qty']} {$item['unit']} on hand — cannot request $qty",
+            409
+        );
+    }
 
     $code = next_code('SR', 'stock_requests', 'request_code');
     $stmt = $pdo->prepare(
@@ -123,7 +129,7 @@ if ($method === 'POST') {
         $itemKey,
         $qty,
         $user['name'],
-        trim($body['notes'] ?? '') ?: null,
+        parse_optional_note($body['notes'] ?? null),
         'Pending',
     ]);
 
@@ -172,7 +178,9 @@ if ($method === 'PUT') {
         $issuedTo = $issuedToInput !== ''
             ? parse_optional_person_name($issuedToInput)
             : $row['requested_by'];
-        $notes = trim($body['notes'] ?? '') ?: $row['notes'];
+        $notes = array_key_exists('notes', $body) && trim($body['notes'] ?? '') !== ''
+            ? parse_optional_note($body['notes'] ?? null)
+            : ($row['notes'] ?? null);
 
         $pdo->beginTransaction();
         try {

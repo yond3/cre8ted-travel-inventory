@@ -29,6 +29,7 @@ function format_equipment_movement(array $row): array
         'location_name' => $row['location_name'],
         'issued_to' => $row['issued_to'],
         'notes' => $row['notes'],
+        'condition' => $row['return_condition'] ?? null,
         'recorded_by' => $row['recorded_by'],
         'reference_type' => $row['reference_type'],
         'reference_id' => $row['reference_id'] !== null ? (int) $row['reference_id'] : null,

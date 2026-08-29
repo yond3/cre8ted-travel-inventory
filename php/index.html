@@ -297,6 +297,22 @@
   .cell-tag-danger{ background:#fef2f2; color:#b91c1c; }
   .cell-tag-muted{ background:#eef2f7; color:#5b6b85; }
   .cell-item-row{ display:flex; flex-wrap:wrap; align-items:center; gap:.25rem; }
+  .cell-long-text{ max-width:14rem; min-width:0; }
+  .cell-long-body{ word-break:break-word; overflow-wrap:anywhere; line-height:1.35; }
+  .cell-long-clamp{
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+    overflow:hidden;
+  }
+  .cell-long-text.is-expanded .cell-long-clamp{
+    display:block; -webkit-line-clamp:unset; overflow:visible;
+  }
+  .cell-long-toggle{
+    margin-top:.2rem; padding:0; border:none; background:none;
+    color:#173868; font-size:.72rem; font-weight:600; cursor:pointer; line-height:1.2;
+  }
+  [data-theme="dark"] .cell-long-toggle{ color:#7eb3ff; }
+  .cell-long-toggle:hover{ text-decoration:underline; }
+  .gl-table td.text-cell{ max-width:14rem; vertical-align:top; }
   .cell-qty{ font-weight:600; color:var(--t-cell-text); white-space:nowrap; }
   .cell-qty-warn{ color:#c2410c; }
   .cell-qty-unit{ font-weight:500; color:var(--t-cell-meta); font-size:.78rem; }
@@ -381,6 +397,40 @@
     background:#FFF7E8; color:#0f2a52; border:1px solid #EDE5D4;
   }
   .btn-cream:hover{ background:#FFF7E8; filter:brightness(.98); }
+  .field-wrap{ display:flex; flex-direction:column; }
+  .field-wrap input.field-invalid,
+  .field-wrap textarea.field-invalid,
+  .field-wrap select.field-invalid{
+    border-color:#d5362f !important;
+    box-shadow:0 0 0 3px rgba(213,54,47,.12);
+  }
+  #receiptModalOverlay #receiptNumber.field-invalid{
+    border-color:#c07d10 !important;
+    box-shadow:0 0 0 3px rgba(192,125,16,.15);
+  }
+  .field-meta{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:.75rem;
+    margin-top:.35rem;
+  }
+  .field-hint{ font-size:.72rem; line-height:1.35; color:var(--t-text-soft); flex:1; min-width:0; }
+  .field-counter{
+    font-size:.72rem; line-height:1.35; color:var(--t-text-soft); white-space:nowrap; shrink:0;
+  }
+  .field-counter.is-warn{ color:#c07d10; font-weight:600; }
+  .field-counter.is-over{ color:#d5362f; font-weight:700; }
+  .field-error{
+    font-size:.72rem; line-height:1.35; color:#d5362f; margin-top:.3rem; font-weight:600;
+  }
+  .field-error.hidden{ display:none; }
+  .app-toast{
+    position:fixed; bottom:1.25rem; left:50%; transform:translateX(-50%); z-index:3000;
+    max-width:min(92vw, 420px); padding:.75rem 1.1rem; border-radius:12px;
+    background:#0f2a52; color:#fff; font-size:.84rem; font-weight:600;
+    box-shadow:0 10px 30px rgba(15,42,82,.28); pointer-events:none;
+    white-space:pre-wrap; text-align:center;
+  }
+  .app-toast.hidden{ display:none; }
+  [data-theme="dark"] .app-toast{ background:#1e3a5f; border:1px solid rgba(255,255,255,.08); }
   .row-hidden{ display:none !important; }
   .table-search-wrap{
     position:relative; display:flex; align-items:center; flex:1 1 220px; max-width:420px;
@@ -785,6 +835,7 @@
               <th class="py-3 pr-3 font-semibold">Qty</th>
               <th class="py-3 pr-3 font-semibold">On hand</th>
               <th class="py-3 pr-3 font-semibold">Requested by</th>
+              <th class="py-3 pr-3 font-semibold">Notes</th>
               <th class="py-3 pr-3 font-semibold status-cell">Status</th>
               <th class="py-3 pr-3 font-semibold">Action</th>
             </tr>
@@ -804,6 +855,7 @@
               <th class="py-3 pr-3 font-semibold">Qty</th>
               <th class="py-3 pr-3 font-semibold">Department</th>
               <th class="py-3 pr-3 font-semibold">Issued to / reason</th>
+              <th class="py-3 pr-3 font-semibold">Notes</th>
               <th class="py-3 pr-3 font-semibold">Status</th>
               <th class="py-3 pr-3 font-semibold">Action</th>
             </tr>
@@ -813,7 +865,7 @@
       </div>
     </div>
     <div class="hidden" id="equipmentHistoryPanel">
-      <p class="text-[.78rem] text-textMid mb-4">Every equipment assignment and storage receipt — from shelf issues, purchase orders received to storage, and purchases deployed straight to a department.</p>
+      <p class="text-[.78rem] text-textMid mb-4">Every equipment assignment and storage receipt — issues from storage, returns from departments, purchase receipts, and write-offs.</p>
       <div class="overflow-x-auto">
         <table class="gl-table w-full text-[.85rem] border-collapse">
           <thead>
@@ -824,6 +876,8 @@
               <th class="py-3 pr-3 font-semibold">Event</th>
               <th class="py-3 pr-3 font-semibold">To</th>
               <th class="py-3 pr-3 font-semibold">Reference</th>
+              <th class="py-3 pr-3 font-semibold">Person</th>
+              <th class="py-3 pr-3 font-semibold">Notes</th>
               <th class="py-3 pr-3 font-semibold">Recorded by</th>
               <th class="py-3 pr-3 font-semibold">Status</th>
             </tr>
@@ -885,6 +939,7 @@
             <th class="py-3 pr-3 font-semibold">Reason</th>
             <th class="py-3 pr-3 font-semibold">Qty</th>
             <th class="py-3 pr-3 font-semibold">Est. cost</th>
+            <th class="py-3 pr-3 font-semibold">Notes</th>
             <th class="py-3 pr-3 font-semibold status-cell">Status</th>
             <th class="py-3 pr-3 font-semibold">Action</th>
           </tr>
@@ -1163,18 +1218,24 @@
           </label>
         </div>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item needed</label>
-        <input id="reqItemNeeded" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. HP LaserJet printer, heavy-duty extension cord 25ft">
+        <input id="reqItemNeeded" required maxlength="100" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. HP LaserJet printer, heavy-duty extension cord 25ft">
         <p class="text-[.72rem] text-textSoft mt-1" id="reqItemNeededHint">Describe what we should buy — you don't have to pick from the catalog.</p>
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 100 characters.</p>
+          <span class="field-counter" aria-live="polite">0/100</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
         <input type="hidden" id="reqCatalogKey" value="">
       </div>
-      <div id="reqCatalogPickWrap" class="hidden">
+      <div id="reqCatalogPickWrap" class="hidden field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Catalog item (optional)</label>
         <select id="reqCatalogPick" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
           <option value="">No catalog link — new item description only</option>
         </select>
         <p class="text-[.72rem] text-textSoft mt-1">Link to an existing inventory row when you know it (helps pricing and receive).</p>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <div id="reqEquipmentPurposeWrap" class="hidden">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Purpose</label>
@@ -1188,10 +1249,11 @@
         </div>
         <p class="text-[.72rem] text-textSoft mt-1" id="reqStoragePurposeHint">Company stock-up — units go to a cabinet or shelf when received. Departments request from stock later.</p>
       </div>
-      <div id="reqDepartmentWrap" class="hidden">
+      <div id="reqDepartmentWrap" class="hidden field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Requesting department</label>
         <select id="reqDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
         <p class="text-[.72rem] text-textSoft mt-1">Which department needs this equipment.</p>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <div id="reqReasonWrap" class="hidden">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Reason</label>
@@ -1201,14 +1263,23 @@
           <option value="other">Other</option>
         </select>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity</label>
-        <input id="reqQty" type="number" min="1" value="1" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        <input id="reqQty" type="number" min="1" step="1" value="1" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        <div class="field-meta">
+          <p class="field-hint">Numbers only. Equipment must be a whole number.</p>
+        </div>
         <p class="text-[.72rem] text-textSoft mt-1" id="reqQtyHint"></p>
+        <p class="field-error hidden" role="alert"></p>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
-        <textarea id="reqNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. needed for client itinerary printing"></textarea>
+        <textarea id="reqNotes" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. needed for client itinerary printing"></textarea>
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 200 characters.</p>
+          <span class="field-counter" aria-live="polite">0/200</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <button type="submit" id="reqSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Submit request</button>
     </form>
@@ -1252,9 +1323,10 @@
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Requested by</label>
         <div id="stockReqEmployeeDisplay" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark">—</div>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Department</label>
         <select id="stockReqDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" required></select>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <div id="stockReqTypeWrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Request type</label>
@@ -1268,24 +1340,34 @@
         </div>
         <p class="text-[.72rem] text-textSoft mt-1" id="stockReqTypeHint">Pens, paper, cleaning supplies, and other consumables.</p>
       </div>
-      <div id="stockReqItemSelectWrap">
+      <div id="stockReqItemSelectWrap" class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1" id="stockReqItemLabel">Supply</label>
         <select id="stockReqItem" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
         <p id="stockReqPurchaseHint" class="hidden text-[.72rem] text-textMid mt-1"></p>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <div id="stockReqItemLockedWrap" class="hidden">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1" id="stockReqItemLockedType">Supply</label>
         <div id="stockReqItemLockedLabel" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark"></div>
         <input type="hidden" id="stockReqItemLockedKey" value="">
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity</label>
         <input id="stockReqQty" type="number" min="0.01" step="any" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        <div class="field-meta">
+          <p class="field-hint">Numbers only.</p>
+        </div>
         <p class="text-[.72rem] text-textSoft mt-1" id="stockReqQtyHint"></p>
+        <p class="field-error hidden" role="alert"></p>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
-        <textarea id="stockReqNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. for front desk use this week"></textarea>
+        <textarea id="stockReqNotes" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. for front desk use this week"></textarea>
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 200 characters.</p>
+          <span class="field-counter" aria-live="polite">0/200</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Submit request</button>
     </form>
@@ -1308,23 +1390,140 @@
         <div id="issueItemLabel" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark"></div>
         <p class="text-[.72rem] text-textSoft mt-1" id="issueStockHint"></p>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity</label>
         <input id="issueQty" type="number" min="0.01" step="any" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        <div class="field-meta">
+          <p class="field-hint">Numbers only. Cannot exceed stock on hand.</p>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Department</label>
         <select id="issueDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" required></select>
+        <p class="field-error hidden" role="alert"></p>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Issued to (optional)</label>
-        <input id="issueIssuedTo" type="text" inputmode="text" autocomplete="name" pattern="[A-Za-z][A-Za-z\s.'-]*" title="Enter a person's name (letters only — no numbers)" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Juan Dela Cruz">
+        <input id="issueIssuedTo" type="text" inputmode="text" autocomplete="name" maxlength="50" pattern="[A-Za-z][A-Za-z\s.'-]*" title="Enter a person's name (letters only — no numbers)" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Juan Dela Cruz">
+        <div class="field-meta">
+          <p class="field-hint">Person's name only — letters, spaces, and . ' - allowed. Max 50 characters.</p>
+          <span class="field-counter" aria-live="polite">0/50</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
-      <div>
-        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
-        <textarea id="issueNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. for client folders"></textarea>
+      <div class="hidden" id="issueRequestNotesWrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Request notes</label>
+        <div id="issueRequestNotes" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] text-textMid whitespace-pre-wrap"></div>
+        <p class="text-[.72rem] text-textSoft mt-1">From the department's stock request — read only.</p>
+      </div>
+      <div class="field-wrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1" id="issueNotesLabel">Notes (optional)</label>
+        <textarea id="issueNotes" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. for client folders"></textarea>
+        <div class="field-meta">
+          <p class="field-hint" id="issueNotesHint">Any characters allowed. Max 200 characters.</p>
+          <span class="field-counter" aria-live="polite">0/200</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <button type="submit" id="issueFormSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Record issue</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: VOID STOCK ISSUE ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="voidIssueModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Void issue</h3>
+      <button type="button" onclick="closeModal('voidIssueModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="voidIssueModalHint">Stock will be added back to inventory.</p>
+    <form id="voidIssueForm" class="flex flex-col gap-4">
+      <input type="hidden" id="voidIssueId" value="">
+      <div class="field-wrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Reason (optional)</label>
+        <textarea id="voidIssueReason" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. issued to wrong department, duplicate entry"></textarea>
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 200 characters.</p>
+          <span class="field-counter" aria-live="polite">0/200</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
+      </div>
+      <div class="flex gap-2 mt-1">
+        <button type="button" onclick="closeModal('voidIssueModalOverlay')" class="flex-1 px-4 py-2.5 rounded-xl bg-[#eef2f7] text-textMid text-[.88rem] font-bold cursor-pointer border-none">Cancel</button>
+        <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Void issue</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: RECORD EQUIPMENT RETURN ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="returnModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="returnModalTitle">Record return</h3>
+      <button type="button" onclick="closeModal('returnModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="returnModalHint">Log equipment handed back from a department — date and time are recorded automatically.</p>
+    <form id="returnForm" class="flex flex-col gap-4">
+      <input type="hidden" id="returnItemKey" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item</label>
+        <div id="returnItemLabel" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark"></div>
+        <p class="text-[.72rem] text-textSoft mt-1" id="returnDeployedHint"></p>
+      </div>
+      <div class="field-wrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Return from</label>
+        <select id="returnDepartment" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+        <p class="field-error hidden" role="alert"></p>
+      </div>
+      <div class="field-wrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity</label>
+        <input id="returnQty" type="number" min="0.01" step="any" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        <div class="field-meta">
+          <p class="field-hint">Numbers only. Cannot exceed units at the selected department.</p>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-2">Condition</label>
+        <div class="flex flex-col gap-2" id="returnConditionGroup">
+          <label class="flex items-start gap-2 cursor-pointer select-none p-3 rounded-xl border border-line bg-[#f8fafc] has-[:checked]:border-navy800 has-[:checked]:bg-[#eef2f7]">
+            <input type="radio" name="returnCondition" value="good" checked class="mt-0.5">
+            <span class="text-[.82rem] text-textDark"><span class="font-semibold">Good</span><br><span class="text-[.72rem] text-textSoft">Usable — goes back to storage on the shelf.</span></span>
+          </label>
+          <label class="flex items-start gap-2 cursor-pointer select-none p-3 rounded-xl border border-line bg-[#f8fafc] has-[:checked]:border-navy800 has-[:checked]:bg-[#eef2f7]">
+            <input type="radio" name="returnCondition" value="damaged" class="mt-0.5">
+            <span class="text-[.82rem] text-textDark"><span class="font-semibold">Damaged</span><br><span class="text-[.72rem] text-textSoft">Returned with wear or minor issues — still counted in storage.</span></span>
+          </label>
+          <label id="returnConditionBrokenWrap" class="flex items-start gap-2 cursor-pointer select-none p-3 rounded-xl border border-line bg-[#f8fafc] has-[:checked]:border-navy800 has-[:checked]:bg-[#eef2f7]">
+            <input type="radio" name="returnCondition" value="broken" class="mt-0.5">
+            <span class="text-[.82rem] text-textDark"><span class="font-semibold">Broken / unusable</span><br><span class="text-[.72rem] text-textSoft">Written off — manager only. Does not go back to available stock.</span></span>
+          </label>
+        </div>
+        <p class="text-[.72rem] text-textSoft mt-2 hidden" id="returnConditionStaffHint">Broken write-offs need a manager — record as Damaged and ask a manager if the unit is unusable.</p>
+        <p class="text-[.72rem] text-textSoft mt-2" id="returnConditionHint"></p>
+      </div>
+      <div class="field-wrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Returned by (optional)</label>
+        <input id="returnReturnedBy" type="text" inputmode="text" autocomplete="name" maxlength="50" pattern="[A-Za-z][A-Za-z\s.'-]*" title="Enter a person's name (letters only — no numbers)" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Juan Dela Cruz">
+        <div class="field-meta">
+          <p class="field-hint">Person who handed the item back — letters, spaces, and . ' - allowed.</p>
+          <span class="field-counter" aria-live="polite">0/50</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
+      </div>
+      <div class="field-wrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
+        <textarea id="returnNotes" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. returned after event, scratch on casing"></textarea>
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 200 characters.</p>
+          <span class="field-counter" aria-live="polite">0/200</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
+      </div>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Record return</button>
     </form>
   </div>
 </div>
@@ -1352,9 +1551,13 @@
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Department</label>
         <select id="retireDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity</label>
         <input id="retireQty" type="number" min="0.01" step="any" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        <div class="field-meta">
+          <p class="field-hint">Numbers only. Cannot exceed available stock.</p>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Reason</label>
@@ -1366,9 +1569,14 @@
           <option value="other">Other</option>
         </select>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
-        <textarea id="retireNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. power supply failed, water damage"></textarea>
+        <textarea id="retireNotes" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. power supply failed, water damage"></textarea>
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 200 characters.</p>
+          <span class="field-counter" aria-live="polite">0/200</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Retire units</button>
     </form>
@@ -1384,28 +1592,48 @@
     </div>
     <form id="itemForm" class="flex flex-col gap-4">
       <input type="hidden" id="itmEditKey" value="">
-      <div id="itmConsumableNameWrap">
+      <div id="itmConsumableNameWrap" class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item name</label>
-        <input id="itmName" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Whiteboard markers">
+        <input id="itmName" required maxlength="60" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Whiteboard markers">
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 60 characters.</p>
+          <span class="field-counter" aria-live="polite">0/60</span>
+        </div>
         <p id="itmNameSimilarHint" class="hidden text-[.72rem] text-amberTx mt-1"></p>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <div id="itmEquipmentNamesWrap" class="hidden flex flex-col gap-4">
-        <div>
+        <div class="field-wrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Equipment type (group)</label>
-          <input id="itmEquipmentGroup" list="itmEquipmentGroupList" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Printer, Extension cord">
+          <input id="itmEquipmentGroup" list="itmEquipmentGroupList" maxlength="40" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Printer, Extension cord">
+          <div class="field-meta">
+            <p class="field-hint">Any characters allowed. Max 40 characters.</p>
+            <span class="field-counter" aria-live="polite">0/40</span>
+          </div>
           <p class="text-[.72rem] text-textSoft mt-1">The name shown on the expandable row — e.g. all printers share one group.</p>
+          <p class="field-error hidden" role="alert"></p>
         </div>
-        <div>
+        <div class="field-wrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Variant / spec</label>
-          <input id="itmVariant" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. HP LaserJet, 3 m, Standard">
+          <input id="itmVariant" maxlength="60" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. HP LaserJet, 3 m, Standard">
+          <div class="field-meta">
+            <p class="field-hint">Any characters allowed. Max 60 characters.</p>
+            <span class="field-counter" aria-live="polite">0/60</span>
+          </div>
           <p id="itmVariantSimilarHint" class="hidden text-[.72rem] text-amberTx mt-1"></p>
           <p class="text-[.72rem] text-textSoft mt-1">Model, cable length, or other detail. Use Standard until you know the spec.</p>
+          <p class="field-error hidden" role="alert"></p>
         </div>
       </div>
       <datalist id="itmEquipmentGroupList"></datalist>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Unit</label>
-        <input id="itmUnit" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. pcs, reams, units">
+        <input id="itmUnit" required maxlength="15" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. pcs, reams, units">
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 15 characters.</p>
+          <span class="field-counter" aria-live="polite">0/15</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item type</label>
@@ -1435,12 +1663,13 @@
         <div id="itmDeploymentsList" class="rounded-xl border border-line bg-[#f8fafc] px-3 py-2.5 text-[.82rem] text-textMid space-y-1"></div>
         <p class="text-[.72rem] text-textSoft mt-1">Totals here update when staff issue from storage or fulfill stock requests.</p>
       </div>
-      <div id="itmLocationWrap">
+      <div id="itmLocationWrap" class="field-wrap">
         <div class="flex items-center justify-between mb-1">
           <label class="text-[.78rem] font-semibold text-textMid" id="itmLocationLabel">Storage</label>
           <button type="button" onclick="openLocationModal()" class="text-[.72rem] font-semibold text-navy800 bg-transparent border-none cursor-pointer">+ Add new storage</button>
         </div>
         <select id="itmLocationId" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <div class="grid grid-cols-3 gap-3">
         <div>
@@ -1530,13 +1759,23 @@
     <p class="text-[.8rem] text-textMid mb-4">Update contact details and the price list for this vendor.</p>
     <form id="supplierEditForm" class="flex flex-col gap-4">
       <input type="hidden" id="supEditId" value="">
-      <div>
+      <div class="field-wrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Contact</label>
-          <textarea id="supEditContact" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="Phone numbers and email addresses"></textarea>
+          <textarea id="supEditContact" rows="2" maxlength="180" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="Phone numbers and email addresses"></textarea>
+          <div class="field-meta">
+            <p class="field-hint">Phone numbers and email addresses. Max 180 characters.</p>
+            <span class="field-counter" aria-live="polite">0/180</span>
+          </div>
+          <p class="field-error hidden" role="alert"></p>
       </div>
-      <div>
+      <div class="field-wrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Address</label>
-          <textarea id="supEditAddress" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="Store or office address"></textarea>
+          <textarea id="supEditAddress" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="Store or office address"></textarea>
+          <div class="field-meta">
+            <p class="field-hint">Any characters allowed. Max 200 characters.</p>
+            <span class="field-counter" aria-live="polite">0/200</span>
+          </div>
+          <p class="field-error hidden" role="alert"></p>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Procurement methods</label>
@@ -1547,9 +1786,14 @@
           <label class="flex items-center gap-1.5 text-[.8rem] text-textMid"><input type="checkbox" value="online" class="supEditMethodChk rounded border-line"> Online</label>
         </div>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes</label>
-        <textarea id="supEditNotes" rows="2" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-none"></textarea>
+        <textarea id="supEditNotes" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-none"></textarea>
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 200 characters.</p>
+          <span class="field-counter" aria-live="polite">0/200</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <div class="rounded-xl border border-line bg-[#f8fafc] p-4">
         <label class="text-[.78rem] font-semibold text-textMid block mb-2">Price list</label>
@@ -1575,9 +1819,14 @@
       <button onclick="closeModal('locationModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
     </div>
     <form id="locationForm" class="flex flex-col gap-4">
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Location name</label>
-        <input id="locName" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Cabinet C / Drawer 1">
+        <input id="locName" required maxlength="60" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Cabinet C / Drawer 1">
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 60 characters.</p>
+          <span class="field-counter" aria-live="polite">0/60</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Type</label>
@@ -1586,9 +1835,14 @@
           <option value="in_use">In use (desk, reception, room)</option>
         </select>
       </div>
-      <div>
+      <div class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Description (optional)</label>
-        <input id="locDescription" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Cleaning supplies">
+        <input id="locDescription" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Cleaning supplies">
+        <div class="field-meta">
+          <p class="field-hint">Any characters allowed. Max 200 characters.</p>
+          <span class="field-counter" aria-live="polite">0/200</span>
+        </div>
+        <p class="field-error hidden" role="alert"></p>
       </div>
       <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add location</button>
     </form>
@@ -1709,6 +1963,7 @@
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Receipt / OR number <span class="text-textSoft font-normal">(optional)</span></label>
         <input id="receiptNumber" maxlength="80" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. OR-123456">
+        <div id="receiptNumberWarning" class="hidden text-[.75rem] text-amberTx font-semibold mt-1.5 flex items-start gap-1.5 rounded-lg px-2.5 py-2 bg-amberBg border border-amberTx/20"></div>
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes <span class="text-textSoft font-normal">(optional)</span></label>
@@ -1948,6 +2203,46 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: CONFIRM ACTION ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2500]" id="confirmModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <h3 class="font-display font-extrabold text-[1.1rem] text-textDark mb-2" id="confirmModalTitle">Confirm</h3>
+    <p class="text-[.85rem] text-textMid whitespace-pre-wrap mb-5" id="confirmModalMessage"></p>
+    <div class="flex gap-2">
+      <button type="button" id="confirmModalCancelBtn" class="flex-1 px-4 py-2.5 rounded-xl bg-[#eef2f7] text-textMid text-[.88rem] font-bold cursor-pointer border-none">Cancel</button>
+      <button type="button" id="confirmModalOkBtn" class="flex-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: NOTICE (OK only) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2500]" id="noticeModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <h3 class="font-display font-extrabold text-[1.1rem] text-textDark mb-2" id="noticeModalTitle">Notice</h3>
+    <p class="text-[.85rem] text-textMid whitespace-pre-wrap mb-5" id="noticeModalMessage"></p>
+    <button type="button" id="noticeModalOkBtn" class="w-full px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn">OK</button>
+  </div>
+</div>
+
+<!-- ===================== MODAL: COPY LINK (clipboard fallback) ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2500]" id="copyLinkModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="copyLinkModalTitle">Copy link</h3>
+      <button type="button" onclick="closeModal('copyLinkModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4" id="copyLinkModalHint">Select and copy the link below.</p>
+    <textarea id="copyLinkInput" readonly rows="4" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.82rem] text-textDark mb-2 resize-y select-all"></textarea>
+    <p class="text-[.72rem] text-textSoft mb-4" id="copyLinkModalStatus"></p>
+    <div class="flex gap-2">
+      <button type="button" onclick="closeModal('copyLinkModalOverlay')" class="flex-1 px-4 py-2.5 rounded-xl bg-[#eef2f7] text-textMid text-[.88rem] font-bold cursor-pointer border-none">Close</button>
+      <button type="button" onclick="copyLinkModalCopy()" class="flex-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Copy link</button>
+    </div>
+  </div>
+</div>
+
+<div id="appToast" class="app-toast hidden" role="status" aria-live="polite"></div>
+
 </div>
 </div>
 </div>
@@ -2028,6 +2323,10 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
   menuToggle.addEventListener('click', toggleSidebar);
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('.cell-long-toggle');
+    if(btn){ e.preventDefault(); toggleCellLongText(btn); }
+  });
   overlay.addEventListener('click', () => {
     sidebar.classList.remove('show');
     overlay.classList.remove('show');
@@ -2149,7 +2448,7 @@ document.addEventListener('DOMContentLoaded', function(){
     profileMenu.classList.toggle('show');
   });
   document.getElementById('profileViewBtn').addEventListener('click', () => {
-    alert(`${state.user?.name || 'User'}\nRole: ${ROLE_LABELS[state.user?.role] || '—'}`);
+    showNoticeModal({ title: state.user?.name || 'Profile', message: 'Role: ' + (ROLE_LABELS[state.user?.role] || '—'), variant: 'info' });
     profileMenu.classList.remove('show');
   });
   document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -2548,7 +2847,14 @@ document.addEventListener('DOMContentLoaded', function(){
     issue_from_storage: 'Issued from storage',
     receive_to_storage: 'Received to storage',
     deploy_from_purchase: 'Deployed from purchase',
+    return_to_storage: 'Returned to storage',
     retired: 'Retired / write-off',
+  };
+
+  const RETURN_CONDITION_LABELS = {
+    good: 'Good',
+    damaged: 'Damaged',
+    broken: 'Broken',
   };
 
   const RETIREMENT_REASON_LABELS = {
@@ -2564,7 +2870,10 @@ document.addEventListener('DOMContentLoaded', function(){
       if(m.department) return escapeHtml(m.department);
       return m.location_name ? escapeHtml(m.location_name) : 'Storage';
     }
-    if(m.movement_type === 'receive_to_storage'){
+    if(m.movement_type === 'receive_to_storage' || m.movement_type === 'return_to_storage'){
+      if(m.movement_type === 'return_to_storage' && m.condition === 'broken'){
+        return 'Written off';
+      }
       return m.location_name ? escapeHtml(m.location_name) : 'Storage';
     }
     return m.department ? escapeHtml(m.department) : '—';
@@ -2573,6 +2882,10 @@ document.addEventListener('DOMContentLoaded', function(){
   function renderMovementDestinationCell(m){
     if(m.movement_type === 'retired'){
       if(m.department) return cellDeptChip(m.department);
+      return m.location_name ? cellLocationChip(m.location_name) : cellHint('Storage', 'info');
+    }
+    if(m.movement_type === 'return_to_storage'){
+      if(m.condition === 'broken') return cellHint('Written off', 'warn');
       return m.location_name ? cellLocationChip(m.location_name) : cellHint('Storage', 'info');
     }
     if(m.movement_type === 'receive_to_storage'){
@@ -2626,6 +2939,29 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   const PERSON_NAME_RE = /^[A-Za-z][A-Za-z\s.'-]*$/;
+  const CELL_LONG_MIN = 48;
+  const INPUT_LIMITS = {
+    prItem: 100,
+    itemLabel: 60,
+    equipGroup: 40,
+    equipVariant: 60,
+    unit: 15,
+    personName: 50,
+    note: 200,
+    supplierContact: 180,
+    supplierAddress: 200,
+    locationName: 60,
+    locationDesc: 200,
+    vendorCompany: 80,
+    vendorPhones: 120,
+    vendorPhoneLine: 25,
+    vendorEmails: 120,
+    vendorEmailLine: 80,
+    vendorAddress: 200,
+    vendorContactLines: 3,
+  };
+  const PHONE_LINE_RE = /^[\d\s()+.-]{7,25}$/;
+  const EMAIL_LINE_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   function sanitizePersonNameInput(el){
     if(!el) return;
@@ -2634,16 +2970,271 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function isValidPersonName(value){
     const v = String(value ?? '').trim();
-    return v === '' || PERSON_NAME_RE.test(v);
+    return v === '' || (v.length <= INPUT_LIMITS.personName && PERSON_NAME_RE.test(v));
+  }
+
+  function validateTextLength(value, max, label, input){
+    if(input){
+      return validateTextField(input, { max, label, required: input.required, allowEmpty: !input.required });
+    }
+    if(String(value ?? '').trim().length > max){
+      showError(`${label} must be at most ${max} characters.`, 'Check your entry');
+      return false;
+    }
+    return true;
+  }
+
+  function fieldWrapFor(input){
+    return input?.closest('.field-wrap') || input?.parentElement;
+  }
+
+  function fieldErrorEl(input){
+    const wrap = fieldWrapFor(input);
+    return wrap?.querySelector('.field-error') || document.querySelector(`.field-error[data-for="${input?.id}"]`);
+  }
+
+  function setFieldError(input, message){
+    if(!input) return;
+    input.classList.add('field-invalid');
+    const err = fieldErrorEl(input);
+    if(err){
+      err.textContent = message;
+      err.classList.remove('hidden');
+    }
+  }
+
+  function clearFieldError(input){
+    if(!input) return;
+    input.classList.remove('field-invalid');
+    const err = fieldErrorEl(input);
+    if(err){
+      err.textContent = '';
+      err.classList.add('hidden');
+    }
+  }
+
+  function clearFormFieldErrors(form){
+    if(!form) return;
+    form.querySelectorAll('.field-invalid').forEach(el => el.classList.remove('field-invalid'));
+    form.querySelectorAll('.field-error').forEach(el => {
+      el.textContent = '';
+      el.classList.add('hidden');
+    });
+  }
+
+  function focusFirstFieldError(form){
+    const bad = form?.querySelector('.field-invalid');
+    if(!bad) return false;
+    bad.focus();
+    bad.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return true;
+  }
+
+  function updateFieldCounter(input){
+    if(!input) return;
+    const wrap = fieldWrapFor(input);
+    const counter = wrap?.querySelector('.field-counter');
+    const max = Number(input.maxLength);
+    if(!counter || !max || max <= 0) return;
+    const len = input.value.length;
+    counter.textContent = `${len}/${max}`;
+    counter.classList.toggle('is-warn', len >= Math.max(1, max - 10) && len <= max);
+    counter.classList.toggle('is-over', len > max);
+  }
+
+  function wireLimitedField(input){
+    if(!input || input.dataset.fieldWired === '1') return;
+    input.dataset.fieldWired = '1';
+    input.addEventListener('input', () => {
+      clearFieldError(input);
+      updateFieldCounter(input);
+      if(input.id === 'issueIssuedTo') sanitizePersonNameInput(input);
+    });
+    input.addEventListener('blur', () => {
+      if(input.id === 'issueIssuedTo') validatePersonNameField(input, { quiet: true });
+    });
+    updateFieldCounter(input);
+  }
+
+  function wireAllLimitedFields(root){
+    (root || document).querySelectorAll('.field-wrap input[maxlength], .field-wrap textarea[maxlength]').forEach(wireLimitedField);
+    (root || document).querySelectorAll('.field-wrap input[type="number"]').forEach(input => {
+      if(input.dataset.fieldWired === '1') return;
+      input.dataset.fieldWired = '1';
+      input.addEventListener('input', () => clearFieldError(input));
+    });
+    (root || document).querySelectorAll('.field-wrap select').forEach(select => {
+      if(select.dataset.fieldWired === '1') return;
+      select.dataset.fieldWired = '1';
+      select.addEventListener('change', () => clearFieldError(select));
+    });
+  }
+
+  function validateTextField(input, { max, label, required = false, allowEmpty = true } = {}){
+    if(!input) return true;
+    clearFieldError(input);
+    const v = input.value.trim();
+    if(required && !v){
+      setFieldError(input, `${label} is required.`);
+      return false;
+    }
+    if(!allowEmpty && !v){
+      setFieldError(input, `${label} is required.`);
+      return false;
+    }
+    if(v.length > max){
+      setFieldError(input, `${label} must be at most ${max} characters.`);
+      return false;
+    }
+    return true;
+  }
+
+  function validatePersonNameField(input, { quiet = false } = {}){
+    if(!input) return true;
+    if(!quiet) clearFieldError(input);
+    const v = input.value.trim();
+    if(!v) return true;
+    if(v.length > INPUT_LIMITS.personName){
+      if(!quiet) setFieldError(input, `Person's name must be at most ${INPUT_LIMITS.personName} characters.`);
+      return false;
+    }
+    if(!PERSON_NAME_RE.test(v)){
+      if(!quiet) setFieldError(input, 'Use letters only — no numbers (e.g. Juan Dela Cruz).');
+      return false;
+    }
+    return true;
+  }
+
+  function validateQtyField(input, { available, unit, required = true } = {}){
+    if(!input) return true;
+    clearFieldError(input);
+    const n = Number(input.value);
+    if(required && (!Number.isFinite(n) || n <= 0)){
+      setFieldError(input, 'Enter a quantity greater than zero.');
+      return false;
+    }
+    if(available != null){
+      const onHand = Number(available);
+      if(Number.isFinite(onHand) && Number.isFinite(n) && n > onHand){
+        setFieldError(input, `Only ${onHand} ${unit || ''} on hand.`.replace(/\s+/g, ' ').trim());
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function splitContactLines(value){
+    return String(value ?? '').split(/[\r\n,]+/).map(v => v.trim()).filter(Boolean);
+  }
+
+  function validateVendorPhonesField(input){
+    if(!input) return true;
+    clearFieldError(input);
+    const raw = input.value.trim();
+    if(!raw) return true;
+    const lines = splitContactLines(raw);
+    if(lines.length > INPUT_LIMITS.vendorContactLines){
+      setFieldError(input, `Enter at most ${INPUT_LIMITS.vendorContactLines} phone numbers (one per line).`);
+      return false;
+    }
+    for(const line of lines){
+      if(line.length > INPUT_LIMITS.vendorPhoneLine || !PHONE_LINE_RE.test(line)){
+        setFieldError(input, 'Use digits and + - ( ) spaces only, up to 25 characters per number.');
+        return false;
+      }
+    }
+    if(lines.join('\n').length > INPUT_LIMITS.vendorPhones){
+      setFieldError(input, `Phone numbers must fit within ${INPUT_LIMITS.vendorPhones} characters total.`);
+      return false;
+    }
+    return true;
+  }
+
+  function validateVendorEmailsField(input){
+    if(!input) return true;
+    clearFieldError(input);
+    const raw = input.value.trim();
+    if(!raw) return true;
+    const lines = splitContactLines(raw);
+    if(lines.length > INPUT_LIMITS.vendorContactLines){
+      setFieldError(input, `Enter at most ${INPUT_LIMITS.vendorContactLines} email addresses (one per line).`);
+      return false;
+    }
+    for(const line of lines){
+      if(line.length > INPUT_LIMITS.vendorEmailLine || !EMAIL_LINE_RE.test(line)){
+        setFieldError(input, 'Enter valid emails like sales@abc.com (one per line).');
+        return false;
+      }
+    }
+    if(lines.join('\n').length > INPUT_LIMITS.vendorEmails){
+      setFieldError(input, `Email addresses must fit within ${INPUT_LIMITS.vendorEmails} characters total.`);
+      return false;
+    }
+    return true;
+  }
+
+  function validateQtyAgainstStock(qty, available, unit, actionLabel, input){
+    if(input){
+      return validateQtyField(input, { available, unit });
+    }
+    const n = Number(qty);
+    const onHand = Number(available);
+    if(!Number.isFinite(n) || n <= 0){
+      showError('Quantity must be greater than zero.', 'Invalid quantity');
+      return false;
+    }
+    if(Number.isFinite(onHand) && n > onHand){
+      showError(`Only ${onHand} ${unit || ''} on hand — cannot ${actionLabel} ${n}.`.replace(/\s+/g, ' ').trim(), 'Not enough stock');
+      return false;
+    }
+    return true;
+  }
+
+  function cellLongText(text, { className = 'cell-primary' } = {}){
+    const raw = String(text ?? '').trim();
+    if(!raw) return '';
+    const safe = escapeHtml(raw);
+    if(raw.length <= CELL_LONG_MIN){
+      return `<span class="${className}">${safe}</span>`;
+    }
+    return `<div class="cell-long-text">
+      <div class="cell-long-body ${className} cell-long-clamp">${safe}</div>
+      <button type="button" class="cell-long-toggle" aria-expanded="false">See more</button>
+    </div>`;
+  }
+
+  function toggleCellLongText(btn){
+    const wrap = btn?.closest('.cell-long-text');
+    if(!wrap) return;
+    const expanded = wrap.classList.toggle('is-expanded');
+    btn.textContent = expanded ? 'See less' : 'See more';
+    btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
   }
 
   function cellEmpty(){
     return '<span class="cell-empty">—</span>';
   }
 
-  function cellStack(primary, meta){
-    if(!meta) return `<div class="cell-stack"><div class="cell-primary">${primary}</div></div>`;
-    return `<div class="cell-stack"><div class="cell-primary">${primary}</div><div class="cell-meta">${meta}</div></div>`;
+  function cellNotes(text){
+    const raw = String(text ?? '').trim();
+    if(!raw) return cellEmpty();
+    return cellLongText(raw, { className: 'text-textMid' });
+  }
+
+  function cellStack(primary, meta, { metaHtml = false } = {}){
+    if(!meta){
+      return `<div class="cell-stack"><div class="cell-primary">${primary}</div></div>`;
+    }
+    let metaBlock;
+    if(metaHtml){
+      metaBlock = meta;
+    } else {
+      const rawMeta = String(meta ?? '').trim();
+      metaBlock = rawMeta.length > CELL_LONG_MIN
+        ? cellLongText(rawMeta, { className: 'cell-meta' })
+        : `<div class="cell-meta">${escapeHtml(rawMeta)}</div>`;
+    }
+    return `<div class="cell-stack"><div class="cell-primary">${primary}</div>${metaBlock}</div>`;
   }
 
   function cellCode(code){
@@ -2687,14 +3278,25 @@ document.addEventListener('DOMContentLoaded', function(){
     return `<span class="cell-chip">${escapeHtml(PROCUREMENT_LABELS[method] || method)}</span>`;
   }
 
-  function cellMovementType(type){
+  function cellMovementType(type, condition){
     const label = EQUIPMENT_MOVEMENT_LABELS[type] || type;
-    return `<span class="cell-chip cell-chip-move">${escapeHtml(label)}</span>`;
+    let html = `<span class="cell-chip cell-chip-move">${escapeHtml(label)}</span>`;
+    if(condition && RETURN_CONDITION_LABELS[condition]){
+      const tagClass = condition === 'good' ? 'cell-tag-supply' : condition === 'damaged' ? 'cell-tag-warn' : 'cell-tag-danger';
+      html += ` <span class="cell-tag ${tagClass}">${escapeHtml(RETURN_CONDITION_LABELS[condition])}</span>`;
+    }
+    return html;
   }
 
   function cellHint(label, variant = 'muted'){
+    const raw = String(label ?? '').trim();
+    if(!raw) return cellEmpty();
+    if(raw.length > CELL_LONG_MIN){
+      const toneClass = variant === 'warn' ? ' cell-hint-warn' : variant === 'info' ? ' cell-hint-info' : '';
+      return cellLongText(raw, { className: `cell-hint${toneClass}` });
+    }
     const cls = variant === 'warn' ? 'cell-hint cell-hint-warn' : variant === 'info' ? 'cell-hint cell-hint-info' : 'cell-hint';
-    return `<span class="${cls}">${escapeHtml(label)}</span>`;
+    return `<span class="${cls}">${escapeHtml(raw)}</span>`;
   }
 
   function cellPersonStamp(when, who){
@@ -2708,15 +3310,23 @@ document.addEventListener('DOMContentLoaded', function(){
     if(type === 'equipment') tags.push(cellTypeTag('equipment'));
     if(badge) tags.push(`<span class="cell-tag cell-tag-warn">${escapeHtml(badge)}</span>`);
     const tagHtml = tags.length ? `<span class="cell-tags">${tags.join('')}</span>` : '';
-    const main = `<div class="cell-item-row"><span class="cell-primary">${escapeHtml(label)}</span>${tagHtml}</div>`;
-    if(sub) return `<div class="cell-stack">${main}<div class="cell-meta">${escapeHtml(sub)}</div></div>`;
+    const main = `<div class="cell-item-row">${cellLongText(label, { className: 'cell-primary' })}${tagHtml}</div>`;
+    if(sub){
+      const subHtml = cellLongText(sub, { className: 'cell-meta' }) || `<div class="cell-meta">${escapeHtml(sub)}</div>`;
+      return `<div class="cell-stack">${main}${subHtml}</div>`;
+    }
     return main;
   }
 
   function cellSummary(primary, sub){
     if(!primary) return cellEmpty();
-    if(!sub) return `<div class="cell-summary-line">${primary}</div>`;
-    return `<div><div class="cell-summary-line">${primary}</div><div class="cell-summary-sub">${sub}</div></div>`;
+    const primaryHtml = `<div class="cell-summary-line">${primary}</div>`;
+    const rawSub = String(sub ?? '').trim();
+    if(!rawSub) return `<div class="cell-summary">${primaryHtml}</div>`;
+    const subHtml = rawSub.length > CELL_LONG_MIN
+      ? cellLongText(rawSub, { className: 'cell-summary-sub' })
+      : `<div class="cell-summary-sub">${escapeHtml(rawSub)}</div>`;
+    return `<div class="cell-summary">${primaryHtml}${subHtml}</div>`;
   }
 
   function renderConsumableQtyCell(it){
@@ -2729,19 +3339,22 @@ document.addEventListener('DOMContentLoaded', function(){
     if(o.receipt_rejected){
       return cellStack(
         cellHint('Rejected', 'warn'),
-        `<button type="button" onclick="viewRejectedReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
+        `<button type="button" onclick="viewRejectedReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`,
+        { metaHtml: true }
       );
     }
     if(o.receipt_uploaded){
       return cellStack(
         cellHint('Uploaded', 'info'),
-        `<button type="button" onclick="viewReceipt(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View receipt</button>`
+        `<button type="button" onclick="viewReceipt(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View receipt</button>`,
+        { metaHtml: true }
       );
     }
     if(o.receipt_waived){
       return cellStack(
         cellHint('Lost receipt', 'warn'),
-        `<button type="button" onclick="viewLostReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
+        `<button type="button" onclick="viewLostReceiptNote(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`,
+        { metaHtml: true }
       );
     }
     if(o.receipt_lost_report_pending){
@@ -2750,7 +3363,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if(o.receipt_lost_report_rejected){
       return cellStack(
         cellHint('Report rejected', 'warn'),
-        `<button type="button" onclick="viewLostReceiptReportRejection(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`
+        `<button type="button" onclick="viewLostReceiptReportRejection(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">View note</button>`,
+        { metaHtml: true }
       );
     }
     if(o.status === 'Placed') return cellHint('Not uploaded', 'muted');
@@ -2764,16 +3378,15 @@ document.addEventListener('DOMContentLoaded', function(){
     if(dept !== '—') subParts.push(deptShortLabel(dept));
     return cellSummary(
       `${r.qty} ${escapeHtml(r.unit)} · ${escapeHtml(r.display_label || r.item_label)}`,
-      escapeHtml(subParts.join(' · '))
+      subParts.join(' · ')
     );
   }
 
   function renderPoSummaryCell(order){
     if(!order) return cellEmpty();
-    const sub = order.supplier_name ? escapeHtml(order.supplier_name) : '';
     return cellSummary(
       `${order.qty} ${escapeHtml(order.unit)} · ${escapeHtml(order.item_label)}`,
-      sub
+      order.supplier_name || ''
     );
   }
 
@@ -3081,7 +3694,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function documentVendorSearchFields(app){
     if(!app) return [];
-    return [app.company_name, app.contact, app.phones, app.emails, app.address, app.status, ...(app.prices || []).map(p => p.label)];
+    return [app.company_name, app.contact, app.phones, app.emails, app.address, app.notes, app.status, ...(app.prices || []).map(p => p.label)];
   }
 
   function formatContactMultiline(value){
@@ -3119,6 +3732,7 @@ document.addEventListener('DOMContentLoaded', function(){
           documentDetailRow('Requested by', escapeHtml(r.employee)),
           documentDetailRow('Department', escapeHtml(purchaseRequestDepartmentLabel(r))),
           documentDetailRow('Reason', escapeHtml(r.reason ? PURCHASE_REASON_LABELS[r.reason] || r.reason : '—')),
+          documentDetailRow('Notes', r.notes ? `<span class="whitespace-pre-wrap font-normal">${escapeHtml(r.notes)}</span>` : '—'),
           documentDetailRow('Est. cost', peso(r.estimate_cost)),
           documentDetailRow('Status', statusPill(r.status)),
           documentDetailRow('Submitted', fmtDate(r.created_at)),
@@ -3195,6 +3809,7 @@ document.addEventListener('DOMContentLoaded', function(){
           a.address ? documentDetailRow('Address', formatContactMultiline(a.address)) : '',
           (!a.phones && !a.emails && !a.address) ? documentDetailRow('Contact', escapeHtml(a.contact || '—')) : '',
           documentDetailRow('Methods', escapeHtml(methods)),
+          documentDetailRow('Notes', a.notes ? `<span class="whitespace-pre-wrap font-normal">${escapeHtml(a.notes)}</span>` : '—'),
           documentDetailRow('Status', statusPill(a.status)),
           documentDetailRow('Submitted', fmtDate(a.created_at)),
           `<div class="py-2.5 border-b border-line"><span class="text-[.78rem] text-textMid block mb-1">Items quoted</span>${priceLines}</div>`,
@@ -3246,7 +3861,7 @@ document.addEventListener('DOMContentLoaded', function(){
     equipment: 'Search equipment name, location…',
     'stock-requests': 'Search request ID, item, department…',
     'issue-log': 'Search item, department, issued to, reason…',
-    'equipment-history': 'Search item, PO/issue reference…',
+    'equipment-history': 'Search item, reference, person, condition, notes…',
   };
 
   function updateInventorySearchPlaceholder(slug){
@@ -3533,10 +4148,16 @@ document.addEventListener('DOMContentLoaded', function(){
     return `${roll.total} ${escapeHtml(roll.unit)}`;
   }
 
+  function canReturnEquipment(it){
+    if(!it?.active || it.item_type !== 'equipment') return false;
+    return (it.deployments || []).some(d => d.qty > 0);
+  }
+
   function renderInventoryActionButtons(it){
     return `<div class="flex flex-wrap gap-2">
             ${it.active && it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
             ${it.active && it.item_type === 'consumable' && it.current_qty > 0 ? `<button onclick="openIssueModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-semibold cursor-pointer">Issue</button>` : ''}
+            ${it.active && canReturnEquipment(it) && roleAtLeast('staff') ? `<button onclick="openReturnModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Record return</button>` : ''}
             ${roleAtLeast('manager') && it.active && it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
             ${roleAtLeast('manager') && canRetireItem(it) ? `<button onclick="openRetireModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Retire</button>` : ''}
             ${roleAtLeast('manager') ? `<button onclick="openEditItemModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>` : ''}
@@ -3720,6 +4341,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="flex items-center justify-between gap-3 p-3 rounded-xl border ${l.active ? 'border-line bg-[#f8fafc]' : 'border-dashed border-textSoft/40 opacity-80'}">
         <div class="min-w-0">
           <div class="font-semibold text-[.84rem] text-textDark truncate">${escapeHtml(l.name)}</div>
+          ${l.description ? `<div class="text-[.72rem] text-textMid mt-0.5 whitespace-pre-wrap">${escapeHtml(l.description)}</div>` : ''}
           <div class="text-[.72rem] text-textSoft">${l.location_type === 'storage' ? 'Storage' : 'In use'} · ${l.item_count} item${l.item_count === 1 ? '' : 's'}</div>
         </div>
         ${roleAtLeast('super_admin') ? `<button type="button" onclick="setLocationActive(${l.id}, ${l.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${l.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.72rem] font-semibold border-none cursor-pointer shrink-0">${l.active ? 'Mark inactive' : 'Reactivate'}</button>` : ''}
@@ -3735,13 +4357,13 @@ document.addEventListener('DOMContentLoaded', function(){
       : loc.item_count > 0
         ? `${loc.name} still has ${loc.item_count} item(s) assigned — move or hide those items first.`
         : `${loc.name} will be hidden from location dropdowns. Empty locations only.`;
-    if(!confirm(`${verb} ${loc.name}?\n\n${detail}`)) return;
+    if(!await showConfirmModal({ message: `${verb} ${loc.name}?\n\n${detail}`, confirmText: verb, danger: !active })) return;
     try {
       await apiSend(`locations.php?id=${id}`, 'PUT', { active: active ? 1 : 0 });
       await loadLocations();
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not update location.');
+      showError(err.error || 'Could not update location.');
     }
   };
 
@@ -3754,17 +4376,25 @@ document.addEventListener('DOMContentLoaded', function(){
   };
   document.getElementById('locationForm').addEventListener('submit', async function(e){
     e.preventDefault();
+    clearFormFieldErrors(this);
+    const nameEl = document.getElementById('locName');
+    const descEl = document.getElementById('locDescription');
+    const ok = validateTextField(nameEl, { max: INPUT_LIMITS.locationName, label: 'Location name', required: true })
+      && validateTextField(descEl, { max: INPUT_LIMITS.locationDesc, label: 'Description', allowEmpty: true });
+    if(!ok){ focusFirstFieldError(this); return; }
+    const name = nameEl.value.trim();
+    const description = descEl.value.trim();
     try {
       await apiSend('locations.php', 'POST', {
-        name: document.getElementById('locName').value,
+        name,
         location_type: document.getElementById('locType').value,
-        description: document.getElementById('locDescription').value || null,
+        description: description || null,
       });
       await loadLocations();
       closeModal('locationModalOverlay');
       this.reset();
     } catch (err) {
-      alert(err.error || 'Could not add location.');
+      showError(err.error || 'Could not add location.');
     }
   });
 
@@ -3790,7 +4420,7 @@ document.addEventListener('DOMContentLoaded', function(){
     } catch (err) {
       console.error('loadInventory failed', err);
       state.inventory = [];
-      alert(err?.error || 'Could not load inventory. If you just updated the app, run sql/migration_equipment_groups.sql on your database.');
+      showError(err?.error || 'Could not load inventory. If you just updated the app, run sql/migration_equipment_groups.sql on your database.');
     }
     refreshAllTableItemSelects();
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
@@ -3811,14 +4441,14 @@ document.addEventListener('DOMContentLoaded', function(){
     const detail = active
       ? `${display} will appear in inventory, requests, and forecasts again.`
       : `${display} will be hidden from lists and new purchase requests. History is kept.`;
-    if(!confirm(`${verb} ${display}?\n\n${detail}`)) return;
+    if(!await showConfirmModal({ message: `${verb} ${display}?\n\n${detail}`, confirmText: verb, danger: !active })) return;
     try {
       await apiSend(`inventory.php?item=${encodeURIComponent(itemKey)}`, 'PUT', { active: active ? 1 : 0 });
       await loadInventory();
       renderDashboard();
       await populateForecastSelect();
     } catch (err) {
-      alert(err.error || 'Could not update item.');
+      showError(err.error || 'Could not update item.');
     }
   };
 
@@ -4031,6 +4661,8 @@ document.addEventListener('DOMContentLoaded', function(){
       return;
     }
     const onHand = item.item_type === 'equipment' ? (item.storage_qty ?? item.current_qty) : item.current_qty;
+    const qtyInput = document.getElementById('stockReqQty');
+    if(qtyInput) qtyInput.max = onHand;
     const base = `${onHand} ${item.unit} currently in storage. Inventory staff will issue when they fulfill this request.`;
     hint.textContent = item.item_type === 'equipment'
       ? `${base} Equipment is usually issued one unit at a time.`
@@ -4077,28 +4709,41 @@ document.addEventListener('DOMContentLoaded', function(){
 
   document.getElementById('stockRequestForm').addEventListener('submit', async function(e){
     e.preventDefault();
+    clearFormFieldErrors(this);
     const lockedKey = document.getElementById('stockReqItemLockedKey').value;
     const itemKey = lockedKey || document.getElementById('stockReqItem').value;
-    const qty = Number(document.getElementById('stockReqQty').value);
+    const qtyEl = document.getElementById('stockReqQty');
+    const notesEl = document.getElementById('stockReqNotes');
     const department = document.getElementById('stockReqDepartment').value;
     const item = state.inventory.find(i => i.item_key === itemKey);
-    if(!itemKey || !department || !(qty > 0)){
-      alert('Choose a department, item, and quantity.');
-      return;
+    const qty = Number(qtyEl.value);
+    let ok = true;
+    if(!itemKey){
+      const itemSelect = document.getElementById('stockReqItem');
+      if(!lockedKey && itemSelect) setFieldError(itemSelect, 'Choose an item.');
+      ok = false;
     }
-    if(!confirm(`Submit stock request for ${qty} ${item?.unit || ''} of ${item?.label || itemKey} (${department})?`)) return;
+    if(!department){
+      setFieldError(document.getElementById('stockReqDepartment'), 'Choose a department.');
+      ok = false;
+    }
+    if(!validateTextField(notesEl, { max: INPUT_LIMITS.note, label: 'Notes', allowEmpty: true })) ok = false;
+    const onHand = item?.item_type === 'equipment' ? (item.storage_qty ?? item.current_qty) : item?.current_qty;
+    if(!validateQtyField(qtyEl, { available: onHand, unit: item?.unit })) ok = false;
+    if(!ok){ focusFirstFieldError(this); return; }
+    if(!await showConfirmModal({ title: 'Submit stock request?', message: `${qty} ${item?.unit || ''} of ${item?.label || itemKey} for ${department}.`, confirmText: 'Submit request' })) return;
     try {
       await apiSend('stock_requests.php', 'POST', {
         department,
         item_key: itemKey,
         qty,
-        notes: document.getElementById('stockReqNotes').value.trim() || null,
+        notes: notesEl.value.trim() || null,
       });
       closeModal('stockRequestModalOverlay');
       await loadStockRequests();
       location.hash = hashForInventoryTab('stock-requests');
     } catch (err) {
-      alert(err.error || 'Could not submit stock request.');
+      showError(err.error || 'Could not submit stock request.');
     }
   });
 
@@ -4106,12 +4751,12 @@ document.addEventListener('DOMContentLoaded', function(){
     const query = tableSearchQuery('inventoryTableSearch');
     const dates = tableDateRange('inventoryTable');
     const visible = state.stockRequests.filter(sr => rowMatchesSearch(
-      query, sr.request_code, sr.department, sr.item_label, sr.item_type, sr.requested_by, sr.status, sr.fulfilled_issue_code
+      query, sr.request_code, sr.department, sr.item_label, sr.item_type, sr.requested_by, sr.notes, sr.status, sr.fulfilled_issue_code
     ) && rowMatchesDateRange(sr.created_at, dates.from, dates.to)
       && rowMatchesCatalogFilters(sr.item_type, sr.item_key, 'inventoryTable'));
     const tbody = document.getElementById('stockRequestsTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(9, tableHasActiveFilters(query, 'inventoryTable'), 'No stock requests yet. Click Request from stock to ask inventory for items on the shelf.');
+      tbody.innerHTML = tableSearchEmptyMessage(10, tableHasActiveFilters(query, 'inventoryTable'), 'No stock requests yet. Click Request from stock to ask inventory for items on the shelf.');
       return;
     }
     tbody.innerHTML = visible.map(sr => {
@@ -4127,6 +4772,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3 qty-cell">${cellQty(sr.qty, sr.unit)}</td>
         <td class="py-3 pr-3 qty-cell">${sr.current_qty == null ? cellEmpty() : cellQty(sr.current_qty, sr.unit, { warn: !enoughStock })}</td>
         <td class="py-3 pr-3">${cellStack(escapeHtml(sr.requested_by), fmtDate(sr.created_at))}</td>
+        <td class="py-3 pr-3 text-cell">${cellNotes(sr.notes)}</td>
         <td class="py-3 pr-3">${statusPill(sr.status)}${sr.fulfilled_issue_code ? `<div class="cell-meta mt-1">${escapeHtml(sr.fulfilled_issue_code)}</div>` : ''}</td>
         <td class="py-3 pr-3">
           <div class="flex flex-wrap gap-2">
@@ -4151,6 +4797,11 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('issueModalHint').textContent = 'Record who took this from storage — stock updates right away.';
     document.getElementById('issueFormSubmitBtn').textContent = 'Record issue';
     document.getElementById('issueDepartment').disabled = false;
+    document.getElementById('issueRequestNotesWrap').classList.add('hidden');
+    document.getElementById('issueRequestNotes').textContent = '';
+    document.getElementById('issueNotesLabel').textContent = 'Notes (optional)';
+    document.getElementById('issueNotesHint').textContent = 'Any characters allowed. Max 200 characters.';
+    document.getElementById('issueNotes').placeholder = 'e.g. for client folders';
   }
 
   window.openIssueModal = function(itemKey, { stockRequest = null } = {}){
@@ -4165,7 +4816,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('issueQty').value = stockRequest ? stockRequest.qty : 1;
     populateDepartmentSelect('issueDepartment', stockRequest ? stockRequest.department : DEPARTMENTS[0]);
     document.getElementById('issueIssuedTo').value = stockRequest ? (stockRequest.requested_by || '') : '';
-    document.getElementById('issueNotes').value = stockRequest ? (stockRequest.notes || '') : '';
+    document.getElementById('issueNotes').value = '';
 
     if(stockRequest){
       document.getElementById('issueStockRequestId').value = stockRequest.id;
@@ -4173,20 +4824,151 @@ document.addEventListener('DOMContentLoaded', function(){
       document.getElementById('issueModalHint').textContent = `Same as issuing stock — completes this request and logs the checkout in the issue log.`;
       document.getElementById('issueFormSubmitBtn').textContent = 'Fulfill & record issue';
       document.getElementById('issueDepartment').disabled = true;
+      const requestNotesWrap = document.getElementById('issueRequestNotesWrap');
+      const requestNotes = (stockRequest.notes || '').trim();
+      if(requestNotes){
+        document.getElementById('issueRequestNotes').textContent = requestNotes;
+        requestNotesWrap.classList.remove('hidden');
+      } else {
+        requestNotesWrap.classList.add('hidden');
+      }
+      document.getElementById('issueNotesLabel').textContent = 'Issue notes (optional)';
+      document.getElementById('issueNotesHint').textContent = 'Your checkout note for the issue log. Leave blank to copy the request note above.';
+      document.getElementById('issueNotes').placeholder = 'e.g. handed to front desk';
     }
 
     openModal('issueModalOverlay');
   };
 
+  function returnDepartmentOptions(it){
+    return (it.deployments || []).filter(d => d.qty > 0).map(d => ({
+      value: d.department,
+      label: `${d.department} (${d.qty} ${it.unit})`,
+      qty: d.qty,
+    }));
+  }
+
+  function updateReturnDepartmentQty(){
+    const itemKey = document.getElementById('returnItemKey').value;
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    const dept = document.getElementById('returnDepartment').value;
+    const qtyEl = document.getElementById('returnQty');
+    const deployed = (it?.deployments || []).find(d => d.department === dept);
+    const maxQty = deployed?.qty ?? 0;
+    qtyEl.max = maxQty;
+    if(Number(qtyEl.value) > maxQty) qtyEl.value = maxQty || 1;
+    document.getElementById('returnDeployedHint').textContent = deployed
+      ? `${deployed.qty} ${it.unit} currently at ${dept}.`
+      : '';
+  }
+
+  function syncReturnConditionOptions(){
+    const brokenWrap = document.getElementById('returnConditionBrokenWrap');
+    const staffHint = document.getElementById('returnConditionStaffHint');
+    const canWriteOff = roleAtLeast('manager');
+    if(brokenWrap) brokenWrap.classList.toggle('hidden', !canWriteOff);
+    if(staffHint) staffHint.classList.toggle('hidden', canWriteOff);
+    if(!canWriteOff && document.querySelector('input[name="returnCondition"]:checked')?.value === 'broken'){
+      document.querySelector('input[name="returnCondition"][value="good"]').checked = true;
+    }
+    updateReturnConditionHint();
+  }
+
+  function updateReturnConditionHint(){
+    const condition = document.querySelector('input[name="returnCondition"]:checked')?.value || 'good';
+    const hint = document.getElementById('returnConditionHint');
+    if(condition === 'broken'){
+      hint.textContent = 'Broken returns are written off and linked to a retirement record.';
+      hint.className = 'text-[.72rem] text-redTx mt-2';
+    } else if(condition === 'damaged'){
+      hint.textContent = 'Damaged units are added back to storage counts — retire them later if needed.';
+      hint.className = 'text-[.72rem] text-textSoft mt-2';
+    } else {
+      hint.textContent = '';
+      hint.className = 'text-[.72rem] text-textSoft mt-2 hidden';
+    }
+  }
+
+  window.openReturnModal = function(itemKey){
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    if(!it || !canReturnEquipment(it)) return;
+    document.getElementById('returnForm').reset();
+    document.querySelector('input[name="returnCondition"][value="good"]').checked = true;
+    document.getElementById('returnItemKey').value = it.item_key;
+    document.getElementById('returnItemLabel').textContent = itemDisplayLabel(it);
+    document.getElementById('returnModalTitle').textContent = `Record return — ${itemDisplayLabel(it)}`;
+    const options = returnDepartmentOptions(it);
+    const deptSelect = document.getElementById('returnDepartment');
+    deptSelect.innerHTML = options.map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join('');
+    document.getElementById('returnQty').value = 1;
+    syncReturnConditionOptions();
+    updateReturnDepartmentQty();
+    openModal('returnModalOverlay');
+  };
+
+  document.getElementById('returnDepartment')?.addEventListener('change', updateReturnDepartmentQty);
+  document.getElementById('returnConditionGroup')?.addEventListener('change', updateReturnConditionHint);
+
+  document.getElementById('returnForm')?.addEventListener('submit', async function(e){
+    e.preventDefault();
+    clearFormFieldErrors(this);
+    const itemKey = document.getElementById('returnItemKey').value;
+    const it = state.inventory.find(i => i.item_key === itemKey);
+    const dept = document.getElementById('returnDepartment').value;
+    const qtyEl = document.getElementById('returnQty');
+    const notesEl = document.getElementById('returnNotes');
+    const returnedByEl = document.getElementById('returnReturnedBy');
+    const qty = Number(qtyEl.value);
+    const condition = document.querySelector('input[name="returnCondition"]:checked')?.value || 'good';
+    const deployed = (it?.deployments || []).find(d => d.department === dept);
+    let ok = true;
+    if(!dept){
+      setFieldError(document.getElementById('returnDepartment'), 'Choose a department.');
+      ok = false;
+    }
+    if(!validatePersonNameField(returnedByEl)) ok = false;
+    if(!validateTextField(notesEl, { max: INPUT_LIMITS.note, label: 'Notes', allowEmpty: true })) ok = false;
+    if(!validateQtyField(qtyEl, { available: deployed?.qty, unit: it?.unit })) ok = false;
+    if(condition === 'broken' && !roleAtLeast('manager')){
+      showError('Record as Damaged and ask a manager if the unit is unusable.', 'Manager required');
+      ok = false;
+    }
+    if(!ok){ focusFirstFieldError(this); return; }
+
+    const conditionLabel = RETURN_CONDITION_LABELS[condition] || condition;
+    const dest = condition === 'broken' ? 'written off' : 'storage';
+    if(!await showConfirmModal({
+      title: 'Record return?',
+      message: `${qty} ${it?.unit || ''} of ${itemDisplayLabel(it)} from ${dept}\n\nCondition: ${conditionLabel} → ${dest}`,
+      confirmText: 'Record return',
+    })) return;
+
+    try {
+      await apiSend('equipment_returns.php', 'POST', {
+        item_key: itemKey,
+        department: dept,
+        qty,
+        condition,
+        returned_by: returnedByEl.value.trim() || null,
+        notes: notesEl.value.trim() || null,
+      });
+      await Promise.all([loadInventory(), loadInventoryRetirements(), loadEquipmentMovements()]);
+      closeModal('returnModalOverlay');
+      renderDashboard();
+    } catch (err) {
+      showError(err.error || 'Could not record return.');
+    }
+  });
+
   window.cancelStockRequest = async function(id){
     const sr = state.stockRequests.find(r => r.id === id);
     if(!sr || sr.status !== 'Pending') return;
-    if(!confirm(`Cancel stock request ${sr.request_code}?`)) return;
+    if(!await showConfirmModal({ title: `Cancel ${sr.request_code}?`, message: 'This stock request will be cancelled.', confirmText: 'Cancel request', danger: true })) return;
     try {
       await apiSend(`stock_requests.php?id=${id}`, 'PUT', { action: 'cancel' });
       await loadStockRequests();
     } catch (err) {
-      alert(err.error || 'Could not cancel request.');
+      showError(err.error || 'Could not cancel request.');
     }
   };
 
@@ -4217,12 +4999,13 @@ document.addEventListener('DOMContentLoaded', function(){
     const dates = tableDateRange('inventoryTable');
     const visible = state.equipmentMovements.filter(m => rowMatchesSearch(
       query, m.item_label, m.reference_code, EQUIPMENT_MOVEMENT_LABELS[m.movement_type], m.movement_type,
-      m.department, m.location_name, m.recorded_by, m.status
+      m.department, m.location_name, m.issued_to, m.notes, m.voided_reason, m.recorded_by, m.status,
+      m.condition ? RETURN_CONDITION_LABELS[m.condition] : '', m.condition, 'return'
     ) && rowMatchesDateRange(m.created_at, dates.from, dates.to)
       && rowMatchesCatalogFilters(null, m.item_key, 'inventoryTable'));
     const tbody = document.getElementById('equipmentHistoryTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(8, tableHasActiveFilters(query, 'inventoryTable'), 'No equipment movements yet — issues from storage and purchase receipts will appear here.');
+      tbody.innerHTML = tableSearchEmptyMessage(10, tableHasActiveFilters(query, 'inventoryTable'), 'No equipment movements yet — issues from storage and purchase receipts will appear here.');
       return;
     }
     tbody.innerHTML = visible.map(m => `
@@ -4230,9 +5013,11 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3 date-cell"><div class="cell-person-date">${fmtDateTime(m.created_at)}</div></td>
         <td class="py-3 pr-3">${cellItem(m.item_label)}</td>
         <td class="py-3 pr-3 qty-cell">${cellQty(m.qty, m.unit)}</td>
-        <td class="py-3 pr-3">${cellMovementType(m.movement_type)}</td>
-        <td class="py-3 pr-3">${renderMovementDestinationCell(m)}</td>
+        <td class="py-3 pr-3">${cellMovementType(m.movement_type, m.condition)}</td>
+        <td class="py-3 pr-3">${renderMovementDestinationCell(m)}${m.movement_type === 'return_to_storage' && m.department ? `<div class="cell-meta mt-1">From ${escapeHtml(m.department)}</div>` : ''}</td>
         <td class="py-3 pr-3 code-cell">${m.reference_code ? cellCode(m.reference_code) : cellEmpty()}</td>
+        <td class="py-3 pr-3 text-cell">${m.issued_to ? cellLongText(m.issued_to, { className: 'text-textMid' }) : cellEmpty()}</td>
+        <td class="py-3 pr-3 text-cell">${cellNotes(m.notes)}</td>
         <td class="py-3 pr-3 text-textMid">${escapeHtml(m.recorded_by)}</td>
         <td class="py-3 pr-3">${statusPill(m.status)}${m.status === 'Voided' && m.voided_reason ? `<div class="cell-meta mt-1">${escapeHtml(m.voided_reason)}</div>` : ''}</td>
       </tr>`).join('');
@@ -4242,7 +5027,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const query = tableSearchQuery('inventoryTableSearch');
     const dates = tableDateRange('inventoryTable');
     const issues = state.stockIssues.filter(iss => rowMatchesSearch(
-      query, iss.item_label, iss.department, iss.issued_to, iss.recorded_by, iss.status, 'issue'
+      query, iss.item_label, iss.department, iss.issued_to, iss.notes, iss.recorded_by, iss.status, 'issue'
     ) && rowMatchesDateRange(iss.created_at, dates.from, dates.to)
       && rowMatchesCatalogFilters(null, iss.item_key, 'inventoryTable'));
     const retirements = state.inventoryRetirements
@@ -4257,7 +5042,7 @@ document.addEventListener('DOMContentLoaded', function(){
     ].sort((a, b) => new Date(b.sortAt.replace(' ', 'T')) - new Date(a.sortAt.replace(' ', 'T')));
     const tbody = document.getElementById('issueTableBody');
     if(!rows.length){
-      tbody.innerHTML = tableSearchEmptyMessage(7, tableHasActiveFilters(query, 'inventoryTable'), 'No stock issued or retired yet. Use Issue or Retire on an item to record activity.');
+      tbody.innerHTML = tableSearchEmptyMessage(8, tableHasActiveFilters(query, 'inventoryTable'), 'No stock issued or retired yet. Use Issue or Retire on an item to record activity.');
       return;
     }
     tbody.innerHTML = rows.map(row => {
@@ -4269,7 +5054,8 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">${cellItem(iss.item_label)}</td>
         <td class="py-3 pr-3 qty-cell">${cellQty(iss.qty, iss.unit)}</td>
         <td class="py-3 pr-3">${cellDeptChip(iss.department)}</td>
-        <td class="py-3 pr-3 text-textMid">${iss.issued_to ? escapeHtml(iss.issued_to) : cellEmpty()}</td>
+        <td class="py-3 pr-3 text-cell">${iss.issued_to ? cellLongText(iss.issued_to, { className: 'text-textMid' }) : cellEmpty()}</td>
+        <td class="py-3 pr-3 text-cell">${cellNotes(iss.notes)}</td>
         <td class="py-3 pr-3 status-cell">${statusPill(iss.status)}</td>
         <td class="py-3 pr-3">
           ${iss.status === 'Active' && roleAtLeast('manager') ? `<button onclick="voidIssue(${iss.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Void</button>` : (iss.status === 'Voided' ? cellHint(iss.voided_reason || 'Voided', 'warn') : cellEmpty())}
@@ -4283,7 +5069,8 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">${cellItem(r.item_label)}</td>
         <td class="py-3 pr-3 qty-cell">${cellQty(r.qty, r.unit)}</td>
         <td class="py-3 pr-3">${cellHint('Storage', 'info')}</td>
-        <td class="py-3 pr-3">${cellStack(escapeHtml(r.reason_label), r.notes ? escapeHtml(r.notes) : '')}</td>
+        <td class="py-3 pr-3 text-cell">${cellLongText(r.reason_label, { className: 'text-textMid' })}</td>
+        <td class="py-3 pr-3 text-cell">${cellNotes(r.notes)}</td>
         <td class="py-3 pr-3"><span class="cell-tag cell-tag-danger">Retired</span></td>
         <td class="py-3 pr-3 code-cell">${cellCode(r.retirement_code)}</td>
       </tr>`;
@@ -4294,16 +5081,21 @@ document.addEventListener('DOMContentLoaded', function(){
 
   document.getElementById('retireForm').addEventListener('submit', async function(e){
     e.preventDefault();
+    clearFormFieldErrors(this);
     const itemKey = document.getElementById('retireItemKey').value;
     const it = state.inventory.find(i => i.item_key === itemKey);
-    const qty = Number(document.getElementById('retireQty').value);
+    const qtyEl = document.getElementById('retireQty');
+    const notesEl = document.getElementById('retireNotes');
+    const qty = Number(qtyEl.value);
     const reason = document.getElementById('retireReason').value;
-    const notes = document.getElementById('retireNotes').value.trim() || null;
-    if(!it || qty <= 0){ alert('Enter a quantity greater than 0.'); return; }
+    const notes = notesEl.value.trim() || null;
+    let ok = true;
+    if(!it) ok = false;
+    if(!validateTextField(notesEl, { max: INPUT_LIMITS.note, label: 'Notes', allowEmpty: true })) ok = false;
 
     let source = 'storage';
     let department = null;
-    if(it.item_type === 'equipment'){
+    if(it?.item_type === 'equipment'){
       const selected = document.getElementById('retireSource').value;
       if(selected.startsWith('department:')){
         source = 'department';
@@ -4311,9 +5103,15 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     }
 
+    const maxQty = source === 'department'
+      ? Number(qtyEl.max || 0)
+      : Number(it?.current_qty || 0);
+    if(!validateQtyField(qtyEl, { available: maxQty, unit: it?.unit })) ok = false;
+    if(!ok){ focusFirstFieldError(this); return; }
+
     const where = source === 'department' ? department : 'storage';
     const reasonLabel = RETIREMENT_REASON_LABELS[reason] || reason;
-    if(!confirm(`Retire ${qty} ${it.unit} of ${itemDisplayLabel(it)} from ${where}?\n\nReason: ${reasonLabel}`)) return;
+    if(!await showConfirmModal({ title: `Retire ${qty} ${it.unit}?`, message: `${itemDisplayLabel(it)} from ${where}.\n\nReason: ${reasonLabel}`, confirmText: 'Retire units', danger: true })) return;
 
     try {
       await apiSend('inventory_retirements.php', 'POST', {
@@ -4328,39 +5126,42 @@ document.addEventListener('DOMContentLoaded', function(){
       await Promise.all([loadInventory(), loadInventoryRetirements(), loadEquipmentMovements()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not retire units.');
+      showError(err.error || 'Could not retire units.');
     }
-  });
-
-  document.getElementById('issueIssuedTo')?.addEventListener('input', function(){
-    sanitizePersonNameInput(this);
   });
 
   document.getElementById('issueForm').addEventListener('submit', async function(e){
     e.preventDefault();
+    clearFormFieldErrors(this);
     const itemKey = document.getElementById('issueItemKey').value;
     const it = state.inventory.find(i => i.item_key === itemKey);
-    const qty = Number(document.getElementById('issueQty').value);
+    const qtyEl = document.getElementById('issueQty');
+    const notesEl = document.getElementById('issueNotes');
+    const issuedToEl = document.getElementById('issueIssuedTo');
+    const qty = Number(qtyEl.value);
     const department = document.getElementById('issueDepartment').value;
     const stockRequestId = document.getElementById('issueStockRequestId').value;
-    const issuedTo = document.getElementById('issueIssuedTo').value.trim();
-    if(!department){ alert('Choose a department.'); return; }
-    if(issuedTo && !isValidPersonName(issuedTo)){
-      alert('Issued to must be a person\'s name (letters only — no numbers).');
-      document.getElementById('issueIssuedTo').focus();
-      return;
+    const issuedTo = issuedToEl.value.trim();
+    let ok = true;
+    if(!department){
+      setFieldError(document.getElementById('issueDepartment'), 'Choose a department.');
+      ok = false;
     }
+    if(!validatePersonNameField(issuedToEl)) ok = false;
+    if(!validateTextField(notesEl, { max: INPUT_LIMITS.note, label: 'Notes', allowEmpty: true })) ok = false;
+    if(!validateQtyField(qtyEl, { available: it?.current_qty, unit: it?.unit })) ok = false;
+    if(!ok){ focusFirstFieldError(this); return; }
     const confirmMsg = stockRequestId
       ? `Fulfill this request and issue ${qty} ${it?.unit || ''} of ${it?.label || itemKey} to ${department}?`
       : `Issue ${qty} ${it?.unit || ''} of ${it?.label || itemKey} to ${department}?`;
-    if(!confirm(confirmMsg)) return;
+    if(!await showConfirmModal({ title: stockRequestId ? 'Fulfill request?' : 'Record issue?', message: confirmMsg.replace(/\?$/, ''), confirmText: stockRequestId ? 'Fulfill & issue' : 'Record issue' })) return;
     try {
       if(stockRequestId){
         await apiSend(`stock_requests.php?id=${stockRequestId}`, 'PUT', {
           action: 'fulfill',
           qty,
           issued_to: issuedTo || null,
-          notes: document.getElementById('issueNotes').value.trim() || null,
+          notes: notesEl.value.trim() || null,
         });
         await Promise.all([loadInventory(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests()]);
       } else {
@@ -4369,30 +5170,48 @@ document.addEventListener('DOMContentLoaded', function(){
           qty,
           department,
           issued_to: issuedTo || null,
-          notes: document.getElementById('issueNotes').value.trim() || null,
+          notes: notesEl.value.trim() || null,
         });
         await Promise.all([loadInventory(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements()]);
       }
       closeModal('issueModalOverlay');
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not record issue.');
+      showError(err.error || 'Could not record issue.');
     }
   });
 
-  window.voidIssue = async function(id){
+  window.voidIssue = function(id){
     const iss = state.stockIssues.find(i => i.id === id);
     if(!iss) return;
-    const reason = prompt(`Void issue ${iss.issue_code}? ${iss.qty} ${iss.unit} of ${iss.item_label} will be added back to stock.\n\nOptional reason:`, '');
-    if(reason === null) return;
+    document.getElementById('voidIssueId').value = id;
+    document.getElementById('voidIssueModalHint').textContent =
+      `${iss.issue_code}: ${iss.qty} ${iss.unit} of ${iss.item_label} will be added back to stock.`;
+    document.getElementById('voidIssueReason').value = '';
+    openModal('voidIssueModalOverlay');
+  };
+
+  document.getElementById('voidIssueForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    clearFormFieldErrors(this);
+    const reasonEl = document.getElementById('voidIssueReason');
+    if(!validateTextField(reasonEl, { max: INPUT_LIMITS.note, label: 'Reason', allowEmpty: true })){
+      focusFirstFieldError(this);
+      return;
+    }
+    const id = Number(document.getElementById('voidIssueId').value);
+    const iss = state.stockIssues.find(i => i.id === id);
+    if(!iss) return;
+    const reason = reasonEl.value.trim() || null;
     try {
       await apiSend(`stock_issues.php?id=${id}`, 'PUT', { action: 'void', reason });
+      closeModal('voidIssueModalOverlay');
       await Promise.all([loadInventory(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not void issue.');
+      showError(err.error || 'Could not void issue.');
     }
-  };
+  });
 
   window.openItemModal = function(){
     document.getElementById('itemForm').reset();
@@ -4483,7 +5302,7 @@ document.addEventListener('DOMContentLoaded', function(){
     } catch (err) {
       hintEl.classList.add('hidden');
       hintEl.innerHTML = '';
-      alert(err.error || 'Could not load month close data.');
+      showError(err.error || 'Could not load month close data.');
     }
   }
 
@@ -4540,7 +5359,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const closing = Number(document.getElementById('closeClosing').value);
     const it = state.inventory.find(i => i.item_key === itemKey);
     const monthLabel = yearMonth ? new Date(yearMonth + '-01T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'this month';
-    if(!confirm(`Close ${monthLabel} for ${it?.label || itemKey}?\n\nOpening ${opening}, received ${received}, closing ${closing}.`)) return;
+    if(!await showConfirmModal({ title: `Close ${monthLabel}?`, message: `${it?.label || itemKey}\n\nOpening ${opening}, received ${received}, closing ${closing}.`, confirmText: 'Close month' })) return;
     try {
       const result = await apiSend(`close_month.php?item=${encodeURIComponent(itemKey)}`, 'POST', {
         month: yearMonth + '-01',
@@ -4552,9 +5371,9 @@ document.addEventListener('DOMContentLoaded', function(){
       await loadInventory();
       await loadDemandInsights();
       renderDashboard();
-      alert(`${monthLabel} closed.\n\nUsage logged: ${result.computed_usage} ${it?.unit || ''}\nStock on hand: ${result.new_current_qty} ${it?.unit || ''}\n\nOpen AI Demand Forecast to see the updated prediction.`);
+      showNoticeModal({ title: `${monthLabel} closed`, message: `Usage logged: ${result.computed_usage} ${it?.unit || ''}\nStock on hand: ${result.new_current_qty} ${it?.unit || ''}\n\nOpen AI Demand Forecast to see the updated prediction.`, variant: 'success', okText: 'Done' });
     } catch (err) {
-      alert(err.error || 'Could not close month.');
+      showError(err.error || 'Could not close month.');
     }
   });
 
@@ -4662,25 +5481,39 @@ document.addEventListener('DOMContentLoaded', function(){
 
   document.getElementById('itemForm').addEventListener('submit', async function(e){
     e.preventDefault();
+    clearFormFieldErrors(this);
     const editKey = document.getElementById('itmEditKey').value;
     const itemType = document.querySelector('input[name="itmType"]:checked').value;
     const locationId = document.getElementById('itmLocationId').value || null;
-    const equipmentGroup = document.getElementById('itmEquipmentGroup').value.trim();
-    const variant = document.getElementById('itmVariant').value.trim();
-    const label = itemType === 'equipment' ? variant : document.getElementById('itmName').value.trim();
-    if(itemType === 'equipment' && (!equipmentGroup || !variant)){
-      alert('Equipment type and variant are required.');
-      return;
-    }
+    const groupEl = document.getElementById('itmEquipmentGroup');
+    const variantEl = document.getElementById('itmVariant');
+    const nameEl = document.getElementById('itmName');
+    const unitEl = document.getElementById('itmUnit');
+    const equipmentGroup = groupEl.value.trim();
+    const variant = variantEl.value.trim();
+    const label = itemType === 'equipment' ? variant : nameEl.value.trim();
+    let ok = true;
+    if(itemType === 'equipment'){
+      if(!equipmentGroup){
+        setFieldError(groupEl, 'Equipment type is required.');
+        ok = false;
+      } else if(!validateTextField(groupEl, { max: INPUT_LIMITS.equipGroup, label: 'Equipment group', allowEmpty: false })) ok = false;
+      if(!variant){
+        setFieldError(variantEl, 'Variant / spec is required.');
+        ok = false;
+      } else if(!validateTextField(variantEl, { max: INPUT_LIMITS.equipVariant, label: 'Variant name', allowEmpty: false })) ok = false;
+    } else if(!validateTextField(nameEl, { max: INPUT_LIMITS.itemLabel, label: 'Item name', required: true })) ok = false;
+    if(!validateTextField(unitEl, { max: INPUT_LIMITS.unit, label: 'Unit', required: true })) ok = false;
+    if(!ok){ focusFirstFieldError(this); return; }
     const similar = findSimilarItems(label, editKey || null, itemType === 'equipment' ? equipmentGroup : null);
     if(!editKey && similar.length){
       const names = similar.map(i => `"${itemDisplayLabel(i)}"`).join(', ');
-      alert(`Similar item already listed: ${names}.\n\nUse Edit on that row and add storage quantity instead of creating a duplicate.`);
+      showNoticeModal({ title: 'Similar item already listed', message: `${names}.\n\nUse Edit on that row and add storage quantity instead of creating a duplicate.`, variant: 'info' });
       return;
     }
     const payload = {
       label: label,
-      unit: document.getElementById('itmUnit').value,
+      unit: unitEl.value,
       item_type: itemType,
       current_qty: Number(document.getElementById('itmCurrent').value),
       min_qty: itemType === 'consumable' ? Number(document.getElementById('itmMin').value) : null,
@@ -4688,7 +5521,11 @@ document.addEventListener('DOMContentLoaded', function(){
     };
     if(itemType === 'equipment'){
       payload.equipment_group = equipmentGroup;
-      if(!locationId){ alert('Choose a storage location.'); return; }
+      if(!locationId){
+        setFieldError(document.getElementById('itmLocationId'), 'Choose a storage location.');
+        focusFirstFieldError(this);
+        return;
+      }
       payload.location_id = locationId;
     } else {
       payload.location_id = locationId;
@@ -4704,7 +5541,7 @@ document.addEventListener('DOMContentLoaded', function(){
       await loadInventory();
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not save item.');
+      showError(err.error || 'Could not save item.');
     }
   });
 
@@ -4900,12 +5737,12 @@ document.addEventListener('DOMContentLoaded', function(){
     const dates = tableDateRange('requestsTable');
     const visible = state.requests.filter(r => rowMatchesSearch(
       query, r.request_code, r.employee, purchaseRequestDepartmentLabel(r), r.display_label, r.item_label,
-      r.reason ? PURCHASE_REASON_LABELS[r.reason] : '', r.status, r.item_type
+      r.reason ? PURCHASE_REASON_LABELS[r.reason] : '', r.notes, r.status, r.item_type
     ) && rowMatchesDateRange(r.created_at, dates.from, dates.to)
       && rowMatchesCatalogFilters(r.item_type, r.item_key, 'requestsTable'));
     const tbody = document.getElementById('requestsTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(9, tableHasActiveFilters(query, 'requestsTable'), 'No purchase requests yet.');
+      tbody.innerHTML = tableSearchEmptyMessage(10, tableHasActiveFilters(query, 'requestsTable'), 'No purchase requests yet.');
       return;
     }
     tbody.innerHTML = visible.map(r => `
@@ -4917,6 +5754,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3">${cellReasonTag(r.reason)}</td>
         <td class="py-3 pr-3 qty-cell">${cellQty(r.qty, r.unit)}</td>
         <td class="py-3 pr-3">${cellMoney(r.estimate_cost, r.best_supplier ? `via ${r.best_supplier}` : '')}</td>
+        <td class="py-3 pr-3 text-cell">${cellNotes(r.notes)}</td>
         <td class="py-3 pr-3 status-cell">${statusPill(r.status)}</td>
         <td class="py-3 pr-3 action-cell">${
           r.status === 'Pending' ? (roleAtLeast('manager') ? `
@@ -4938,14 +5776,14 @@ document.addEventListener('DOMContentLoaded', function(){
       await apiSend(`purchase_requests.php?id=${id}`, 'PUT', { action: 'approve' });
       await Promise.all([loadRequests(), loadDocuments()]);
       renderDashboard();
-    } catch (err) { alert(err.error || 'Could not approve request.'); }
+    } catch (err) { showError(err.error || 'Could not approve request.'); }
   };
   window.rejectRequest = async function(id){
     try {
       await apiSend(`purchase_requests.php?id=${id}`, 'PUT', { action: 'reject' });
       await Promise.all([loadRequests(), loadDocuments()]);
       renderDashboard();
-    } catch (err) { alert(err.error || 'Could not reject request.'); }
+    } catch (err) { showError(err.error || 'Could not reject request.'); }
   };
 
   /* ---------- create purchase order (supplier + procurement method) ---------- */
@@ -5046,7 +5884,7 @@ document.addEventListener('DOMContentLoaded', function(){
     let catalogKey = pendingRequest.item_key;
     if(!catalogKey){
       catalogKey = document.getElementById('poCatalogItem').value;
-      if(!catalogKey){ alert('Choose which catalog item this order is for.'); return; }
+      if(!catalogKey){ showError('Choose which catalog item this order is for.', 'Missing item'); return; }
     }
     const supplier = selectedSupplierId ? state.suppliers.find(s => s.id === selectedSupplierId) : null;
     const matchedPrice = supplier ? supplierPriceForItem(supplier, catalogKey) : null;
@@ -5070,7 +5908,7 @@ document.addEventListener('DOMContentLoaded', function(){
       await Promise.all([loadRequests(), loadOrders(), loadDocuments()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not create purchase order.');
+      showError(err.error || 'Could not create purchase order.');
     }
   };
 
@@ -5159,11 +5997,61 @@ document.addEventListener('DOMContentLoaded', function(){
       await loadOrders();
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not resend to Finance.');
+      showError(err.error || 'Could not resend to Finance.');
     }
   };
 
   let receiptOrderEstimate = null;
+  let receiptDuplicateMatches = [];
+  let receiptNumberCheckTimer = null;
+
+  function normalizeReceiptNumber(value){
+    let v = String(value ?? '').trim().toUpperCase();
+    if(!v) return '';
+    v = v.replace(/^(OR|O\.R\.|OFFICIAL RECEIPT)\s*[#:\-]?\s*/i, '');
+    return v.replace(/[^A-Z0-9]/g, '');
+  }
+
+  function findLocalReceiptDuplicates(number, excludePoId){
+    const needle = normalizeReceiptNumber(number);
+    if(!needle) return [];
+    return state.orders.filter(o => {
+      if(o.id === excludePoId || !o.receipt_number) return false;
+      return normalizeReceiptNumber(o.receipt_number) === needle;
+    }).map(o => ({ id: o.id, po_code: o.po_code, receipt_number: o.receipt_number }));
+  }
+
+  function showReceiptNumberDuplicateWarning(matches){
+    const warnEl = document.getElementById('receiptNumberWarning');
+    const input = document.getElementById('receiptNumber');
+    receiptDuplicateMatches = matches || [];
+    if(!receiptDuplicateMatches.length){
+      warnEl.classList.add('hidden');
+      input.classList.remove('field-invalid');
+      return;
+    }
+    const codes = receiptDuplicateMatches.map(m => m.po_code).join(', ');
+    warnEl.innerHTML = `<i class='bx bx-error-circle shrink-0 mt-0.5'></i><span>This OR number is already on file for <strong>${escapeHtml(codes)}</strong> — use a different receipt or verify with a manager before submitting.</span>`;
+    warnEl.classList.remove('hidden');
+    input.classList.add('field-invalid');
+  }
+
+  async function checkReceiptNumberDuplicate(){
+    const number = document.getElementById('receiptNumber').value.trim();
+    const poId = Number(document.getElementById('receiptPoId').value);
+    if(!number){
+      showReceiptNumberDuplicateWarning([]);
+      return;
+    }
+    try {
+      const res = await fetch(`${API}receipts.php?check_number=${encodeURIComponent(number)}&exclude_po_id=${poId}`, { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if(!res.ok) throw data;
+      showReceiptNumberDuplicateWarning(data.matches || []);
+    } catch {
+      showReceiptNumberDuplicateWarning(findLocalReceiptDuplicates(number, poId));
+    }
+  }
 
   window.openUploadReceiptModal = function(id){
     const order = state.orders.find(o => o.id === id);
@@ -5173,6 +6061,7 @@ document.addEventListener('DOMContentLoaded', function(){
     receiptOrderEstimate = order.amount != null ? Number(order.amount) : null;
     document.getElementById('receiptModalPoLabel').textContent = `${order.po_code} — ${order.qty} ${order.unit} of ${order.item_label}${order.amount != null ? ` (estimated ${peso(order.amount)})` : ''}.`;
     setReceiptScanStatus('hidden');
+    showReceiptNumberDuplicateWarning([]);
     const amountWarning = document.getElementById('receiptAmountWarning');
     amountWarning.textContent = '';
     amountWarning.classList.add('hidden');
@@ -5253,17 +6142,28 @@ document.addEventListener('DOMContentLoaded', function(){
         setReceiptScanStatus('info', `<i class='bx bx-info-circle'></i> Could not detect an amount or OR number — enter them manually and you can still submit.`);
       }
       checkReceiptAmountAgainstEstimate();
+      await checkReceiptNumberDuplicate();
     } catch (err) {
       setReceiptScanStatus('info', `<i class='bx bx-info-circle'></i> ${(err && err.error) || 'Automatic scan unavailable — enter details manually and you can still submit.'}`);
     }
   }
   document.getElementById('receiptFile').addEventListener('change', e => scanReceiptFile(e.target.files[0]));
 
+  document.getElementById('receiptNumber').addEventListener('input', function(){
+    clearTimeout(receiptNumberCheckTimer);
+    receiptNumberCheckTimer = setTimeout(checkReceiptNumberDuplicate, 350);
+  });
+
   document.getElementById('receiptForm').addEventListener('submit', async function(e){
     e.preventDefault();
     const id = document.getElementById('receiptPoId').value;
     const fileInput = document.getElementById('receiptFile');
-    if(!fileInput.files.length){ alert('Choose a receipt file.'); return; }
+    if(!fileInput.files.length){ showError('Choose a receipt file to upload.', 'Receipt required'); return; }
+    await checkReceiptNumberDuplicate();
+    if(receiptDuplicateMatches.length){
+      document.getElementById('receiptNumber').focus();
+      return;
+    }
     const formData = new FormData();
     formData.append('receipt', fileInput.files[0]);
     formData.append('amount', document.getElementById('receiptAmount').value);
@@ -5281,7 +6181,7 @@ document.addEventListener('DOMContentLoaded', function(){
       await Promise.all([loadOrders(), loadDocuments()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not upload receipt.');
+      showError(err.error || 'Could not upload receipt.');
     }
   });
 
@@ -5320,7 +6220,7 @@ document.addEventListener('DOMContentLoaded', function(){
       }
       window.open(receiptViewBlobUrl, '_blank');
     } catch (err) {
-      alert(err.error || 'Could not open receipt file.');
+      showError(err.error || 'Could not open receipt file.');
     }
   };
 
@@ -5430,8 +6330,8 @@ document.addEventListener('DOMContentLoaded', function(){
     e.preventDefault();
     const id = document.getElementById('lostReceiptPoId').value;
     const note = document.getElementById('lostReceiptNote').value.trim();
-    if(note.length < 10){ alert('Note for Finance must be at least 10 characters.'); return; }
-    if(!confirm('Record this as a lost receipt? The note will be sent to Financial Management.')) return;
+    if(note.length < 10){ showError('Note for Finance must be at least 10 characters.', 'Note too short'); return; }
+    if(!await showConfirmModal({ title: 'Record lost receipt?', message: 'The note will be sent to Financial Management.', confirmText: 'Send to Finance' })) return;
     try {
       await apiSend(`purchase_orders.php?id=${id}`, 'PUT', {
         action: 'declare_receipt_lost',
@@ -5442,7 +6342,7 @@ document.addEventListener('DOMContentLoaded', function(){
       await Promise.all([loadOrders(), loadDocuments()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not record lost receipt.');
+      showError(err.error || 'Could not record lost receipt.');
     }
   });
 
@@ -5460,8 +6360,8 @@ document.addEventListener('DOMContentLoaded', function(){
     e.preventDefault();
     const id = document.getElementById('reportLostReceiptPoId').value;
     const note = document.getElementById('reportLostReceiptNote').value.trim();
-    if(note.length < 10){ alert('Explanation must be at least 10 characters.'); return; }
-    if(!confirm('Send this lost-receipt report to your manager for review?')) return;
+    if(note.length < 10){ showError('Explanation must be at least 10 characters.', 'Explanation too short'); return; }
+    if(!await showConfirmModal({ title: 'Send lost-receipt report?', message: 'Your manager will review before this counts as proof.', confirmText: 'Send to manager' })) return;
     try {
       await apiSend(`purchase_orders.php?id=${id}`, 'PUT', {
         action: 'report_receipt_lost',
@@ -5472,7 +6372,7 @@ document.addEventListener('DOMContentLoaded', function(){
       await Promise.all([loadOrders(), loadDocuments()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not send lost-receipt report.');
+      showError(err.error || 'Could not send lost-receipt report.');
     }
   });
 
@@ -5496,8 +6396,8 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('approveLostReceiptReportBtn').addEventListener('click', async function(){
     if(reviewLostReceiptReportId == null) return;
     const note = document.getElementById('reviewLostReceiptReportManagerNote').value.trim();
-    if(note.length < 10){ alert('Official note for Finance must be at least 10 characters.'); return; }
-    if(!confirm('Approve this lost-receipt report? Your note will be sent to Financial Management and the order can be marked received.')) return;
+    if(note.length < 10){ showError('Official note for Finance must be at least 10 characters.', 'Note too short'); return; }
+    if(!await showConfirmModal({ title: 'Approve lost-receipt report?', message: 'Your note will be sent to Financial Management and the order can be marked received.', confirmText: 'Approve report' })) return;
     try {
       await apiSend(`purchase_orders.php?id=${reviewLostReceiptReportId}`, 'PUT', { action: 'approve_lost_receipt_report', note });
       closeModal('reviewLostReceiptReportModalOverlay');
@@ -5505,7 +6405,7 @@ document.addEventListener('DOMContentLoaded', function(){
       await Promise.all([loadOrders(), loadDocuments()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not approve lost-receipt report.');
+      showError(err.error || 'Could not approve lost-receipt report.');
     }
   });
 
@@ -5524,8 +6424,8 @@ document.addEventListener('DOMContentLoaded', function(){
     e.preventDefault();
     const id = document.getElementById('rejectLostReceiptReportPoId').value;
     const note = document.getElementById('rejectLostReceiptReportNote').value.trim();
-    if(note.length < 10){ alert('Note must be at least 10 characters.'); return; }
-    if(!confirm('Reject this lost-receipt report and send the note back to staff?')) return;
+    if(note.length < 10){ showError('Note must be at least 10 characters.', 'Note too short'); return; }
+    if(!await showConfirmModal({ title: 'Reject lost-receipt report?', message: 'The note will be sent back to staff.', confirmText: 'Reject report', danger: true })) return;
     try {
       await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'reject_lost_receipt_report', note });
       closeModal('rejectLostReceiptReportModalOverlay');
@@ -5533,7 +6433,7 @@ document.addEventListener('DOMContentLoaded', function(){
       await Promise.all([loadOrders(), loadDocuments()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not reject lost-receipt report.');
+      showError(err.error || 'Could not reject lost-receipt report.');
     }
   });
 
@@ -5561,15 +6461,15 @@ document.addEventListener('DOMContentLoaded', function(){
     e.preventDefault();
     const id = document.getElementById('rejectReceiptPoId').value;
     const note = document.getElementById('rejectReceiptNote').value.trim();
-    if(note.length < 10){ alert('Note must be at least 10 characters.'); return; }
-    if(!confirm('Reject this receipt? Staff will need to upload a corrected one before the order can be received.')) return;
+    if(note.length < 10){ showError('Note must be at least 10 characters.', 'Note too short'); return; }
+    if(!await showConfirmModal({ title: 'Reject this receipt?', message: 'Staff will need to upload a corrected one before the order can be received.', confirmText: 'Reject receipt', danger: true })) return;
     try {
       await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'reject_receipt', note });
       closeModal('rejectReceiptModalOverlay');
       await Promise.all([loadOrders(), loadDocuments()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not reject receipt.');
+      showError(err.error || 'Could not reject receipt.');
     }
   });
 
@@ -5598,14 +6498,14 @@ document.addEventListener('DOMContentLoaded', function(){
       openReceiveEquipmentModal(id);
       return;
     }
-    if(!confirm(`Confirm ${order.qty} ${order.unit} of ${order.item_label} were received, and that the receipt/lost-receipt note matches this order?`)) return;
+    if(!await showConfirmModal({ title: 'Mark as received?', message: `${order.qty} ${order.unit} of ${order.item_label} — confirm the receipt or lost-receipt note matches this order.`, confirmText: 'Mark received' })) return;
     try {
       const result = await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'receive' });
       await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory(), loadEquipmentMovements(), loadDemandInsights()]);
       renderDashboard();
-      alert(`${result.qty_added} ${result.unit} of ${result.item_label} added to inventory. Stock is now ${result.new_stock}.`);
+      showToast(`${result.qty_added} ${result.unit} of ${result.item_label} added to inventory. Stock is now ${result.new_stock}.`, 4500);
     } catch (err) {
-      alert(err.error || 'Could not mark as received.');
+      showError(err.error || 'Could not mark as received.');
     }
   };
 
@@ -5654,7 +6554,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const deploy = document.getElementById('receiveDeployToDept').checked;
     const storageLocationId = document.getElementById('receiveStorageLocation').value || null;
     if(!deploy && !storageLocationId){
-      alert('Choose a storage location, or deploy to the requesting department.');
+      showError('Choose a storage location, or deploy to the requesting department.', 'Receive options required');
       return;
     }
     try {
@@ -5667,25 +6567,25 @@ document.addEventListener('DOMContentLoaded', function(){
       await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory(), loadEquipmentMovements(), loadDemandInsights()]);
       renderDashboard();
       if(result.received_to === 'department'){
-        alert(`${result.qty_added} ${result.unit} of ${result.item_label} received and deployed to ${result.deployed_to}. Check the Equipment tab.`);
+        showToast(`${result.qty_added} ${result.unit} of ${result.item_label} received and deployed to ${result.deployed_to}.`, 4500);
       } else {
-        alert(`${result.qty_added} ${result.unit} of ${result.item_label} added to storage. On hand: ${result.new_stock}.`);
+        showToast(`${result.qty_added} ${result.unit} of ${result.item_label} added to storage. On hand: ${result.new_stock}.`, 4500);
       }
     } catch (err) {
-      alert(err.error || 'Could not mark as received.');
+      showError(err.error || 'Could not mark as received.');
     }
   });
 
   window.cancelOrder = async function(id){
     const order = state.orders.find(o => o.id === id);
     if(!order) return;
-    if(!confirm(`Cancel ${order.po_code}? The purchase request will go back to Approved so a new PO can be created.`)) return;
+    if(!await showConfirmModal({ title: `Cancel ${order.po_code}?`, message: 'The purchase request will go back to Approved so a new PO can be created.', confirmText: 'Cancel order', danger: true })) return;
     try {
       await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'cancel' });
       await Promise.all([loadOrders(), loadRequests(), loadDocuments()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not cancel order.');
+      showError(err.error || 'Could not cancel order.');
     }
   };
 
@@ -5740,8 +6640,8 @@ document.addEventListener('DOMContentLoaded', function(){
   window.copyVendorMessage = function(){
     if(!lastVendorMessage){ return; }
     navigator.clipboard.writeText(lastVendorMessage).then(
-      () => alert('Message copied — paste into SMS, Viber, or your chat app.'),
-      () => alert('Could not copy automatically. Select the message text and copy manually.')
+      () => showToast('Message copied — paste into SMS, Viber, or your chat app.'),
+      () => openCopyLinkModal(lastVendorMessage, { title: 'Copy vendor message', hint: 'Automatic copy failed. Select and copy the message below.' })
     );
   };
 
@@ -5793,8 +6693,8 @@ document.addEventListener('DOMContentLoaded', function(){
   window.copyVendorApplyLink = function(){
     const url = vendorApplyUrl();
     navigator.clipboard.writeText(url).then(
-      () => alert(`Vendor quote link copied:\n\n${url}\n\nSend this to new suppliers — no login required.`),
-      () => prompt('Copy this link for vendors:', url)
+      () => showToast('Vendor quote link copied — send it to new suppliers.'),
+      () => openCopyLinkModal(url, { title: 'Vendor quote link', hint: 'Automatic copy failed. Copy the link below and send it to new suppliers.' })
     );
   };
 
@@ -5842,25 +6742,25 @@ document.addEventListener('DOMContentLoaded', function(){
   window.approveVendorApplication = async function(id){
     const app = state.vendorApplications.find(a => a.id === id);
     if(!app) return;
-    if(!confirm(`Approve ${app.company_name} and add their quoted prices to the Supplier Directory?`)) return;
+    if(!await showConfirmModal({ title: `Approve ${app.company_name}?`, message: 'Their quoted prices will be added to the Supplier Directory.', confirmText: 'Approve & add' })) return;
     try {
       await apiSend(`vendor_applications.php?id=${id}`, 'PUT', { action: 'approve' });
       await Promise.all([loadVendorApplications(), loadSuppliers(), loadDocuments()]);
-      alert(`${app.company_name} is now in the Supplier Directory.`);
+      showToast(`${app.company_name} is now in the Supplier Directory.`, 4500);
     } catch (err) {
-      alert(err.error || 'Could not approve quotation.');
+      showError(err.error || 'Could not approve quotation.');
     }
   };
 
   window.rejectVendorApplication = async function(id){
     const app = state.vendorApplications.find(a => a.id === id);
     if(!app) return;
-    if(!confirm(`Reject quotation from ${app.company_name}?`)) return;
+    if(!await showConfirmModal({ title: `Reject ${app.company_name}?`, message: 'This vendor quotation will be rejected.', confirmText: 'Reject quotation', danger: true })) return;
     try {
       await apiSend(`vendor_applications.php?id=${id}`, 'PUT', { action: 'reject' });
       await Promise.all([loadVendorApplications(), loadDocuments()]);
     } catch (err) {
-      alert(err.error || 'Could not reject quotation.');
+      showError(err.error || 'Could not reject quotation.');
     }
   };
 
@@ -5881,13 +6781,13 @@ document.addEventListener('DOMContentLoaded', function(){
     const detail = active
       ? `${s.name} will appear in the directory and purchase orders again.`
       : `${s.name} will be hidden from the directory and new purchase orders. Past orders are unchanged.`;
-    if(!confirm(`${verb} ${s.name}?\n\n${detail}`)) return;
+    if(!await showConfirmModal({ message: `${verb} ${s.name}?\n\n${detail}`, confirmText: verb, danger: !active })) return;
     try {
       await apiSend(`suppliers.php?id=${id}`, 'PUT', { active: active ? 1 : 0 });
       await loadSuppliers();
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not update supplier.');
+      showError(err.error || 'Could not update supplier.');
     }
   };
 
@@ -5917,7 +6817,8 @@ document.addEventListener('DOMContentLoaded', function(){
           </div>
         </div>
         <div class="text-[.78rem] text-textMid mb-1">${escapeHtml(s.contact || '—')}</div>
-        ${s.address ? `<div class="text-[.72rem] text-textSoft mb-2 whitespace-pre-wrap">${escapeHtml(s.address)}</div>` : '<div class="mb-2"></div>'}
+        ${s.address ? `<div class="text-[.72rem] text-textSoft mb-2 whitespace-pre-wrap">${escapeHtml(s.address)}</div>` : ''}
+        ${s.notes ? `<div class="text-[.72rem] text-textMid mb-2">${cellNotes(s.notes)}</div>` : ''}
         <div class="flex flex-wrap gap-1 mb-3">${(s.procurement_methods || []).map(m => `<span class="px-2 py-0.5 rounded-full text-[.68rem] font-medium bg-blueBg text-blueTx">${PROCUREMENT_LABELS[m] || m}</span>`).join('')}</div>
         <div class="flex flex-wrap gap-1.5 mb-3">${s.prices.map(p => {
           const best = bestSupplierFor(p.item_key);
@@ -6011,8 +6912,8 @@ document.addEventListener('DOMContentLoaded', function(){
     const priceInput = document.getElementById('supEditNewPrice');
     const itemKey = select.value;
     const price = Number(priceInput.value);
-    if(!itemKey){ alert('Pick an item to add.'); return; }
-    if(!price || price <= 0){ alert('Enter a price greater than 0.'); return; }
+    if(!itemKey){ showError('Pick an item to add.', 'Missing item'); return; }
+    if(!price || price <= 0){ showError('Enter a price greater than 0.', 'Invalid price'); return; }
     const label = select.selectedOptions[0]?.dataset.label || itemKey;
     supEditPrices.push({ item_key: itemKey, label, price });
     supEditRemoved = supEditRemoved.filter(k => k !== itemKey);
@@ -6024,10 +6925,21 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('supplierEditForm').addEventListener('submit', async function(e){
     e.preventDefault();
     if(!editingSupplierId) return;
+    clearFormFieldErrors(this);
+    const contactEl = document.getElementById('supEditContact');
+    const addressEl = document.getElementById('supEditAddress');
+    const notesEl = document.getElementById('supEditNotes');
+    const ok = validateTextField(contactEl, { max: INPUT_LIMITS.supplierContact, label: 'Contact', allowEmpty: true })
+      && validateTextField(addressEl, { max: INPUT_LIMITS.supplierAddress, label: 'Address', allowEmpty: true })
+      && validateTextField(notesEl, { max: INPUT_LIMITS.note, label: 'Notes', allowEmpty: true });
+    if(!ok){ focusFirstFieldError(this); return; }
+    const contact = contactEl.value.trim();
+    const address = addressEl.value.trim();
+    const notes = notesEl.value.trim();
     const body = {
-      contact: document.getElementById('supEditContact').value.trim() || null,
-      address: document.getElementById('supEditAddress').value.trim() || null,
-      notes: document.getElementById('supEditNotes').value.trim() || null,
+      contact: contact || null,
+      address: address || null,
+      notes: notes || null,
       procurement_methods: Array.from(document.querySelectorAll('.supEditMethodChk:checked')).map(c => c.value),
       prices: supEditPrices.map(p => ({ item_key: p.item_key, price: Number(p.price) })),
       remove_item_keys: supEditRemoved,
@@ -6038,7 +6950,7 @@ document.addEventListener('DOMContentLoaded', function(){
       await loadSuppliers();
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not save supplier.');
+      showError(err.error || 'Could not save supplier.');
     }
   });
 
@@ -6208,8 +7120,114 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   };
 
-  /* ---------- modals ---------- */
-  window.openModal = function(id){ document.getElementById(id).classList.add('show'); };
+  /* ---------- modals & notifications ---------- */
+  let confirmModalResolve = null;
+  let noticeModalResolve = null;
+  let toastTimer = null;
+
+  function showToast(message, ms = 3200){
+    const el = document.getElementById('appToast');
+    if(!el) return;
+    el.textContent = message;
+    el.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.add('hidden'), ms);
+  }
+
+  function showNoticeModal({ title = 'Notice', message = '', okText = 'OK', variant = 'default' } = {}){
+    let modalTitle = title;
+    let modalMessage = message;
+    if(!modalMessage && modalTitle.includes('\n')){
+      const parts = modalTitle.split('\n');
+      modalTitle = parts[0];
+      modalMessage = parts.slice(1).join('\n');
+    }
+    return new Promise(resolve => {
+      noticeModalResolve = resolve;
+      document.getElementById('noticeModalTitle').textContent = modalTitle;
+      document.getElementById('noticeModalMessage').textContent = modalMessage || modalTitle;
+      const okBtn = document.getElementById('noticeModalOkBtn');
+      okBtn.textContent = okText;
+      okBtn.className = variant === 'error'
+        ? 'w-full px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border-none shadow-btn'
+        : variant === 'success'
+          ? 'w-full px-4 py-2.5 rounded-xl bg-greenBg text-greenTx text-[.88rem] font-bold cursor-pointer border-none shadow-btn'
+          : 'w-full px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn';
+      document.getElementById('noticeModalOverlay').classList.add('show');
+    });
+  }
+
+  function finishNoticeModal(){
+    document.getElementById('noticeModalOverlay').classList.remove('show');
+    const resolve = noticeModalResolve;
+    noticeModalResolve = null;
+    resolve?.();
+  }
+
+  document.getElementById('noticeModalOkBtn').addEventListener('click', finishNoticeModal);
+
+  function showError(message, title = 'Something went wrong'){
+    return showNoticeModal({ title, message: String(message || title), variant: 'error' });
+  }
+
+  function showConfirmModal({ title, message = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = {}){
+    let modalTitle = title;
+    let modalMessage = message;
+    if(!modalTitle && modalMessage.includes('\n\n')){
+      const parts = modalMessage.split('\n\n');
+      modalTitle = parts[0];
+      modalMessage = parts.slice(1).join('\n\n');
+    }
+    if(!modalTitle) modalTitle = 'Confirm';
+    return new Promise(resolve => {
+      confirmModalResolve = resolve;
+      document.getElementById('confirmModalTitle').textContent = modalTitle;
+      document.getElementById('confirmModalMessage').textContent = modalMessage || modalTitle;
+      const okBtn = document.getElementById('confirmModalOkBtn');
+      okBtn.textContent = confirmText;
+      okBtn.className = danger
+        ? 'flex-1 px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border-none shadow-btn'
+        : 'flex-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn';
+      document.getElementById('confirmModalCancelBtn').textContent = cancelText;
+      document.getElementById('confirmModalOverlay').classList.add('show');
+    });
+  }
+
+  function finishConfirmModal(result){
+    document.getElementById('confirmModalOverlay').classList.remove('show');
+    const resolve = confirmModalResolve;
+    confirmModalResolve = null;
+    resolve?.(result);
+  }
+
+  document.getElementById('confirmModalOkBtn').addEventListener('click', () => finishConfirmModal(true));
+  document.getElementById('confirmModalCancelBtn').addEventListener('click', () => finishConfirmModal(false));
+
+  window.openCopyLinkModal = function(url, { title = 'Copy link', hint = 'Automatic copy failed. Select and copy the link below.' } = {}){
+    document.getElementById('copyLinkModalTitle').textContent = title;
+    document.getElementById('copyLinkModalHint').textContent = hint;
+    document.getElementById('copyLinkInput').value = url;
+    document.getElementById('copyLinkModalStatus').textContent = '';
+    document.getElementById('copyLinkModalOverlay').classList.add('show');
+  };
+
+  window.copyLinkModalCopy = function(){
+    const input = document.getElementById('copyLinkInput');
+    input.focus();
+    input.select();
+    navigator.clipboard.writeText(input.value).then(
+      () => { document.getElementById('copyLinkModalStatus').textContent = 'Copied to clipboard.'; },
+      () => { document.getElementById('copyLinkModalStatus').textContent = 'Select the text and press Ctrl+C (Cmd+C on Mac).'; }
+    );
+  };
+
+  window.openModal = function(id){
+    const overlay = document.getElementById(id);
+    overlay.querySelectorAll('form').forEach(clearFormFieldErrors);
+    overlay.classList.add('show');
+    wireAllLimitedFields(overlay);
+    overlay.querySelectorAll('.field-wrap input[maxlength], .field-wrap textarea[maxlength]').forEach(updateFieldCounter);
+  };
   window.closeModal = function(id){
     if(id === 'receiptViewModalOverlay') revokeReceiptBlobUrl();
     document.getElementById(id).classList.remove('show');
@@ -6427,29 +7445,44 @@ document.addEventListener('DOMContentLoaded', function(){
 
   document.getElementById('requestForm').addEventListener('submit', async function(e){
     e.preventDefault();
+    clearFormFieldErrors(this);
+    const itemEl = document.getElementById('reqItemNeeded');
+    const notesEl = document.getElementById('reqNotes');
+    const qtyEl = document.getElementById('reqQty');
+    const requestedLabel = itemEl.value.trim();
+    let ok = true;
+    if(!validateTextField(itemEl, { max: INPUT_LIMITS.prItem, label: 'Item needed', required: true })) ok = false;
+    if(!validateTextField(notesEl, { max: INPUT_LIMITS.note, label: 'Notes', allowEmpty: true })) ok = false;
+    if(!validateQtyField(qtyEl, { available: null })) ok = false;
+    if(!ok){ focusFirstFieldError(this); return; }
     try {
-      const requestedLabel = document.getElementById('reqItemNeeded').value.trim();
-      if(!requestedLabel){ alert('Describe the item needed.'); return; }
       const catalogKey = document.getElementById('reqCatalogPick').value || document.getElementById('reqCatalogKey').value || null;
       const mode = purchaseRequestMode();
       const payload = {
         requested_label: requestedLabel,
         item_key: catalogKey || undefined,
         request_type: mode,
-        qty: Number(document.getElementById('reqQty').value),
-        notes: document.getElementById('reqNotes').value.trim() || null,
+        qty: Number(qtyEl.value),
+        notes: notesEl.value.trim() || null,
       };
       if(mode === 'equipment'){
         if(equipmentRequestPurpose() === 'storage'){
           payload.reason = 'stock_up';
         } else {
-          const dept = document.getElementById('reqDepartment').value;
-          if(!dept){ alert('Choose the requesting department.'); return; }
+          const deptEl = document.getElementById('reqDepartment');
+          const dept = deptEl.value;
+          if(!dept){
+            setFieldError(deptEl, 'Choose the requesting department.');
+            focusFirstFieldError(this);
+            return;
+          }
           payload.department = dept;
           payload.reason = document.getElementById('reqReason').value;
         }
       } else if(!catalogKey){
-        alert('Pick the catalog supply this request is for, or switch to Equipment for new items.');
+        const pickEl = document.getElementById('reqCatalogPick');
+        setFieldError(pickEl, 'Pick a catalog supply, or switch to Equipment for new items.');
+        focusFirstFieldError(this);
         return;
       }
       await apiSend('purchase_requests.php', 'POST', payload);
@@ -6458,7 +7491,7 @@ document.addEventListener('DOMContentLoaded', function(){
       await Promise.all([loadRequests(), loadDocuments()]);
       renderDashboard();
     } catch (err) {
-      alert(err.error || 'Could not submit request.');
+      showError(err.error || 'Could not submit request.');
     }
   });
 
@@ -6493,6 +7526,7 @@ document.addEventListener('DOMContentLoaded', function(){
   wireTableCatalogFilters('ordersTable', renderOrders);
   wireTableCatalogFilters('documentsTable', renderDocuments);
   showDocumentTab('pr');
+  wireAllLimitedFields();
 
   /* ---------- init ---------- */
   (async function init(){

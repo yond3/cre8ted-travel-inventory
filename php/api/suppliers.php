@@ -109,11 +109,25 @@ if ($method === 'PUT') {
 
     $fields = [];
     $values = [];
-    foreach (['name', 'contact', 'address', 'rating', 'notes'] as $field) {
-        if (array_key_exists($field, $body)) {
-            $fields[] = "$field = ?";
-            $values[] = $body[$field];
-        }
+    if (array_key_exists('name', $body)) {
+        $fields[] = 'name = ?';
+        $values[] = parse_required_text($body['name'], LIMIT_VENDOR_COMPANY, 'Supplier name');
+    }
+    if (array_key_exists('contact', $body)) {
+        $fields[] = 'contact = ?';
+        $values[] = parse_optional_text($body['contact'], LIMIT_SUPPLIER_CONTACT, 'Contact');
+    }
+    if (array_key_exists('address', $body)) {
+        $fields[] = 'address = ?';
+        $values[] = parse_optional_text($body['address'], LIMIT_SUPPLIER_ADDRESS, 'Address');
+    }
+    if (array_key_exists('notes', $body)) {
+        $fields[] = 'notes = ?';
+        $values[] = parse_optional_note($body['notes'] ?? null);
+    }
+    if (array_key_exists('rating', $body)) {
+        $fields[] = 'rating = ?';
+        $values[] = $body['rating'];
     }
     if (array_key_exists('procurement_methods', $body)) {
         $methods = $body['procurement_methods'];

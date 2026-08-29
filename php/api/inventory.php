@@ -241,20 +241,16 @@ if ($method === 'POST') {
     require_manager_or_above();
     $body = read_json_body();
     $label = trim($body['label'] ?? '');
-    $unit = trim($body['unit'] ?? '');
+    $unit = parse_required_text($body['unit'] ?? '', LIMIT_UNIT, 'Unit');
     $itemType = $body['item_type'] ?? 'consumable';
     $current = (float) ($body['current_qty'] ?? 0);
     $equipmentGroup = trim($body['equipment_group'] ?? '');
 
-    if ($unit === '') {
-        json_error('unit is required');
-    }
     if ($itemType === 'equipment') {
-        if ($equipmentGroup === '' || $label === '') {
-            json_error('equipment_group and variant name are required for equipment');
-        }
-    } elseif ($label === '') {
-        json_error('label is required');
+        $equipmentGroup = parse_required_text($equipmentGroup, LIMIT_EQUIP_GROUP, 'Equipment group');
+        $label = parse_required_text($label, LIMIT_EQUIP_VARIANT, 'Variant name');
+    } else {
+        $label = parse_required_text($label, LIMIT_ITEM_LABEL, 'Item name');
     }
     if (!in_array($itemType, ['consumable', 'equipment'], true)) {
         json_error("item_type must be 'consumable' or 'equipment'");
@@ -334,10 +330,16 @@ if ($method === 'PUT') {
         : (string) ($existing['equipment_group'] ?? '');
 
     if (array_key_exists('label', $body) || array_key_exists('equipment_group', $body)) {
-        $newLabel = trim((string) ($body['label'] ?? $existing['label']));
-        $newGroup = $itemType === 'equipment' ? $equipmentGroup : '';
-        if ($itemType === 'equipment' && ($newGroup === '' || $newLabel === '')) {
-            json_error('equipment_group and variant name are required for equipment');
+        $newLabel = $itemType === 'equipment'
+            ? parse_required_text($body['label'] ?? $existing['label'], LIMIT_EQUIP_VARIANT, 'Variant name')
+            : parse_required_text($body['label'] ?? $existing['label'], LIMIT_ITEM_LABEL, 'Item name');
+        $newGroup = $itemType === 'equipment'
+            ? parse_required_text($equipmentGroup, LIMIT_EQUIP_GROUP, 'Equipment group')
+            : '';
+        $body['label'] = $newLabel;
+        if ($itemType === 'equipment') {
+            $equipmentGroup = $newGroup;
+            $body['equipment_group'] = $newGroup;
         }
         $labelChanged = normalize_item_label($newLabel) !== normalize_item_label((string) $existing['label']);
         $groupChanged = $itemType === 'equipment'
@@ -361,7 +363,15 @@ if ($method === 'PUT') {
 
     $fields = [];
     $values = [];
-    foreach (['label', 'unit', 'item_type', 'current_qty'] as $field) {
+    if (array_key_exists('label', $body)) {
+        $fields[] = 'label = ?';
+        $values[] = $body['label'];
+    }
+    if (array_key_exists('unit', $body)) {
+        $fields[] = 'unit = ?';
+        $values[] = parse_required_text($body['unit'], LIMIT_UNIT, 'Unit');
+    }
+    foreach (['item_type', 'current_qty'] as $field) {
         if (array_key_exists($field, $body)) {
             $fields[] = "$field = ?";
             $values[] = $body[$field];

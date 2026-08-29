@@ -43,13 +43,9 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     require_manager_or_above();
     $body = read_json_body();
-    $name = trim($body['name'] ?? '');
+    $name = parse_required_text($body['name'] ?? '', LIMIT_LOCATION_NAME, 'Location name');
     $type = $body['location_type'] ?? 'storage';
-    $description = $body['description'] ?? null;
-
-    if ($name === '') {
-        json_error('name is required');
-    }
+    $description = parse_optional_text($body['description'] ?? null, LIMIT_LOCATION_DESC, 'Description');
     if (!in_array($type, ['storage', 'in_use'], true)) {
         json_error("location_type must be 'storage' or 'in_use'");
     }
@@ -102,11 +98,17 @@ if ($method === 'PUT') {
 
     $fields = [];
     $values = [];
-    foreach (['name', 'location_type', 'description'] as $field) {
-        if (array_key_exists($field, $body)) {
-            $fields[] = "$field = ?";
-            $values[] = $body[$field];
-        }
+    if (array_key_exists('name', $body)) {
+        $fields[] = 'name = ?';
+        $values[] = parse_required_text($body['name'], LIMIT_LOCATION_NAME, 'Location name');
+    }
+    if (array_key_exists('location_type', $body)) {
+        $fields[] = 'location_type = ?';
+        $values[] = $body['location_type'];
+    }
+    if (array_key_exists('description', $body)) {
+        $fields[] = 'description = ?';
+        $values[] = parse_optional_text($body['description'], LIMIT_LOCATION_DESC, 'Description');
     }
     if (array_key_exists('active', $body)) {
         $fields[] = 'active = ?';

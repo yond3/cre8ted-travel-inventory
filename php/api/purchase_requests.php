@@ -71,15 +71,20 @@ if ($method === 'POST') {
     $body = read_json_body();
     $employee = $user['name'];
     $qty = $body['qty'] ?? null;
-    $requestedLabel = trim($body['requested_label'] ?? '');
+    $requestedLabelRaw = trim($body['requested_label'] ?? '');
     $itemKey = trim($body['item_key'] ?? '') ?: null;
     $requestType = $body['request_type'] ?? null;
 
     if ($employee === '' || $qty === null) {
         json_error('employee and qty are required');
     }
-    if ($requestedLabel === '' && $itemKey === null) {
+    if ($requestedLabelRaw === '' && $itemKey === null) {
         json_error('describe the item needed in requested_label');
+    }
+    if ($requestedLabelRaw !== '') {
+        $requestedLabel = parse_required_text($requestedLabelRaw, LIMIT_PR_ITEM, 'Item needed');
+    } else {
+        $requestedLabel = '';
     }
 
     $qty = (float) $qty;
@@ -147,7 +152,7 @@ if ($method === 'POST') {
         $itemKey,
         $requestedLabel,
         $qty,
-        trim($body['notes'] ?? '') ?: null,
+        parse_optional_note($body['notes'] ?? null),
         $reason,
         'Pending',
     ]);
