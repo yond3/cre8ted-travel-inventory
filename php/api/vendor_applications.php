@@ -35,16 +35,16 @@ function fetch_application(PDO $pdo, int $id): ?array
 function fetch_prices(PDO $pdo, int $applicationId): array
 {
     $stmt = $pdo->prepare(
-        'SELECT vap.item_key, i.label, i.unit, vap.price
+        'SELECT vap.item_key, i.label, i.equipment_group, i.item_type, i.unit, vap.price
          FROM vendor_application_prices vap
          JOIN items i ON i.item_key = vap.item_key
          WHERE vap.application_id = ?
-         ORDER BY i.label'
+         ORDER BY COALESCE(i.equipment_group, i.label), i.label'
     );
     $stmt->execute([$applicationId]);
-    return array_map(fn($r) => [
+    return array_map(fn ($r) => [
         'item_key' => $r['item_key'],
-        'label' => $r['label'],
+        'label' => equipment_item_display_label($r),
         'unit' => $r['unit'],
         'price' => (float) $r['price'],
     ], $stmt->fetchAll());
@@ -131,16 +131,28 @@ function format_vendor_contact_summary(?string $phones, ?string $emails): ?strin
 
 if ($method === 'GET') {
     if (isset($_GET['quotable'])) {
-        $rows = $pdo->query(
-            "SELECT item_key, label, unit, item_type FROM items
-             WHERE active = 1
-             AND (item_type = 'consumable'
-                  OR (item_type = 'equipment' AND (assigned_department IS NULL OR TRIM(assigned_department) = '')))
-             ORDER BY item_type, label"
-        )->fetchAll();
-        echo json_encode(array_map(fn($r) => [
+        if (items_have_equipment_group($pdo)) {
+            $rows = $pdo->query(
+                "SELECT item_key, label, equipment_group, unit, item_type FROM items
+                 WHERE active = 1
+                 AND (item_type = 'consumable'
+                      OR (item_type = 'equipment' AND (assigned_department IS NULL OR TRIM(assigned_department) = '')))
+                 ORDER BY item_type, equipment_group, label"
+            )->fetchAll();
+        } else {
+            $rows = $pdo->query(
+                "SELECT item_key, label, unit, item_type FROM items
+                 WHERE active = 1
+                 AND (item_type = 'consumable'
+                      OR (item_type = 'equipment' AND (assigned_department IS NULL OR TRIM(assigned_department) = '')))
+                 ORDER BY item_type, label"
+            )->fetchAll();
+        }
+        echo json_encode(array_map(fn ($r) => [
             'item_key' => $r['item_key'],
             'label' => $r['label'],
+            'equipment_group' => $r['equipment_group'] ?? null,
+            'display_label' => equipment_item_display_label($r),
             'unit' => $r['unit'],
             'item_type' => $r['item_type'],
         ], $rows));

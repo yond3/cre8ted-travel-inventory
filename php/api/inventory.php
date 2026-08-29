@@ -73,6 +73,9 @@ function format_item(PDO $pdo, array $row): array
     return [
         'item_key' => $row['item_key'],
         'label' => $row['label'],
+        'equipment_group' => ($row['item_type'] ?? '') === 'equipment'
+            ? ($row['equipment_group'] ?? null) : null,
+        'display_label' => equipment_item_display_label($row),
         'unit' => $row['unit'],
         'item_type' => $row['item_type'],
         'location_id' => $row['location_id'] !== null ? (int) $row['location_id'] : null,
@@ -128,8 +131,36 @@ function normalize_item_label(string $label): string
     return $slug;
 }
 
-function find_similar_items(PDO $pdo, string $label, ?string $excludeItemKey = null): array
+function find_similar_items(PDO $pdo, string $label, ?string $excludeItemKey = null, ?string $equipmentGroup = null): array
 {
+    if ($equipmentGroup !== null && trim($equipmentGroup) !== '') {
+        $normVariant = normalize_item_label($label);
+        if ($normVariant === '') {
+            return [];
+        }
+        $normGroup = normalize_item_label($equipmentGroup);
+        $stmt = $pdo->query(
+            'SELECT item_key, label, equipment_group, active, item_type, assigned_department, location_id
+             FROM items WHERE active = 1 AND item_type = \'equipment\''
+        );
+        $matches = [];
+        foreach ($stmt->fetchAll() as $row) {
+            if ($excludeItemKey !== null && $row['item_key'] === $excludeItemKey) {
+                continue;
+            }
+            if (!empty($row['assigned_department'])) {
+                continue;
+            }
+            if (normalize_item_label((string) ($row['equipment_group'] ?? '')) !== $normGroup) {
+                continue;
+            }
+            if (normalize_item_label((string) $row['label']) === $normVariant) {
+                $matches[] = $row;
+            }
+        }
+        return $matches;
+    }
+
     $norm = normalize_item_label($label);
     if (strlen($norm) < 3) {
         return [];
@@ -196,7 +227,11 @@ if ($method === 'GET') {
     if (!$includeInactive) {
         $sql .= ' AND i.active = 1';
     }
-    $sql .= ' ORDER BY i.label';
+    if (items_have_equipment_group($pdo)) {
+        $sql .= ' ORDER BY i.item_type, COALESCE(i.equipment_group, i.label), i.label';
+    } else {
+        $sql .= ' ORDER BY i.label';
+    }
     $rows = $pdo->query($sql)->fetchAll();
     echo json_encode(array_map(fn ($row) => format_item($pdo, $row), $rows));
     exit;
@@ -209,25 +244,46 @@ if ($method === 'POST') {
     $unit = trim($body['unit'] ?? '');
     $itemType = $body['item_type'] ?? 'consumable';
     $current = (float) ($body['current_qty'] ?? 0);
+    $equipmentGroup = trim($body['equipment_group'] ?? '');
 
-    if ($label === '' || $unit === '') {
-        json_error('label and unit are required');
+    if ($unit === '') {
+        json_error('unit is required');
+    }
+    if ($itemType === 'equipment') {
+        if ($equipmentGroup === '' || $label === '') {
+            json_error('equipment_group and variant name are required for equipment');
+        }
+    } elseif ($label === '') {
+        json_error('label is required');
     }
     if (!in_array($itemType, ['consumable', 'equipment'], true)) {
         json_error("item_type must be 'consumable' or 'equipment'");
     }
 
-    $similar = find_similar_items($pdo, $label);
+    $similar = find_similar_items(
+        $pdo,
+        $label,
+        null,
+        $itemType === 'equipment' ? $equipmentGroup : null
+    );
     $placement = normalize_equipment_placement($itemType, $body);
     if (similar_blocks_new_item($similar, $itemType, $placement)) {
+        if ($itemType === 'equipment') {
+            $names = implode(', ', array_map(
+                fn ($r) => equipment_item_display_label($r),
+                $similar
+            ));
+            json_error("this variant already exists under $equipmentGroup: $names — edit that row instead", 409);
+        }
         $names = implode(', ', array_map(fn ($r) => $r['label'], $similar));
-        json_error("similar equipment already exists: $names — edit that item and add storage qty instead", 409);
+        json_error("similar item already exists: $names — edit that item and add storage qty instead", 409);
     }
 
     $minQty = $itemType === 'consumable' && isset($body['min_qty']) ? (float) $body['min_qty'] : null;
     $maxQty = $itemType === 'consumable' && isset($body['max_qty']) ? (float) $body['max_qty'] : null;
 
-    $itemKey = slugify($label);
+    $slugSource = $itemType === 'equipment' ? "$equipmentGroup $label" : $label;
+    $itemKey = slugify($slugSource);
     $base = $itemKey;
     $suffix = 2;
     while (fetch_item_row($pdo, $itemKey) !== null) {
@@ -236,12 +292,13 @@ if ($method === 'POST') {
     }
 
     $stmt = $pdo->prepare(
-        'INSERT INTO items (item_key, label, unit, item_type, location_id, assigned_department, current_qty, min_qty, max_qty, active)
-         VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, 1)'
+        'INSERT INTO items (item_key, label, equipment_group, unit, item_type, location_id, assigned_department, current_qty, min_qty, max_qty, active)
+         VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, 1)'
     );
     $stmt->execute([
         $itemKey,
         $label,
+        $itemType === 'equipment' ? $equipmentGroup : null,
         $unit,
         $itemType,
         $placement['location_id'],
@@ -272,14 +329,32 @@ if ($method === 'PUT') {
         require_manager_or_above();
     }
     $itemType = $body['item_type'] ?? $existing['item_type'];
+    $equipmentGroup = array_key_exists('equipment_group', $body)
+        ? trim((string) $body['equipment_group'])
+        : (string) ($existing['equipment_group'] ?? '');
 
-    if (array_key_exists('label', $body)) {
-        $newLabel = trim($body['label']);
-        if ($newLabel !== '' && normalize_item_label($newLabel) !== normalize_item_label($existing['label'])) {
-            $similar = find_similar_items($pdo, $newLabel, $itemKey);
+    if (array_key_exists('label', $body) || array_key_exists('equipment_group', $body)) {
+        $newLabel = trim((string) ($body['label'] ?? $existing['label']));
+        $newGroup = $itemType === 'equipment' ? $equipmentGroup : '';
+        if ($itemType === 'equipment' && ($newGroup === '' || $newLabel === '')) {
+            json_error('equipment_group and variant name are required for equipment');
+        }
+        $labelChanged = normalize_item_label($newLabel) !== normalize_item_label((string) $existing['label']);
+        $groupChanged = $itemType === 'equipment'
+            && normalize_item_label($newGroup) !== normalize_item_label((string) ($existing['equipment_group'] ?? ''));
+        if ($labelChanged || $groupChanged) {
+            $similar = find_similar_items(
+                $pdo,
+                $newLabel,
+                $itemKey,
+                $itemType === 'equipment' ? $newGroup : null
+            );
             if ($similar) {
-                $names = implode(', ', array_map(fn ($r) => $r['label'], $similar));
-                json_error("similar equipment already exists: $names — use a distinct name or edit the existing item", 409);
+                $names = implode(', ', array_map(
+                    fn ($r) => $itemType === 'equipment' ? equipment_item_display_label($r) : $r['label'],
+                    $similar
+                ));
+                json_error("similar item already exists: $names — use a distinct group/variant or edit the existing item", 409);
             }
         }
     }
@@ -291,6 +366,12 @@ if ($method === 'PUT') {
             $fields[] = "$field = ?";
             $values[] = $body[$field];
         }
+    }
+    if ($itemType === 'equipment' && array_key_exists('equipment_group', $body)) {
+        $fields[] = 'equipment_group = ?';
+        $values[] = $equipmentGroup !== '' ? $equipmentGroup : null;
+    } elseif ($itemType !== 'equipment') {
+        $fields[] = 'equipment_group = NULL';
     }
 
     if ($itemType === 'equipment' && array_key_exists('location_id', $body)) {

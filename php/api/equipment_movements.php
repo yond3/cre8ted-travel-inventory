@@ -20,7 +20,7 @@ function format_equipment_movement(array $row): array
         'id' => (int) $row['id'],
         'movement_code' => $row['movement_code'],
         'item_key' => $row['item_key'],
-        'item_label' => $row['label'],
+        'item_label' => equipment_item_display_label($row),
         'unit' => $row['unit'],
         'qty' => (float) $row['qty'],
         'movement_type' => $row['movement_type'],
@@ -40,10 +40,14 @@ function format_equipment_movement(array $row): array
     ];
 }
 
-const MOVEMENT_SELECT = 'SELECT em.*, i.label, i.unit, l.name AS location_name
+function equipment_movement_select(PDO $pdo): string
+{
+    $extra = items_have_equipment_group($pdo) ? 'i.equipment_group, i.item_type,' : 'i.item_type,';
+    return 'SELECT em.*, i.label, ' . $extra . ' i.unit, l.name AS location_name
     FROM equipment_movements em
     JOIN items i ON i.item_key = em.item_key
     LEFT JOIN locations l ON l.id = em.location_id';
+}
 
 $where = [];
 $params = [];
@@ -56,7 +60,7 @@ if (!empty($_GET['department'])) {
     $params[] = $_GET['department'];
 }
 
-$sql = MOVEMENT_SELECT;
+$sql = equipment_movement_select($pdo);
 if ($where) {
     $sql .= ' WHERE ' . implode(' AND ', $where);
 }

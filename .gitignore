@@ -1,3 +1,6 @@
+# Node (local tooling e.g. puppeteer for BPMN PNG export)
+node_modules/
+
 # Python
 venv/
 __pycache__/
@@ -20,6 +23,10 @@ Thumbs.db
 .idea/
 .vscode/
 .cursor/
+
+# Local project documentation (report / thesis — not part of the app repo)
+docs/
+scripts/
 
 # Uploaded files (keep folder only)
 php/uploads/receipts/*

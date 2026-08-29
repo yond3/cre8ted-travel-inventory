@@ -395,6 +395,34 @@ function slugify(string $label): string
     return $slug !== '' ? $slug : 'item' . time();
 }
 
+/** Variant label for equipment; plain label for consumables. */
+function equipment_item_display_label(array $row): string
+{
+    if (($row['item_type'] ?? '') !== 'equipment') {
+        return (string) ($row['label'] ?? '');
+    }
+    $group = trim((string) ($row['equipment_group'] ?? ''));
+    $variant = trim((string) ($row['label'] ?? ''));
+    if ($group === '') {
+        return $variant;
+    }
+    if ($variant === '' || strcasecmp($variant, 'Standard') === 0) {
+        return $group;
+    }
+    return "$group — $variant";
+}
+
+function items_have_equipment_group(PDO $pdo): bool
+{
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+    $stmt = $pdo->query("SHOW COLUMNS FROM items LIKE 'equipment_group'");
+    $cached = (bool) $stmt->fetch();
+    return $cached;
+}
+
 /**
  * Department deployment counts for one equipment catalog item.
  *

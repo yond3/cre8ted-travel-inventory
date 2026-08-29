@@ -112,6 +112,10 @@
 <script>
 const API = 'api/';
 
+function escapeHtml(text){
+  return String(text ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 async function loadQuotableItems(){
   const res = await fetch(API + 'vendor_applications.php?quotable=1');
   if(!res.ok) throw new Error('Could not load items');
@@ -126,14 +130,12 @@ function renderItemRows(items){
   }
   const consumables = items.filter(it => it.item_type !== 'equipment');
   const equipment = items.filter(it => it.item_type === 'equipment');
-  const renderGroup = (title, group) => group.length ? `
-    <div class="text-[.72rem] font-semibold uppercase tracking-wide text-textSoft pt-1">${title}</div>
-    ${group.map(it => `
+  const renderPriceRow = it => `
     <div class="flex items-center gap-3 p-3 rounded-xl border border-line bg-[#f8fafc] quote-row" data-key="${it.item_key}">
       <input type="checkbox" class="quote-check shrink-0" data-key="${it.item_key}">
       <div class="flex-1 min-w-0">
-        <div class="font-semibold text-[.85rem] text-textDark truncate">${it.label}</div>
-        <div class="text-[.72rem] text-textSoft">per ${it.unit}</div>
+        <div class="font-semibold text-[.85rem] text-textDark truncate">${escapeHtml(it.display_label || it.label)}</div>
+        <div class="text-[.72rem] text-textSoft">per ${escapeHtml(it.unit)}</div>
       </div>
       <div class="flex items-center gap-1 shrink-0">
         <span class="text-[.8rem] text-textMid">₱</span>
@@ -141,8 +143,41 @@ function renderItemRows(items){
           class="quote-price w-24 px-2 py-1.5 rounded-lg border border-line bg-white text-[.85rem] text-right"
           data-key="${it.item_key}" placeholder="0">
       </div>
-    </div>`).join('')}` : '';
-  list.innerHTML = renderGroup('Office supplies', consumables) + renderGroup('Equipment', equipment);
+    </div>`;
+  const renderConsumableGroup = (title, group) => group.length ? `
+    <div class="text-[.72rem] font-semibold uppercase tracking-wide text-textSoft pt-1">${title}</div>
+    ${group.map(renderPriceRow).join('')}` : '';
+  const equipmentGroups = new Map();
+  equipment.forEach(it => {
+    const g = (it.equipment_group || it.label || 'Equipment').trim();
+    if(!equipmentGroups.has(g)) equipmentGroups.set(g, []);
+    equipmentGroups.get(g).push(it);
+  });
+  let equipmentHtml = '';
+  if(equipmentGroups.size){
+    equipmentHtml += '<div class="text-[.72rem] font-semibold uppercase tracking-wide text-textSoft pt-1">Equipment</div>';
+    [...equipmentGroups.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([groupName, variants]) => {
+      equipmentHtml += `<div class="text-[.75rem] font-semibold text-textDark mt-2 mb-1">${escapeHtml(groupName)}</div>`;
+      variants.sort((a, b) => (a.label || '').localeCompare(b.label || '')).forEach(it => {
+        const variantTitle = it.label && it.label !== 'Standard' ? it.label : 'Standard variant';
+        equipmentHtml += `
+    <div class="flex items-center gap-3 p-3 rounded-xl border border-line bg-[#f8fafc] quote-row ml-2" data-key="${it.item_key}">
+      <input type="checkbox" class="quote-check shrink-0" data-key="${it.item_key}">
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-[.85rem] text-textDark truncate">${escapeHtml(variantTitle)}</div>
+        <div class="text-[.72rem] text-textSoft">per ${escapeHtml(it.unit)}</div>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <span class="text-[.8rem] text-textMid">₱</span>
+        <input type="number" min="0" step="0.01" disabled
+          class="quote-price w-24 px-2 py-1.5 rounded-lg border border-line bg-white text-[.85rem] text-right"
+          data-key="${it.item_key}" placeholder="0">
+      </div>
+    </div>`;
+      });
+    });
+  }
+  list.innerHTML = renderConsumableGroup('Office supplies', consumables) + equipmentHtml;
 
   list.querySelectorAll('.quote-check').forEach(cb => {
     cb.addEventListener('change', function(){

@@ -16,16 +16,17 @@ $method = $_SERVER['REQUEST_METHOD'];
 function format_supplier(PDO $pdo, array $row): array
 {
     $stmt = $pdo->prepare(
-        'SELECT sp.item_key, i.label, sp.price, sp.last_purchase_date
+        'SELECT sp.item_key, i.label, i.equipment_group, i.item_type, i.unit, sp.price, sp.last_purchase_date
          FROM supplier_prices sp
          JOIN items i ON i.item_key = sp.item_key
          WHERE sp.supplier_id = ?
-         ORDER BY i.label'
+         ORDER BY COALESCE(i.equipment_group, i.label), i.label'
     );
     $stmt->execute([$row['id']]);
-    $prices = array_map(fn($p) => [
+    $prices = array_map(fn ($p) => [
         'item_key' => $p['item_key'],
-        'label' => $p['label'],
+        'label' => equipment_item_display_label($p),
+        'unit' => $p['unit'],
         'price' => (float) $p['price'],
         'last_purchase_date' => $p['last_purchase_date'],
     ], $stmt->fetchAll());

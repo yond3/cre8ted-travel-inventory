@@ -36,6 +36,7 @@ CREATE TABLE locations (
 CREATE TABLE items (
     item_key VARCHAR(50) PRIMARY KEY,
     label VARCHAR(100) NOT NULL,
+    equipment_group VARCHAR(100) NULL,
     unit VARCHAR(20) NOT NULL,
     item_type ENUM('consumable','equipment') NOT NULL DEFAULT 'consumable',
     location_id INT NULL,
@@ -328,16 +329,16 @@ INSERT INTO locations (name, location_type, description) VALUES
 ('Admin desk', 'in_use', 'Equipment at the admin work area'),
 ('Meeting room', 'in_use', 'Equipment used during meetings');
 
-INSERT INTO items (item_key, label, unit, item_type, location_id, current_qty, min_qty, max_qty) VALUES
-('bondpaper', 'Bond paper (A4)', 'reams', 'consumable', 2, 3, 4, 15),
-('printerink', 'Printer ink (black)', 'units', 'consumable', 1, 2, 3, 10),
-('ballpointpens', 'Ballpoint pens', 'pcs', 'consumable', 5, 25, 10, 50),
-('businesscards', 'Business cards', 'pcs', 'consumable', 4, 100, 50, 200),
-('cleaningsupplies', 'Cleaning supplies', 'sets', 'consumable', 6, 2, 3, 10),
-('envelopes', 'Envelopes (long)', 'pcs', 'consumable', 3, 3, 5, 20),
-('receiptbooks', 'Receipt books', 'pcs', 'consumable', 3, 8, 2, 10),
-('printer', 'Printer (HP LaserJet)', 'unit', 'equipment', 7, 1, NULL, NULL),
-('extensioncord', 'Extension cord', 'unit', 'equipment', 7, 2, NULL, NULL);
+INSERT INTO items (item_key, label, equipment_group, unit, item_type, location_id, current_qty, min_qty, max_qty) VALUES
+('bondpaper', 'Bond paper (A4)', NULL, 'reams', 'consumable', 2, 3, 4, 15),
+('printerink', 'Printer ink (black)', NULL, 'units', 'consumable', 1, 2, 3, 10),
+('ballpointpens', 'Ballpoint pens', NULL, 'pcs', 'consumable', 5, 25, 10, 50),
+('businesscards', 'Business cards', NULL, 'pcs', 'consumable', 4, 100, 50, 200),
+('cleaningsupplies', 'Cleaning supplies', NULL, 'sets', 'consumable', 6, 2, 3, 10),
+('envelopes', 'Envelopes (long)', NULL, 'pcs', 'consumable', 3, 3, 5, 20),
+('receiptbooks', 'Receipt books', NULL, 'pcs', 'consumable', 3, 8, 2, 10),
+('printer', 'HP LaserJet', 'Printer', 'unit', 'equipment', 7, 1, NULL, NULL),
+('extensioncord', 'Standard', 'Extension cord', 'unit', 'equipment', 7, 2, NULL, NULL);
 
 INSERT INTO usage_log (item_key, month, usage_qty) VALUES
 ('bondpaper', '2024-07-01', 4),

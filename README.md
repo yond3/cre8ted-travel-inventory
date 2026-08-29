@@ -77,6 +77,7 @@ Get-Content ".\sql\migration_items_assigned_department.sql" | mysql -u root wayf
 Get-Content ".\sql\migration_inventory_retirements.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_vendor_contact_details.sql" | mysql -u root wayfarer_inventory
 Get-Content ".\sql\migration_login_attempts.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_equipment_groups.sql" | mysql -u root wayfarer_inventory
 ```
 
 If a migration fails with “duplicate column” or “table already exists”, that file was already applied — skip it and continue.

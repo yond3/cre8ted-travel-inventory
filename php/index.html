@@ -125,6 +125,21 @@
   .equip-qty-summary{ display:flex; flex-direction:column; gap:.15rem; min-width:5.5rem; }
   .equip-qty-total{ font-weight:600; color:#0f2242; white-space:nowrap; }
   .equip-qty-split{ font-size:.72rem; color:#5b6b85; white-space:nowrap; }
+  .equip-group-row{ background:#fafbfd; cursor:pointer; }
+  .equip-group-row:hover{ background:#f3f6fb; }
+  .equip-group-row td{ font-weight:600; }
+  .equip-variant-row td:first-child{ padding-left:2rem; }
+  .equip-group-toggle{
+    display:inline-flex; align-items:center; justify-content:center; width:1.35rem; height:1.35rem;
+    margin-right:.35rem; border-radius:6px; background:#eef2f7; color:#5b6b85; font-size:.85rem;
+    vertical-align:middle; flex-shrink:0;
+  }
+  .equip-variant-indent{
+    display:inline-flex; align-items:center; gap:.35rem; padding-left:.15rem;
+    border-left:2px solid #dbe4f0; margin-left:.15rem;
+  }
+  .equip-variant-label{ font-weight:600; color:#0f2242; }
+  .equip-group-meta{ font-size:.72rem; color:#5b6b85; font-weight:500; margin-left:.35rem; }
   .gl-table td.placement-cell{ min-width:14rem; max-width:24rem; vertical-align:top; }
   .gl-table td.qty-cell{ white-space:nowrap; vertical-align:top; }
   .cell-stack{ display:flex; flex-direction:column; gap:.2rem; min-width:0; }
@@ -158,6 +173,7 @@
   .cell-qty-unit{ font-weight:500; color:#5b6b85; font-size:.78rem; }
   .cell-money{ font-weight:600; color:#0f2242; white-space:nowrap; }
   .cell-person-date{ font-size:.78rem; color:#0f2242; line-height:1.35; white-space:nowrap; }
+  .cell-person-time{ font-size:.72rem; color:#5b6b85; line-height:1.35; white-space:nowrap; }
   .cell-person-who{ font-size:.72rem; color:#5b6b85; line-height:1.35; }
   .cell-hint{
     display:inline-flex; align-items:center; padding:.2rem .55rem; border-radius:999px;
@@ -166,11 +182,55 @@
   }
   .cell-hint-warn{ background:#fff7ed; color:#c2410c; }
   .cell-hint-info{ background:#eef4ff; color:#1e3a6e; }
-  .cell-action-stack{ display:flex; flex-direction:column; align-items:flex-start; gap:.35rem; min-width:8rem; }
+  .cell-action-stack{
+    display:flex; flex-direction:column; align-items:flex-start; gap:.35rem;
+  }
+  .cell-action-stack button,
+  .cell-action-stack .cell-hint{ white-space:nowrap; }
+  .po-table-wrap{ width:100%; overflow:hidden; }
+  .po-table{
+    table-layout:auto;
+    width:max-content;
+    max-width:100%;
+    border-collapse:collapse;
+  }
+  .po-table th:not(.supplier-cell),
+  .po-table td:not(.supplier-cell){
+    width:1%;
+    white-space:nowrap;
+  }
+  .po-table.gl-table td.received-cell{ min-width:0; white-space:normal; }
+  .po-table th.supplier-cell,
+  .po-table td.supplier-cell{
+    width:auto;
+    max-width:11rem;
+    white-space:normal;
+    word-break:break-word;
+    overflow-wrap:anywhere;
+    line-height:1.35;
+  }
+  .po-table th,
+  .po-table td{
+    vertical-align:top;
+    padding:.55rem .5rem .55rem 0;
+  }
+  .po-table th.action-cell,
+  .po-table td.action-cell{
+    padding-right:.25rem;
+  }
+  .po-table .cell-action-stack,
+  .po-table td.receipt-cell .cell-stack{
+    align-items:flex-start;
+    gap:.3rem;
+  }
+  .po-table .cell-action-stack button,
+  .po-table td.receipt-cell button{
+    width:auto;
+    white-space:nowrap;
+  }
   .cell-summary-line{ font-size:.82rem; color:#0f2242; line-height:1.4; }
   .cell-summary-sub{ font-size:.72rem; color:#5b6b85; line-height:1.35; margin-top:.15rem; }
   .gl-table td{ vertical-align:top; }
-  .gl-table td.action-cell{ min-width:10rem; }
   .gl-table th.date-cell,
   .gl-table th.code-cell,
   .gl-table th.received-cell{ white-space:nowrap; width:1%; }
@@ -194,8 +254,32 @@
   .btn-cream:hover{ background:#FFF7E8; filter:brightness(.98); }
   .row-hidden{ display:none !important; }
   .table-search-wrap{
-    position:relative; display:flex; align-items:center; max-width:420px;
+    position:relative; display:flex; align-items:center; flex:1 1 220px; max-width:420px;
   }
+  .table-toolbar{
+    display:flex; flex-wrap:wrap; align-items:center; gap:.75rem 1rem; margin-bottom:1rem;
+  }
+  .table-date-range{
+    display:flex; flex-wrap:wrap; align-items:center; gap:.5rem .75rem;
+  }
+  .table-date-range.hidden{ display:none; }
+  .table-date-label{
+    display:flex; align-items:center; gap:.4rem;
+    font-size:.78rem; font-weight:600; color:#5b6b85;
+  }
+  .table-date-input{
+    padding:.45rem .55rem; border-radius:10px; border:1px solid #e7ecf3;
+    background:#f8fafc; font-size:.82rem; color:#0f2242;
+  }
+  .table-date-input:focus{
+    outline:none; border-color:#173868; background:#fff; box-shadow:0 0 0 3px rgba(23,56,104,.08);
+  }
+  .table-date-clear{
+    padding:.45rem .75rem; border-radius:10px; border:1px solid #e7ecf3;
+    background:#fff; font-size:.78rem; font-weight:600; color:#5b6b85; cursor:pointer;
+  }
+  .table-date-clear:hover{ background:#eef2f7; }
+  .table-date-clear.hidden{ display:none; }
   .table-search-wrap .table-search-icon{
     position:absolute; left:.85rem; color:#94a3bb; font-size:1.1rem; pointer-events:none;
   }
@@ -429,9 +513,6 @@
     <button onclick="openItemModal()" id="inventoryAddItemBtn" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
       <i class='bx bx-plus text-[1.1rem]'></i> Add item
     </button>
-    <button onclick="openVoucherModal()" id="inventoryAddVoucherBtn" class="hidden items-center gap-2 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
-      <i class='bx bx-plus text-[1.1rem]'></i> Add voucher
-    </button>
   </div>
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
@@ -440,7 +521,6 @@
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Low stock" data-slug="low-stock">Low stock</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="In stock" data-slug="in-stock">In stock</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="equipment" data-slug="equipment">Equipment</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="vouchers" data-slug="vouchers">Vouchers</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="stock-requests" data-slug="stock-requests">Stock requests</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="issues" data-slug="issue-log">Issue log</button>
       <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="equipment-history" data-slug="equipment-history">Equipment history</button>
@@ -449,10 +529,17 @@
         Show inactive
       </label>
     </div>
-    <div class="table-search-wrap mb-4">
-      <i class='bx bx-search table-search-icon'></i>
-      <input type="search" id="inventoryTableSearch" class="table-search-input" placeholder="Search item, type, storage location…" autocomplete="off" aria-label="Search inventory table">
-      <button type="button" class="table-search-clear hidden" id="inventoryTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+    <div class="table-toolbar">
+      <div class="table-search-wrap">
+        <i class='bx bx-search table-search-icon'></i>
+        <input type="search" id="inventoryTableSearch" class="table-search-input" placeholder="Search item, type, storage location…" autocomplete="off" aria-label="Search inventory table">
+        <button type="button" class="table-search-clear hidden" id="inventoryTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+      </div>
+      <div class="table-date-range hidden" id="inventoryTableDateRange">
+        <label class="table-date-label"><span>From</span><input type="date" id="inventoryTableDateFrom" class="table-date-input" aria-label="Filter from date"></label>
+        <label class="table-date-label"><span>To</span><input type="date" id="inventoryTableDateTo" class="table-date-input" aria-label="Filter to date"></label>
+        <button type="button" class="table-date-clear hidden" id="inventoryTableDateClear" aria-label="Clear date filter">Clear dates</button>
+      </div>
     </div>
     <div class="overflow-x-auto" id="inventoryTableWrap">
       <table class="gl-table w-full text-[.85rem] border-collapse">
@@ -470,24 +557,6 @@
         </thead>
         <tbody id="inventoryTableBody"></tbody>
       </table>
-    </div>
-    <div class="hidden" id="voucherPanel">
-      <p class="text-[.78rem] text-textMid mb-4">Tour discount vouchers are tracked like stock. Redeem one when used or add stock when more vouchers become available.</p>
-      <div class="overflow-x-auto">
-        <table class="gl-table w-full text-[.85rem] border-collapse">
-          <thead>
-            <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
-              <th class="py-3 pr-3 font-semibold">Voucher</th>
-              <th class="py-3 pr-3 font-semibold">Tour / package</th>
-              <th class="py-3 pr-3 font-semibold">Left</th>
-              <th class="py-3 pr-3 font-semibold">Last added</th>
-              <th class="py-3 pr-3 font-semibold">Notes</th>
-              <th class="py-3 pr-3 font-semibold">Action</th>
-            </tr>
-          </thead>
-          <tbody id="voucherTableBody"></tbody>
-        </table>
-      </div>
     </div>
     <div class="hidden" id="stockRequestsPanel">
       <p class="text-[.78rem] text-textMid mb-4">Departments request items here before inventory staff issue them from storage. Fulfill creates an issue log entry and reduces stock on hand.</p>
@@ -568,10 +637,17 @@
   </div>
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
-    <div class="table-search-wrap mb-4">
-      <i class='bx bx-search table-search-icon'></i>
-      <input type="search" id="requestsTableSearch" class="table-search-input" placeholder="Search PR ID, employee, item, department…" autocomplete="off" aria-label="Search purchase requests">
-      <button type="button" class="table-search-clear hidden" id="requestsTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+    <div class="table-toolbar">
+      <div class="table-search-wrap">
+        <i class='bx bx-search table-search-icon'></i>
+        <input type="search" id="requestsTableSearch" class="table-search-input" placeholder="Search PR ID, employee, item, department…" autocomplete="off" aria-label="Search purchase requests">
+        <button type="button" class="table-search-clear hidden" id="requestsTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+      </div>
+      <div class="table-date-range">
+        <label class="table-date-label"><span>From</span><input type="date" id="requestsTableDateFrom" class="table-date-input" aria-label="Filter from date"></label>
+        <label class="table-date-label"><span>To</span><input type="date" id="requestsTableDateTo" class="table-date-input" aria-label="Filter to date"></label>
+        <button type="button" class="table-date-clear hidden" id="requestsTableDateClear" aria-label="Clear date filter">Clear dates</button>
+      </div>
     </div>
     <div class="overflow-x-auto">
       <table class="gl-table w-full text-[.85rem] border-collapse">
@@ -611,18 +687,25 @@
   </div>
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
-    <div class="table-search-wrap mb-4">
-      <i class='bx bx-search table-search-icon'></i>
-      <input type="search" id="ordersTableSearch" class="table-search-input" placeholder="Search PO ID, linked PR, supplier…" autocomplete="off" aria-label="Search purchase orders">
-      <button type="button" class="table-search-clear hidden" id="ordersTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+    <div class="table-toolbar">
+      <div class="table-search-wrap">
+        <i class='bx bx-search table-search-icon'></i>
+        <input type="search" id="ordersTableSearch" class="table-search-input" placeholder="Search PO ID, linked PR, supplier…" autocomplete="off" aria-label="Search purchase orders">
+        <button type="button" class="table-search-clear hidden" id="ordersTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+      </div>
+      <div class="table-date-range">
+        <label class="table-date-label"><span>From</span><input type="date" id="ordersTableDateFrom" class="table-date-input" aria-label="Filter order date from"></label>
+        <label class="table-date-label"><span>To</span><input type="date" id="ordersTableDateTo" class="table-date-input" aria-label="Filter order date to"></label>
+        <button type="button" class="table-date-clear hidden" id="ordersTableDateClear" aria-label="Clear date filter">Clear dates</button>
+      </div>
     </div>
-    <div class="overflow-x-auto">
-      <table class="gl-table w-full text-[.85rem] border-collapse">
+    <div class="po-table-wrap">
+      <table class="gl-table po-table text-[.85rem] border-collapse">
         <thead>
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
             <th class="py-3 pr-3 font-semibold code-cell">PO ID</th>
             <th class="py-3 pr-3 font-semibold code-cell">Linked request</th>
-            <th class="py-3 pr-3 font-semibold">Supplier</th>
+            <th class="py-3 pr-3 font-semibold supplier-cell">Supplier</th>
             <th class="py-3 pr-3 font-semibold">Method</th>
             <th class="py-3 pr-3 font-semibold">Amount</th>
             <th class="py-3 pr-3 font-semibold">Finance</th>
@@ -630,7 +713,7 @@
             <th class="py-3 pr-3 font-semibold date-cell">Order date</th>
             <th class="py-3 pr-3 font-semibold received-cell">Received</th>
             <th class="py-3 pr-3 font-semibold">Status</th>
-            <th class="py-3 pr-3 font-semibold">Action</th>
+            <th class="py-3 pr-3 font-semibold action-cell">Action</th>
           </tr>
         </thead>
         <tbody id="ordersTableBody"></tbody>
@@ -736,10 +819,17 @@
       <button type="button" class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-doc-filter="po">Purchase orders</button>
       <button type="button" class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-doc-filter="vendor">Vendor quotations</button>
     </div>
-    <div class="table-search-wrap mb-4">
-      <i class='bx bx-search table-search-icon'></i>
-      <input type="search" id="documentsTableSearch" class="table-search-input" placeholder="Search doc ID, PR ID, status…" autocomplete="off" aria-label="Search documents">
-      <button type="button" class="table-search-clear hidden" id="documentsTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+    <div class="table-toolbar">
+      <div class="table-search-wrap">
+        <i class='bx bx-search table-search-icon'></i>
+        <input type="search" id="documentsTableSearch" class="table-search-input" placeholder="Search doc ID, PR ID, status…" autocomplete="off" aria-label="Search documents">
+        <button type="button" class="table-search-clear hidden" id="documentsTableSearchClear" aria-label="Clear search"><i class='bx bx-x'></i></button>
+      </div>
+      <div class="table-date-range">
+        <label class="table-date-label"><span>From</span><input type="date" id="documentsTableDateFrom" class="table-date-input" aria-label="Filter from date"></label>
+        <label class="table-date-label"><span>To</span><input type="date" id="documentsTableDateTo" class="table-date-input" aria-label="Filter to date"></label>
+        <button type="button" class="table-date-clear hidden" id="documentsTableDateClear" aria-label="Clear date filter">Clear dates</button>
+      </div>
     </div>
     <div class="overflow-x-auto" id="documentsPrTableWrap">
       <table class="gl-table w-full text-[.85rem] border-collapse">
@@ -1047,11 +1137,25 @@
     </div>
     <form id="itemForm" class="flex flex-col gap-4">
       <input type="hidden" id="itmEditKey" value="">
-      <div>
+      <div id="itmConsumableNameWrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item name</label>
         <input id="itmName" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Whiteboard markers">
         <p id="itmNameSimilarHint" class="hidden text-[.72rem] text-amberTx mt-1"></p>
       </div>
+      <div id="itmEquipmentNamesWrap" class="hidden flex flex-col gap-4">
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Equipment type (group)</label>
+          <input id="itmEquipmentGroup" list="itmEquipmentGroupList" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Printer, Extension cord">
+          <p class="text-[.72rem] text-textSoft mt-1">The name shown on the expandable row — e.g. all printers share one group.</p>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-textMid block mb-1">Variant / spec</label>
+          <input id="itmVariant" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. HP LaserJet, 3 m, Standard">
+          <p id="itmVariantSimilarHint" class="hidden text-[.72rem] text-amberTx mt-1"></p>
+          <p class="text-[.72rem] text-textSoft mt-1">Model, cable length, or other detail. Use Standard until you know the spec.</p>
+        </div>
+      </div>
+      <datalist id="itmEquipmentGroupList"></datalist>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Unit</label>
         <input id="itmUnit" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. pcs, reams, units">
@@ -1106,55 +1210,6 @@
         </div>
       </div>
       <button type="submit" id="itemFormSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add item</button>
-    </form>
-  </div>
-</div>
-
-<!-- ===================== MODAL: ADD / EDIT TOUR VOUCHER ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2100]" id="voucherModalOverlay">
-  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="voucherModalTitle">Add tour voucher</h3>
-      <button onclick="closeModal('voucherModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
-    </div>
-    <form id="voucherForm" class="flex flex-col gap-4">
-      <input type="hidden" id="voucherEditId" value="">
-      <div>
-        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Voucher name</label>
-        <input id="voucherName" required maxlength="150" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. ₱500 off domestic tour">
-      </div>
-      <div>
-        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Tour / package (optional)</label>
-        <input id="voucherTour" maxlength="150" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Boracay 3D2N">
-      </div>
-      <div>
-        <label class="text-[.78rem] font-semibold text-textMid block mb-1" id="voucherQtyLabel">Starting quantity</label>
-        <input id="voucherQty" type="number" min="0" step="1" value="0" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
-      </div>
-      <div>
-        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Notes (optional)</label>
-        <input id="voucherNotes" maxlength="255" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Valid until Dec 2026">
-      </div>
-      <button type="submit" id="voucherFormSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add voucher</button>
-    </form>
-  </div>
-</div>
-
-<!-- ===================== MODAL: RESTOCK TOUR VOUCHER ===================== -->
-<div class="modal-overlay fixed inset-0 bg-black/45 z-[2200]" id="voucherRestockModalOverlay">
-  <div class="bg-card rounded-card shadow-modal w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-1">
-      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Add voucher stock</h3>
-      <button onclick="closeModal('voucherRestockModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
-    </div>
-    <p class="text-[.8rem] text-textMid mb-4" id="voucherRestockName">—</p>
-    <form id="voucherRestockForm" class="flex flex-col gap-4">
-      <input type="hidden" id="voucherRestockId" value="">
-      <div>
-        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Quantity to add</label>
-        <input id="voucherRestockQty" type="number" min="1" step="1" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
-      </div>
-      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add vouchers</button>
     </form>
   </div>
 </div>
@@ -1528,7 +1583,7 @@
     </dl>
     <div class="mb-5">
       <label class="text-[.78rem] font-semibold text-textMid block mb-1">Official note for Finance</label>
-      <p class="text-[.72rem] text-textSoft mb-2">Write what Financial Management should see. The staff explanation above is for your review only — edit or replace it here before approving.</p>
+      <p class="text-[.72rem] text-textSoft mb-2">Write what Financial Management should see. The staff explanation above is for your review only — do not assume it is forwarded; enter the official note here before approving.</p>
       <textarea id="reviewLostReceiptReportManagerNote" maxlength="500" rows="4" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem] resize-y" placeholder="e.g. Walk-in purchase at National Book Store, paid cash ₱184 on 27 Aug — OR lost by staff, verified with Juan."></textarea>
     </div>
     <div class="flex gap-2">
@@ -1663,7 +1718,7 @@ document.addEventListener('DOMContentLoaded', function(){
      load time and touches attention-badge state, so both must exist
      before that first call — otherwise it's a temporal-dead-zone error
      that silently aborts the rest of this script. */
-  const state = { user: null, locations: [], inventory: [], vouchers: [], stockIssues: [], inventoryRetirements: [], stockRequests: [], equipmentMovements: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], demandInsights: null, demandInsightsError: null, showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false };
+  const state = { user: null, locations: [], inventory: [], stockIssues: [], inventoryRetirements: [], stockRequests: [], equipmentMovements: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], demandInsights: null, demandInsightsError: null, showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false, equipmentGroupExpanded: {} };
   const attentionDismissed = { requests: null, orders: null, inventory: null, stockRequests: null, suppliers: null };
 
   const DEPARTMENTS = [
@@ -1736,11 +1791,13 @@ document.addEventListener('DOMContentLoaded', function(){
     const nextView = btn.dataset.view || 'items';
     document.querySelectorAll('#inventoryFilters .filter-pill').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    if(prevView !== nextView) clearTableSearch('inventoryTableSearch');
+    if(prevView !== nextView){
+      clearTableSearch('inventoryTableSearch');
+      clearTableDateRange('inventoryTable');
+    }
     updateInventorySearchPlaceholder(slug);
-    if(btn.dataset.view === 'vouchers'){
-      showVoucherPanel();
-    } else if(btn.dataset.view === 'issues'){
+    syncInventoryDateFilterVisibility();
+    if(btn.dataset.view === 'issues'){
       showIssuePanel();
     } else if(btn.dataset.view === 'equipment-history'){
       showEquipmentHistoryPanel();
@@ -1902,8 +1959,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     const activeView = document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view;
     setInventoryHeaderAction(
-      activeView === 'vouchers' ? 'vouchers'
-        : activeView === 'issues' ? 'issues'
+      activeView === 'issues' ? 'issues'
         : activeView === 'equipment-history' ? 'equipment-history'
         : activeView === 'stock-requests' ? 'stock-requests'
         : 'items'
@@ -1913,26 +1969,15 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function setInventoryHeaderAction(mode){
     const itemBtn = document.getElementById('inventoryAddItemBtn');
-    const voucherBtn = document.getElementById('inventoryAddVoucherBtn');
     const requestActions = document.getElementById('inventoryRequestActions');
     const managerUp = roleAtLeast('manager');
 
     itemBtn.classList.add('hidden');
     itemBtn.classList.remove('flex');
-    voucherBtn.classList.add('hidden');
-    voucherBtn.classList.remove('flex');
     requestActions.classList.add('hidden');
     requestActions.classList.remove('flex');
 
     if(mode === 'issues' || mode === 'equipment-history'){
-      return;
-    }
-
-    if(mode === 'vouchers'){
-      if(managerUp){
-        voucherBtn.classList.remove('hidden');
-        voucherBtn.classList.add('flex');
-      }
       return;
     }
 
@@ -2284,6 +2329,11 @@ document.addEventListener('DOMContentLoaded', function(){
     const d = new Date(mysqlDatetime.replace(' ', 'T'));
     return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
   }
+  function fmtTime(mysqlDatetime){
+    if(!mysqlDatetime) return '—';
+    const d = new Date(mysqlDatetime.replace(' ', 'T'));
+    return d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+  }
   function fmtDateTime(mysqlDatetime){
     if(!mysqlDatetime) return '—';
     const d = new Date(mysqlDatetime.replace(' ', 'T'));
@@ -2291,7 +2341,8 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   function poReceivedCell(o){
     if(o.status !== 'Received' || !o.received_at) return cellEmpty();
-    return cellPersonStamp(o.received_at, o.received_by);
+    const whoHtml = o.received_by ? escapeHtml(o.received_by) : '<span class="cell-empty">—</span>';
+    return `<div class="cell-stack"><div class="cell-person-date">${fmtDate(o.received_at)}</div><div class="cell-person-time">${fmtTime(o.received_at)}</div><div class="cell-person-who">${whoHtml}</div></div>`;
   }
   function issueIssuedCell(iss){
     if(!iss.created_at) return cellEmpty();
@@ -2463,8 +2514,78 @@ document.addEventListener('DOMContentLoaded', function(){
     return text.includes(query);
   }
 
-  function tableSearchEmptyMessage(colspan, query, defaultMessage){
-    return `<tr><td colspan="${colspan}" class="py-6 text-center text-textMid">${query ? 'No rows match your search.' : defaultMessage}</td></tr>`;
+  function tableSearchEmptyMessage(colspan, hasFilters, defaultMessage){
+    return `<tr><td colspan="${colspan}" class="py-6 text-center text-textMid">${hasFilters ? 'No rows match your filters.' : defaultMessage}</td></tr>`;
+  }
+
+  function tableDateRange(prefix){
+    return {
+      from: document.getElementById(prefix + 'DateFrom')?.value || '',
+      to: document.getElementById(prefix + 'DateTo')?.value || '',
+    };
+  }
+
+  function mysqlLocalDay(mysqlDatetime){
+    if(!mysqlDatetime) return null;
+    const d = new Date(mysqlDatetime.replace(' ', 'T'));
+    if(Number.isNaN(d.getTime())) return null;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function rowMatchesDateRange(mysqlDatetime, from, to){
+    if(!from && !to) return true;
+    const day = mysqlLocalDay(mysqlDatetime);
+    if(!day) return false;
+    if(from && day < from) return false;
+    if(to && day > to) return false;
+    return true;
+  }
+
+  function tableHasActiveFilters(query, datePrefix){
+    if(query) return true;
+    const range = tableDateRange(datePrefix);
+    return !!(range.from || range.to);
+  }
+
+  function syncTableDateClear(prefix){
+    const range = tableDateRange(prefix);
+    document.getElementById(prefix + 'DateClear')?.classList.toggle('hidden', !range.from && !range.to);
+  }
+
+  function clearTableDateRange(prefix){
+    const from = document.getElementById(prefix + 'DateFrom');
+    const to = document.getElementById(prefix + 'DateTo');
+    if(from) from.value = '';
+    if(to) to.value = '';
+    syncTableDateClear(prefix);
+  }
+
+  function wireTableDateRange(prefix, onFilter){
+    if(document.getElementById(prefix + 'DateFrom')?.dataset.wired) return;
+    ['DateFrom', 'DateTo'].forEach(suffix => {
+      const el = document.getElementById(prefix + suffix);
+      if(!el) return;
+      el.dataset.wired = '1';
+      el.addEventListener('change', () => {
+        syncTableDateClear(prefix);
+        onFilter();
+      });
+    });
+    const clearBtn = document.getElementById(prefix + 'DateClear');
+    if(clearBtn && !clearBtn.dataset.wired){
+      clearBtn.dataset.wired = '1';
+      clearBtn.addEventListener('click', () => {
+        clearTableDateRange(prefix);
+        onFilter();
+      });
+    }
+  }
+
+  const INVENTORY_DATED_VIEWS = new Set(['stock-requests', 'issues', 'equipment-history']);
+
+  function syncInventoryDateFilterVisibility(){
+    const view = document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view;
+    document.getElementById('inventoryTableDateRange')?.classList.toggle('hidden', !INVENTORY_DATED_VIEWS.has(view));
   }
 
   function clearTableSearch(inputId){
@@ -2725,7 +2846,6 @@ document.addEventListener('DOMContentLoaded', function(){
     'low-stock': 'Search low-stock items…',
     'in-stock': 'Search in-stock items…',
     equipment: 'Search equipment name, location…',
-    vouchers: 'Search voucher, tour package…',
     'stock-requests': 'Search request ID, item, department…',
     'issue-log': 'Search item, department, issued to, reason…',
     'equipment-history': 'Search item, PO/issue reference…',
@@ -2739,8 +2859,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function rerenderActiveInventoryTable(){
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
-    if(active?.dataset.view === 'vouchers') renderVouchers();
-    else if(active?.dataset.view === 'issues') renderStockIssues();
+    if(active?.dataset.view === 'issues') renderStockIssues();
     else if(active?.dataset.view === 'stock-requests') renderStockRequests();
     else if(active?.dataset.view === 'equipment-history') renderEquipmentHistory();
     else renderInventory(active?.dataset.filter || 'all');
@@ -2934,6 +3053,165 @@ document.addEventListener('DOMContentLoaded', function(){
     return `<div class="equip-placement">${chips.join('')}</div>`;
   }
 
+  function itemDisplayLabel(it){
+    return it?.display_label || it?.label || '—';
+  }
+
+  function equipmentGroupKey(groupName){
+    return normalizeItemLabel(groupName || '');
+  }
+
+  function equipmentItemMatchesSearch(it, query){
+    return rowMatchesSearch(
+      query, it.label, it.equipment_group, it.display_label, it.item_key, it.item_type,
+      itemPlacementLabel(it), it.status, it.location_name
+    );
+  }
+
+  function equipmentGroupMatchesSearch(groupName, variants, query){
+    if(!query) return true;
+    if(rowMatchesSearch(query, groupName)) return true;
+    return variants.some(v => equipmentItemMatchesSearch(v, query));
+  }
+
+  function groupEquipmentItems(items){
+    const map = new Map();
+    items.forEach(it => {
+      const g = (it.equipment_group || it.label || 'Equipment').trim();
+      if(!map.has(g)) map.set(g, []);
+      map.get(g).push(it);
+    });
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }
+
+  function rollupEquipmentGroup(variants){
+    let storage = 0;
+    let deployed = 0;
+    const statuses = new Set();
+    variants.forEach(it => {
+      storage += it.storage_qty ?? it.current_qty ?? 0;
+      deployed += it.deployed_qty ?? 0;
+      statuses.add(it.status);
+    });
+    const total = storage + deployed;
+    let status = 'Unassigned';
+    if(statuses.has('Mixed') || (statuses.has('In storage') && statuses.has('In use'))) status = 'Mixed';
+    else if(statuses.has('In use')) status = 'In use';
+    else if(statuses.has('In storage')) status = 'In storage';
+    else if(statuses.has('Inactive') && variants.every(v => !v.active)) status = 'Inactive';
+    return {
+      storage,
+      deployed,
+      total,
+      status,
+      unit: variants[0]?.unit || 'unit',
+      variantCount: variants.length,
+    };
+  }
+
+  function isEquipmentGroupExpanded(groupKey, variants, query){
+    if(Object.prototype.hasOwnProperty.call(state.equipmentGroupExpanded, groupKey)){
+      return state.equipmentGroupExpanded[groupKey];
+    }
+    if(query && variants.some(v => equipmentItemMatchesSearch(v, query))) return true;
+    return variants.length === 1;
+  }
+
+  window.toggleEquipmentGroup = function(groupKey, variantCount){
+    const variants = Array.from({ length: variantCount });
+    const currently = isEquipmentGroupExpanded(groupKey, variants, '');
+    state.equipmentGroupExpanded[groupKey] = !currently;
+    const active = document.querySelector('#inventoryFilters .filter-pill.active');
+    renderInventory(active?.dataset.filter || 'all');
+  };
+
+  function renderGroupQtySummary(roll){
+    if(roll.deployed > 0){
+      return `<div class="equip-qty-summary">
+        <span class="equip-qty-total">${roll.total} ${escapeHtml(roll.unit)} total</span>
+        <span class="equip-qty-split">${roll.storage} in storage · ${roll.deployed} deployed</span>
+      </div>`;
+    }
+    return `${roll.total} ${escapeHtml(roll.unit)}`;
+  }
+
+  function renderInventoryActionButtons(it){
+    return `<div class="flex flex-wrap gap-2">
+            ${it.active && it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
+            ${it.active && it.item_type === 'consumable' && it.current_qty > 0 ? `<button onclick="openIssueModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-semibold cursor-pointer">Issue</button>` : ''}
+            ${roleAtLeast('manager') && it.active && it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
+            ${roleAtLeast('manager') && canRetireItem(it) ? `<button onclick="openRetireModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Retire</button>` : ''}
+            ${roleAtLeast('manager') ? `<button onclick="openEditItemModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>` : ''}
+            ${roleAtLeast('super_admin') ? `<button onclick="setItemActive('${it.item_key}', ${it.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${it.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${it.active ? 'Mark inactive' : 'Reactivate'}</button>` : ''}
+          </div>`;
+  }
+
+  function renderConsumableInventoryRow(it){
+    return `
+      <tr class="border-b border-line last:border-0 ${it.active ? '' : 'opacity-70'}">
+        <td class="py-3 pr-3">${cellItem(it.label, { badge: !it.active ? 'Inactive' : null })}</td>
+        <td class="py-3 pr-3">${cellTypeTag(it.item_type)}</td>
+        <td class="py-3 pr-3 text-textMid placement-cell">${renderPlacementCell(it)}</td>
+        <td class="py-3 pr-3 qty-cell">${renderEquipmentQtyCell(it)}</td>
+        <td class="py-3 pr-3 text-textMid">${it.min_qty != null ? it.min_qty : '<span class="cell-empty">—</span>'}</td>
+        <td class="py-3 pr-3 text-textMid">${it.max_qty != null ? it.max_qty : '<span class="cell-empty">—</span>'}</td>
+        <td class="py-3 pr-3 status-cell">${statusPill(it.status)}</td>
+        <td class="py-3 pr-3">${renderInventoryActionButtons(it)}</td>
+      </tr>`;
+  }
+
+  function renderEquipmentGroupHeaderRow(groupName, variants, roll, expanded, groupKey){
+    const safeKey = escapeHtml(groupKey);
+    const icon = expanded ? 'bx-chevron-down' : 'bx-chevron-right';
+    return `
+      <tr class="border-b border-line equip-group-row" onclick="toggleEquipmentGroup('${safeKey}', ${variants.length})">
+        <td class="py-3 pr-3">
+          <span class="equip-group-toggle"><i class='bx ${icon}'></i></span>
+          ${escapeHtml(groupName)}
+          <span class="equip-group-meta">${roll.variantCount} variant${roll.variantCount === 1 ? '' : 's'} · ${roll.total} ${escapeHtml(roll.unit)} total</span>
+        </td>
+        <td class="py-3 pr-3">${cellTypeTag('equipment')}</td>
+        <td class="py-3 pr-3 text-textMid placement-cell"><span class="cell-hint cell-hint-info">Expand for placement</span></td>
+        <td class="py-3 pr-3 qty-cell">${renderGroupQtySummary(roll)}</td>
+        <td class="py-3 pr-3 text-textMid"><span class="cell-empty">—</span></td>
+        <td class="py-3 pr-3 text-textMid"><span class="cell-empty">—</span></td>
+        <td class="py-3 pr-3 status-cell">${statusPill(roll.status)}</td>
+        <td class="py-3 pr-3"><span class="cell-empty">—</span></td>
+      </tr>`;
+  }
+
+  function renderEquipmentVariantRow(it){
+    const variantTitle = it.label || 'Standard';
+    return `
+      <tr class="border-b border-line last:border-0 equip-variant-row ${it.active ? '' : 'opacity-70'}">
+        <td class="py-3 pr-3">
+          <div class="equip-variant-indent">
+            <span class="equip-variant-label">${escapeHtml(variantTitle)}</span>
+            ${!it.active ? cellHint('Inactive', 'warn') : ''}
+          </div>
+        </td>
+        <td class="py-3 pr-3">${cellTypeTag(it.item_type)}</td>
+        <td class="py-3 pr-3 text-textMid placement-cell">${renderPlacementCell(it)}</td>
+        <td class="py-3 pr-3 qty-cell">${renderEquipmentQtyCell(it)}</td>
+        <td class="py-3 pr-3 text-textMid"><span class="cell-empty">—</span></td>
+        <td class="py-3 pr-3 text-textMid"><span class="cell-empty">—</span></td>
+        <td class="py-3 pr-3 status-cell">${statusPill(it.status)}</td>
+        <td class="py-3 pr-3">${renderInventoryActionButtons(it)}</td>
+      </tr>`;
+  }
+
+  function populateEquipmentGroupDatalist(){
+    const list = document.getElementById('itmEquipmentGroupList');
+    if(!list) return;
+    const groups = [...new Set(
+      state.inventory
+        .filter(it => it.item_type === 'equipment' && it.equipment_group)
+        .map(it => it.equipment_group.trim())
+        .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b));
+    list.innerHTML = groups.map(g => `<option value="${escapeHtml(g)}"></option>`).join('');
+  }
+
   function canRetireItem(it){
     if(!it?.active) return false;
     if(it.item_type === 'consumable') return it.current_qty > 0;
@@ -3024,7 +3302,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const it = state.inventory.find(i => i.item_key === itemKey);
     if(!it || !canRetireItem(it)) return;
     document.getElementById('retireItemKey').value = itemKey;
-    document.getElementById('retireItemLabel').textContent = it.label;
+    document.getElementById('retireItemLabel').textContent = itemDisplayLabel(it);
     document.getElementById('retireQty').value = '1';
     document.getElementById('retireReason').value = it.item_type === 'equipment' ? 'broken' : 'damaged';
     document.getElementById('retireNotes').value = '';
@@ -3097,15 +3375,27 @@ document.addEventListener('DOMContentLoaded', function(){
     const isConsumable = document.querySelector('input[name="itmType"]:checked').value === 'consumable';
     document.getElementById('itmMinWrap').classList.toggle('hidden', !isConsumable);
     document.getElementById('itmMaxWrap').classList.toggle('hidden', !isConsumable);
+    document.getElementById('itmConsumableNameWrap').classList.toggle('hidden', !isConsumable);
+    document.getElementById('itmEquipmentNamesWrap').classList.toggle('hidden', isConsumable);
+    document.getElementById('itmName').required = isConsumable;
+    document.getElementById('itmEquipmentGroup').required = !isConsumable;
+    document.getElementById('itmVariant').required = !isConsumable;
+    if(!isConsumable) populateEquipmentGroupDatalist();
     syncEquipmentPlacementFields(document.getElementById('itmLocationId').value || null);
   }
   document.querySelectorAll('input[name="itmType"]').forEach(r => r.addEventListener('change', itemTypeToggle));
 
   async function loadInventory(){
     const path = roleAtLeast('manager') ? 'inventory.php?include_inactive=1' : 'inventory.php';
-    state.inventory = await apiGet(path);
+    try {
+      state.inventory = await apiGet(path);
+    } catch (err) {
+      console.error('loadInventory failed', err);
+      state.inventory = [];
+      alert(err?.error || 'Could not load inventory. If you just updated the app, run sql/migration_equipment_groups.sql on your database.');
+    }
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
-    if(active?.dataset.view !== 'vouchers' && active?.dataset.view !== 'issues' && active?.dataset.view !== 'stock-requests'){
+    if(active?.dataset.view !== 'issues' && active?.dataset.view !== 'stock-requests'){
       renderInventory(active?.dataset.filter || 'all');
     }
   }
@@ -3118,10 +3408,11 @@ document.addEventListener('DOMContentLoaded', function(){
     const it = state.inventory.find(i => i.item_key === itemKey);
     if(!it) return;
     const verb = active ? 'Reactivate' : 'Mark inactive';
+    const display = itemDisplayLabel(it);
     const detail = active
-      ? `${it.label} will appear in inventory, requests, and forecasts again.`
-      : `${it.label} will be hidden from lists and new purchase requests. History is kept.`;
-    if(!confirm(`${verb} ${it.label}?\n\n${detail}`)) return;
+      ? `${display} will appear in inventory, requests, and forecasts again.`
+      : `${display} will be hidden from lists and new purchase requests. History is kept.`;
+    if(!confirm(`${verb} ${display}?\n\n${detail}`)) return;
     try {
       await apiSend(`inventory.php?item=${encodeURIComponent(itemKey)}`, 'PUT', { active: active ? 1 : 0 });
       await loadInventory();
@@ -3142,33 +3433,46 @@ document.addEventListener('DOMContentLoaded', function(){
         if(filter === 'In storage') return it.status === 'In storage' || it.status === 'Mixed';
         if(filter === 'In use') return it.status === 'In use' || it.status === 'Mixed';
         return it.status === filter;
-      })
-      .filter(it => rowMatchesSearch(query, it.label, it.item_key, it.item_type, itemPlacementLabel(it), it.status, it.location_name));
+      });
     const tbody = document.getElementById('inventoryTableBody');
-    if(!visible.length){
+    const consumables = visible.filter(it => it.item_type !== 'equipment')
+      .filter(it => rowMatchesSearch(query, it.label, it.item_key, it.item_type, itemPlacementLabel(it), it.status, it.location_name));
+    const equipment = visible.filter(it => it.item_type === 'equipment');
+    const equipmentGroups = groupEquipmentItems(equipment)
+      .filter(([groupName, variants]) => equipmentGroupMatchesSearch(groupName, variants, query));
+
+    if(!consumables.length && !equipmentGroups.length){
       tbody.innerHTML = tableSearchEmptyMessage(8, query, state.showInactiveInventory ? 'No items match this filter.' : 'No active items. Turn on “Show inactive” to see hidden items.');
       return;
     }
-    tbody.innerHTML = visible.map(it => `
-      <tr class="border-b border-line last:border-0 ${it.active ? '' : 'opacity-70'}">
-        <td class="py-3 pr-3">${cellItem(it.label, { badge: !it.active ? 'Inactive' : null })}</td>
-        <td class="py-3 pr-3">${cellTypeTag(it.item_type)}</td>
-        <td class="py-3 pr-3 text-textMid placement-cell">${renderPlacementCell(it)}</td>
-        <td class="py-3 pr-3 qty-cell">${renderEquipmentQtyCell(it)}</td>
-        <td class="py-3 pr-3 text-textMid">${it.item_type === 'consumable' && it.min_qty != null ? it.min_qty : '<span class="cell-empty">—</span>'}</td>
-        <td class="py-3 pr-3 text-textMid">${it.item_type === 'consumable' && it.max_qty != null ? it.max_qty : '<span class="cell-empty">—</span>'}</td>
-        <td class="py-3 pr-3 status-cell">${statusPill(it.status)}</td>
-        <td class="py-3 pr-3">
-          <div class="flex flex-wrap gap-2">
-            ${it.active && it.status === 'Low stock' ? `<button onclick="openRequestModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Request</button>` : ''}
-            ${it.active && it.item_type === 'consumable' && it.current_qty > 0 ? `<button onclick="openIssueModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-semibold cursor-pointer">Issue</button>` : ''}
-            ${roleAtLeast('manager') && it.active && it.item_type === 'consumable' ? `<button onclick="openCloseMonthModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Close month</button>` : ''}
-            ${roleAtLeast('manager') && canRetireItem(it) ? `<button onclick="openRetireModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Retire</button>` : ''}
-            ${roleAtLeast('manager') ? `<button onclick="openEditItemModal('${it.item_key}')" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>` : ''}
-            ${roleAtLeast('super_admin') ? `<button onclick="setItemActive('${it.item_key}', ${it.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${it.active ? 'bg-[#eef2f7] text-textMid' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${it.active ? 'Mark inactive' : 'Reactivate'}</button>` : ''}
-          </div>
-        </td>
-      </tr>`).join('');
+
+    const renderEquipmentBlock = ([groupName, variants]) => {
+      const sortedVariants = variants.slice().sort((a, b) => (a.label || '').localeCompare(b.label || ''));
+      const groupKey = equipmentGroupKey(groupName);
+      const expanded = isEquipmentGroupExpanded(groupKey, sortedVariants, query);
+      const roll = rollupEquipmentGroup(sortedVariants);
+      let block = renderEquipmentGroupHeaderRow(groupName, sortedVariants, roll, expanded, groupKey);
+      if(expanded){
+        block += sortedVariants.map(it => renderEquipmentVariantRow(it)).join('');
+      }
+      return block;
+    };
+
+    if(filter === 'all'){
+      const entries = [
+        ...consumables.map(it => ({ kind: 'consumable', sortKey: it.label, it })),
+        ...equipmentGroups.map(entry => ({ kind: 'equipment', sortKey: entry[0], entry })),
+      ].sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+      tbody.innerHTML = entries.map(row => row.kind === 'consumable'
+        ? renderConsumableInventoryRow(row.it)
+        : renderEquipmentBlock(row.entry)
+      ).join('');
+      return;
+    }
+
+    let html = consumables.map(it => renderConsumableInventoryRow(it)).join('');
+    equipmentGroups.forEach(entry => { html += renderEquipmentBlock(entry); });
+    tbody.innerHTML = html;
   }
 
   document.getElementById('inventoryFilters').addEventListener('click', (e) => {
@@ -3181,7 +3485,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function showInventoryPanel(filter){
     document.getElementById('inventoryTableWrap').classList.remove('hidden');
-    document.getElementById('voucherPanel').classList.add('hidden');
     document.getElementById('stockRequestsPanel').classList.add('hidden');
     document.getElementById('issuePanel').classList.add('hidden');
     document.getElementById('equipmentHistoryPanel').classList.add('hidden');
@@ -3189,19 +3492,8 @@ document.addEventListener('DOMContentLoaded', function(){
     renderInventory(filter || 'all');
   }
 
-  function showVoucherPanel(){
-    document.getElementById('inventoryTableWrap').classList.add('hidden');
-    document.getElementById('voucherPanel').classList.remove('hidden');
-    document.getElementById('stockRequestsPanel').classList.add('hidden');
-    document.getElementById('issuePanel').classList.add('hidden');
-    document.getElementById('equipmentHistoryPanel').classList.add('hidden');
-    setInventoryHeaderAction('vouchers');
-    renderVouchers();
-  }
-
   function showIssuePanel(){
     document.getElementById('inventoryTableWrap').classList.add('hidden');
-    document.getElementById('voucherPanel').classList.add('hidden');
     document.getElementById('stockRequestsPanel').classList.add('hidden');
     document.getElementById('issuePanel').classList.remove('hidden');
     document.getElementById('equipmentHistoryPanel').classList.add('hidden');
@@ -3211,7 +3503,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function showEquipmentHistoryPanel(){
     document.getElementById('inventoryTableWrap').classList.add('hidden');
-    document.getElementById('voucherPanel').classList.add('hidden');
     document.getElementById('stockRequestsPanel').classList.add('hidden');
     document.getElementById('issuePanel').classList.add('hidden');
     document.getElementById('equipmentHistoryPanel').classList.remove('hidden');
@@ -3221,44 +3512,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function showStockRequestsPanel(){
     document.getElementById('inventoryTableWrap').classList.add('hidden');
-    document.getElementById('voucherPanel').classList.add('hidden');
     document.getElementById('stockRequestsPanel').classList.remove('hidden');
     document.getElementById('issuePanel').classList.add('hidden');
     document.getElementById('equipmentHistoryPanel').classList.add('hidden');
     setInventoryHeaderAction('stock-requests');
     renderStockRequests();
-  }
-
-  async function loadVouchers(){
-    state.vouchers = await apiGet('vouchers.php');
-    if(document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view === 'vouchers'){
-      renderVouchers();
-    }
-  }
-
-  function renderVouchers(){
-    const query = tableSearchQuery('inventoryTableSearch');
-    const visible = state.vouchers.filter(v => rowMatchesSearch(query, v.label, v.tour_package, v.notes));
-    const tbody = document.getElementById('voucherTableBody');
-    if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(6, query, 'No voucher types yet. Click Add voucher to create one.');
-      return;
-    }
-    tbody.innerHTML = visible.map(v => `
-      <tr class="border-b border-line last:border-0">
-        <td class="py-3 pr-3">${cellItem(v.label)}</td>
-        <td class="py-3 pr-3 text-textMid">${v.tour_package ? escapeHtml(v.tour_package) : cellEmpty()}</td>
-        <td class="py-3 pr-3">${cellQty(v.current_qty, 'left', { warn: v.current_qty === 0 })}</td>
-        <td class="py-3 pr-3">${v.last_added_qty ? cellStack(`+${v.last_added_qty}`, fmtDate(v.last_restocked_at)) : cellEmpty()}</td>
-        <td class="py-3 pr-3 text-textMid">${v.notes ? escapeHtml(v.notes) : cellEmpty()}</td>
-        <td class="py-3 pr-3">
-          <div class="flex flex-wrap gap-2">
-            ${v.current_qty > 0 ? `<button onclick="useVoucher(${v.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Use 1</button>` : ''}
-            ${roleAtLeast('manager') ? `<button onclick="openVoucherRestockModal(${v.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Restock</button>` : ''}
-            ${roleAtLeast('super_admin') ? `<button onclick="openEditVoucherModal(${v.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>` : ''}
-          </div>
-        </td>
-      </tr>`).join('');
   }
 
   /* ---------- department stock requests (ask before issue) ---------- */
@@ -3323,7 +3581,7 @@ document.addEventListener('DOMContentLoaded', function(){
     select.innerHTML = items.map(it => {
       const place = type === 'equipment' && it.location_name ? ` · ${it.location_name}` : '';
       const onHand = type === 'equipment' ? (it.storage_qty ?? it.current_qty) : it.current_qty;
-      return `<option value="${it.item_key}">${escapeHtml(it.label)}${place} (${onHand} ${it.unit} on hand)</option>`;
+      return `<option value="${it.item_key}">${escapeHtml(itemDisplayLabel(it))}${place} (${onHand} ${it.unit} on hand)</option>`;
     }).join('');
     updateStockReqPurchaseHint(type);
   }
@@ -3390,12 +3648,12 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('stockReqItemSelectWrap').classList.toggle('hidden', locked);
     document.getElementById('stockReqItemLockedWrap').classList.toggle('hidden', !locked);
     document.getElementById('stockRequestModalTitle').textContent = locked && item
-      ? `Request — ${item.label}`
+      ? `Request — ${itemDisplayLabel(item)}`
       : 'Request from stock';
 
     if(locked && item){
       document.getElementById('stockReqItemLockedType').textContent = item.item_type === 'equipment' ? 'Equipment' : 'Supply';
-      document.getElementById('stockReqItemLockedLabel').textContent = item.label;
+      document.getElementById('stockReqItemLockedLabel').textContent = itemDisplayLabel(item);
       document.getElementById('stockReqItemLockedKey').value = item.item_key;
     } else {
       document.querySelector('input[name="stockReqType"][value="consumable"]').checked = true;
@@ -3446,12 +3704,13 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderStockRequests(){
     const query = tableSearchQuery('inventoryTableSearch');
+    const dates = tableDateRange('inventoryTable');
     const visible = state.stockRequests.filter(sr => rowMatchesSearch(
       query, sr.request_code, sr.department, sr.item_label, sr.item_type, sr.requested_by, sr.status, sr.fulfilled_issue_code
-    ));
+    ) && rowMatchesDateRange(sr.created_at, dates.from, dates.to));
     const tbody = document.getElementById('stockRequestsTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(9, query, 'No stock requests yet. Click Request from stock to ask inventory for items on the shelf.');
+      tbody.innerHTML = tableSearchEmptyMessage(9, tableHasActiveFilters(query, 'inventoryTable'), 'No stock requests yet. Click Request from stock to ask inventory for items on the shelf.');
       return;
     }
     tbody.innerHTML = visible.map(sr => {
@@ -3499,7 +3758,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('issueForm').reset();
     resetIssueModalMode();
     document.getElementById('issueItemKey').value = it.item_key;
-    document.getElementById('issueItemLabel').textContent = it.label;
+    document.getElementById('issueItemLabel').textContent = itemDisplayLabel(it);
     document.getElementById('issueStockHint').textContent = `${it.current_qty} ${it.unit} currently on hand.`;
     document.getElementById('issueQty').max = it.current_qty;
     document.getElementById('issueQty').value = stockRequest ? stockRequest.qty : 1;
@@ -3554,13 +3813,14 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderEquipmentHistory(){
     const query = tableSearchQuery('inventoryTableSearch');
+    const dates = tableDateRange('inventoryTable');
     const visible = state.equipmentMovements.filter(m => rowMatchesSearch(
       query, m.item_label, m.reference_code, EQUIPMENT_MOVEMENT_LABELS[m.movement_type], m.movement_type,
       m.department, m.location_name, m.recorded_by, m.status
-    ));
+    ) && rowMatchesDateRange(m.created_at, dates.from, dates.to));
     const tbody = document.getElementById('equipmentHistoryTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(8, query, 'No equipment movements yet — issues from storage and purchase receipts will appear here.');
+      tbody.innerHTML = tableSearchEmptyMessage(8, tableHasActiveFilters(query, 'inventoryTable'), 'No equipment movements yet — issues from storage and purchase receipts will appear here.');
       return;
     }
     tbody.innerHTML = visible.map(m => `
@@ -3578,21 +3838,22 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderStockIssues(){
     const query = tableSearchQuery('inventoryTableSearch');
+    const dates = tableDateRange('inventoryTable');
     const issues = state.stockIssues.filter(iss => rowMatchesSearch(
       query, iss.item_label, iss.department, iss.issued_to, iss.recorded_by, iss.status, 'issue'
-    ));
+    ) && rowMatchesDateRange(iss.created_at, dates.from, dates.to));
     const retirements = state.inventoryRetirements
       .filter(r => r.item_type === 'consumable')
       .filter(r => rowMatchesSearch(
         query, r.item_label, r.department, r.reason_label, r.notes, r.recorded_by, r.retirement_code, 'retire', 'retired'
-      ));
+      ) && rowMatchesDateRange(r.created_at, dates.from, dates.to));
     const rows = [
       ...issues.map(iss => ({ kind: 'issue', sortAt: iss.created_at, data: iss })),
       ...retirements.map(r => ({ kind: 'retire', sortAt: r.created_at, data: r })),
     ].sort((a, b) => new Date(b.sortAt.replace(' ', 'T')) - new Date(a.sortAt.replace(' ', 'T')));
     const tbody = document.getElementById('issueTableBody');
     if(!rows.length){
-      tbody.innerHTML = tableSearchEmptyMessage(7, query, 'No stock issued or retired yet. Use Issue or Retire on an item to record activity.');
+      tbody.innerHTML = tableSearchEmptyMessage(7, tableHasActiveFilters(query, 'inventoryTable'), 'No stock issued or retired yet. Use Issue or Retire on an item to record activity.');
       return;
     }
     tbody.innerHTML = rows.map(row => {
@@ -3648,7 +3909,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const where = source === 'department' ? department : 'storage';
     const reasonLabel = RETIREMENT_REASON_LABELS[reason] || reason;
-    if(!confirm(`Retire ${qty} ${it.unit} of ${it.label} from ${where}?\n\nReason: ${reasonLabel}`)) return;
+    if(!confirm(`Retire ${qty} ${it.unit} of ${itemDisplayLabel(it)} from ${where}?\n\nReason: ${reasonLabel}`)) return;
 
     try {
       await apiSend('inventory_retirements.php', 'POST', {
@@ -3719,97 +3980,13 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   };
 
-  window.openVoucherModal = function(){
-    document.getElementById('voucherForm').reset();
-    document.getElementById('voucherEditId').value = '';
-    document.getElementById('voucherQty').value = 0;
-    document.getElementById('voucherQtyLabel').textContent = 'Starting quantity';
-    document.getElementById('voucherModalTitle').textContent = 'Add tour voucher';
-    document.getElementById('voucherFormSubmitBtn').textContent = 'Add voucher';
-    openModal('voucherModalOverlay');
-  };
-
-  window.openEditVoucherModal = function(id){
-    const voucher = state.vouchers.find(v => v.id === id);
-    if(!voucher) return;
-    document.getElementById('voucherEditId').value = voucher.id;
-    document.getElementById('voucherName').value = voucher.label;
-    document.getElementById('voucherTour').value = voucher.tour_package || '';
-    document.getElementById('voucherQty').value = voucher.current_qty;
-    document.getElementById('voucherNotes').value = voucher.notes || '';
-    document.getElementById('voucherQtyLabel').textContent = 'Current quantity';
-    document.getElementById('voucherModalTitle').textContent = `Edit — ${voucher.label}`;
-    document.getElementById('voucherFormSubmitBtn').textContent = 'Save changes';
-    openModal('voucherModalOverlay');
-  };
-
-  document.getElementById('voucherForm').addEventListener('submit', async function(e){
-    e.preventDefault();
-    const id = document.getElementById('voucherEditId').value;
-    const payload = {
-      label: document.getElementById('voucherName').value,
-      tour_package: document.getElementById('voucherTour').value || null,
-      current_qty: Number(document.getElementById('voucherQty').value),
-      notes: document.getElementById('voucherNotes').value || null,
-    };
-    try {
-      if(id){
-        payload.action = 'edit';
-        await apiSend(`vouchers.php?id=${id}`, 'PUT', payload);
-      } else {
-        await apiSend('vouchers.php', 'POST', payload);
-      }
-      closeModal('voucherModalOverlay');
-      this.reset();
-      await loadVouchers();
-    } catch (err) {
-      alert(err.error || 'Could not save voucher.');
-    }
-  });
-
-  window.useVoucher = async function(id){
-    const voucher = state.vouchers.find(v => v.id === id);
-    if(!voucher || voucher.current_qty <= 0) return;
-    if(!confirm(`Use 1 “${voucher.label}” voucher? ${voucher.current_qty - 1} will remain.`)) return;
-    try {
-      await apiSend(`vouchers.php?id=${id}`, 'PUT', { action: 'use_one' });
-      await loadVouchers();
-    } catch (err) {
-      alert(err.error || 'Could not use voucher.');
-    }
-  };
-
-  window.openVoucherRestockModal = function(id){
-    const voucher = state.vouchers.find(v => v.id === id);
-    if(!voucher) return;
-    document.getElementById('voucherRestockId').value = voucher.id;
-    document.getElementById('voucherRestockName').textContent = `${voucher.label} · ${voucher.current_qty} currently left`;
-    document.getElementById('voucherRestockQty').value = 1;
-    openModal('voucherRestockModalOverlay');
-  };
-
-  document.getElementById('voucherRestockForm').addEventListener('submit', async function(e){
-    e.preventDefault();
-    const id = document.getElementById('voucherRestockId').value;
-    try {
-      await apiSend(`vouchers.php?id=${id}`, 'PUT', {
-        action: 'restock',
-        qty: Number(document.getElementById('voucherRestockQty').value),
-      });
-      closeModal('voucherRestockModalOverlay');
-      this.reset();
-      await loadVouchers();
-    } catch (err) {
-      alert(err.error || 'Could not restock voucher.');
-    }
-  });
-
   window.openItemModal = function(){
     document.getElementById('itemForm').reset();
     document.getElementById('itmEditKey').value = '';
     document.getElementById('itmDeploymentsWrap')?.classList.add('hidden');
     document.getElementById('itemModalTitle').textContent = 'Add office item';
     document.getElementById('itemFormSubmitBtn').textContent = 'Add item';
+    populateEquipmentGroupDatalist();
     updateItemNameSimilarHint();
     itemTypeToggle();
     openModal('itemModalOverlay');
@@ -3819,15 +3996,24 @@ document.addEventListener('DOMContentLoaded', function(){
     const it = state.inventory.find(i => i.item_key === itemKey);
     if(!it) return;
     document.getElementById('itmEditKey').value = it.item_key;
-    document.getElementById('itmName').value = it.label;
+    if(it.item_type === 'equipment'){
+      document.getElementById('itmEquipmentGroup').value = it.equipment_group || '';
+      document.getElementById('itmVariant').value = it.label || '';
+      document.getElementById('itmName').value = '';
+    } else {
+      document.getElementById('itmName').value = it.label;
+      document.getElementById('itmEquipmentGroup').value = '';
+      document.getElementById('itmVariant').value = '';
+    }
     document.getElementById('itmUnit').value = it.unit;
     document.querySelector(`input[name="itmType"][value="${it.item_type}"]`).checked = true;
     document.getElementById('itmCurrent').value = it.storage_qty ?? it.current_qty;
     document.getElementById('itmMin').value = it.min_qty ?? 1;
     document.getElementById('itmMax').value = it.max_qty ?? 5;
     renderEquipmentDeploymentsList(it);
-    document.getElementById('itemModalTitle').textContent = `Edit — ${it.label}`;
+    document.getElementById('itemModalTitle').textContent = `Edit — ${itemDisplayLabel(it)}`;
     document.getElementById('itemFormSubmitBtn').textContent = 'Save changes';
+    populateEquipmentGroupDatalist();
     updateItemNameSimilarHint();
     itemTypeToggle();
     syncEquipmentPlacementFields(it.location_id);
@@ -3907,7 +4093,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!it || it.item_type !== 'consumable') return;
     document.getElementById('closeMonthItemKey').value = it.item_key;
     document.getElementById('closeMonthUnit').textContent = it.unit;
-    document.getElementById('closeMonthModalTitle').textContent = `Close month — ${it.label}`;
+    document.getElementById('closeMonthModalTitle').textContent = `Close month — ${itemDisplayLabel(it)}`;
     document.getElementById('closeMonthPick').value = defaultCloseMonthPick();
     document.getElementById('closeClosing').value = '';
     openModal('closeMonthModalOverlay');
@@ -3979,9 +4165,19 @@ document.addEventListener('DOMContentLoaded', function(){
     return dp[m][n];
   }
 
-  function findSimilarItems(label, excludeItemKey){
+  function findSimilarItems(label, excludeItemKey, equipmentGroup){
     const norm = normalizeItemLabel(label);
-    if(norm.length < 3) return [];
+    if(norm.length < 3 && !equipmentGroup) return [];
+    if(equipmentGroup){
+      const normGroup = normalizeItemLabel(equipmentGroup);
+      if(!normGroup || !norm) return [];
+      return state.inventory.filter(it => {
+        if(excludeItemKey && it.item_key === excludeItemKey) return false;
+        if(it.item_type !== 'equipment' || it.assigned_department) return false;
+        if(normalizeItemLabel(it.equipment_group || '') !== normGroup) return false;
+        return normalizeItemLabel(it.label) === norm;
+      });
+    }
     return state.inventory.filter(it => {
       if(excludeItemKey && it.item_key === excludeItemKey) return false;
       if(it.item_type === 'equipment' && it.assigned_department) return false;
@@ -3998,25 +4194,43 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function updateItemNameSimilarHint(){
-    const hint = document.getElementById('itmNameSimilarHint');
-    if(!hint) return;
+    const nameHint = document.getElementById('itmNameSimilarHint');
+    const variantHint = document.getElementById('itmVariantSimilarHint');
     const editKey = document.getElementById('itmEditKey').value;
+    const isEquipment = document.querySelector('input[name="itmType"]:checked')?.value === 'equipment';
     if(editKey){
-      hint.classList.add('hidden');
-      hint.textContent = '';
+      nameHint?.classList.add('hidden');
+      variantHint?.classList.add('hidden');
       return;
     }
+    if(isEquipment){
+      nameHint?.classList.add('hidden');
+      const group = document.getElementById('itmEquipmentGroup').value.trim();
+      const variant = document.getElementById('itmVariant').value.trim();
+      const similar = findSimilarItems(variant, editKey || null, group);
+      if(!group || !variant || !similar.length){
+        variantHint?.classList.add('hidden');
+        variantHint.textContent = '';
+        return;
+      }
+      const names = similar.map(i => itemDisplayLabel(i)).join(', ');
+      variantHint.textContent = `${names} already exists under ${group}. Edit that variant instead.`;
+      variantHint.className = 'text-[.72rem] text-amberTx mt-1';
+      variantHint.classList.remove('hidden');
+      return;
+    }
+    variantHint?.classList.add('hidden');
     const label = document.getElementById('itmName').value.trim();
     const similar = findSimilarItems(label, editKey || null);
     if(!label || !similar.length){
-      hint.classList.add('hidden');
-      hint.textContent = '';
+      nameHint.classList.add('hidden');
+      nameHint.textContent = '';
       return;
     }
     const names = similar.map(i => i.label).join(', ');
-    hint.textContent = `${names} already exists. Edit that item and add storage quantity instead of creating a duplicate.`;
-    hint.className = 'text-[.72rem] text-amberTx mt-1';
-    hint.classList.remove('hidden');
+    nameHint.textContent = `${names} already exists. Edit that item and add storage quantity instead of creating a duplicate.`;
+    nameHint.className = 'text-[.72rem] text-amberTx mt-1';
+    nameHint.classList.remove('hidden');
   }
 
   let itemNameHintTimer;
@@ -4024,17 +4238,29 @@ document.addEventListener('DOMContentLoaded', function(){
     clearTimeout(itemNameHintTimer);
     itemNameHintTimer = setTimeout(updateItemNameSimilarHint, 250);
   });
+  ['itmEquipmentGroup', 'itmVariant'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', function(){
+      clearTimeout(itemNameHintTimer);
+      itemNameHintTimer = setTimeout(updateItemNameSimilarHint, 250);
+    });
+  });
   document.querySelectorAll('input[name="itmType"]').forEach(el => el.addEventListener('change', updateItemNameSimilarHint));
 
   document.getElementById('itemForm').addEventListener('submit', async function(e){
     e.preventDefault();
     const editKey = document.getElementById('itmEditKey').value;
-    const label = document.getElementById('itmName').value.trim();
     const itemType = document.querySelector('input[name="itmType"]:checked').value;
     const locationId = document.getElementById('itmLocationId').value || null;
-    const similar = findSimilarItems(label, editKey || null);
+    const equipmentGroup = document.getElementById('itmEquipmentGroup').value.trim();
+    const variant = document.getElementById('itmVariant').value.trim();
+    const label = itemType === 'equipment' ? variant : document.getElementById('itmName').value.trim();
+    if(itemType === 'equipment' && (!equipmentGroup || !variant)){
+      alert('Equipment type and variant are required.');
+      return;
+    }
+    const similar = findSimilarItems(label, editKey || null, itemType === 'equipment' ? equipmentGroup : null);
     if(!editKey && similar.length){
-      const names = similar.map(i => `"${i.label}"`).join(', ');
+      const names = similar.map(i => `"${itemDisplayLabel(i)}"`).join(', ');
       alert(`Similar item already listed: ${names}.\n\nUse Edit on that row and add storage quantity instead of creating a duplicate.`);
       return;
     }
@@ -4047,6 +4273,7 @@ document.addEventListener('DOMContentLoaded', function(){
       max_qty: itemType === 'consumable' ? Number(document.getElementById('itmMax').value) : null,
     };
     if(itemType === 'equipment'){
+      payload.equipment_group = equipmentGroup;
       if(!locationId){ alert('Choose a storage location.'); return; }
       payload.location_id = locationId;
     } else {
@@ -4156,7 +4383,7 @@ document.addEventListener('DOMContentLoaded', function(){
       subtitleEl.textContent = 'Active catalog items in office storage and equipment.';
       goBtn.textContent = 'Open inventory';
       html = items.length ? items.map(it => dashboardStatRow(
-        escapeHtml(it.label),
+        escapeHtml(itemDisplayLabel(it)),
         `${escapeHtml(it.item_type)} · ${escapeHtml(itemPlacementLabel(it))} · ${escapeHtml(equipmentQtyLabel(it))}`,
         statusPill(it.status)
       )).join('') : dashboardStatEmpty('No active items on record.');
@@ -4256,13 +4483,14 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderRequests(){
     const query = tableSearchQuery('requestsTableSearch');
+    const dates = tableDateRange('requestsTable');
     const visible = state.requests.filter(r => rowMatchesSearch(
       query, r.request_code, r.employee, purchaseRequestDepartmentLabel(r), r.display_label, r.item_label,
       r.reason ? PURCHASE_REASON_LABELS[r.reason] : '', r.status, r.item_type
-    ));
+    ) && rowMatchesDateRange(r.created_at, dates.from, dates.to));
     const tbody = document.getElementById('requestsTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(9, query, 'No purchase requests yet.');
+      tbody.innerHTML = tableSearchEmptyMessage(9, tableHasActiveFilters(query, 'requestsTable'), 'No purchase requests yet.');
       return;
     }
     tbody.innerHTML = visible.map(r => `
@@ -4447,13 +4675,14 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderOrders(){
     const query = tableSearchQuery('ordersTableSearch');
+    const dates = tableDateRange('ordersTable');
     const visible = state.orders.filter(o => rowMatchesSearch(
       query, o.po_code, o.request_code, o.supplier_name, PROCUREMENT_LABELS[o.procurement_method],
       o.finance_status, FINANCE_STATUS_LABELS[o.finance_status], o.status, o.received_by
-    ));
+    ) && rowMatchesDateRange(o.created_at, dates.from, dates.to));
     const tbody = document.getElementById('ordersTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(11, query, 'No purchase orders yet.');
+      tbody.innerHTML = tableSearchEmptyMessage(11, tableHasActiveFilters(query, 'ordersTable'), 'No purchase orders yet.');
       return;
     }
     tbody.innerHTML = visible.map(o => {
@@ -4477,31 +4706,31 @@ document.addEventListener('DOMContentLoaded', function(){
       <tr class="border-b border-line last:border-0">
         <td class="py-3 pr-3 code-cell">${cellCode(o.po_code)}</td>
         <td class="py-3 pr-3 code-cell">${o.request_code ? cellCode(o.request_code) : cellEmpty()}</td>
-        <td class="py-3 pr-3">${o.supplier_name ? cellItem(o.supplier_name) : cellEmpty()}</td>
+        <td class="py-3 pr-3 supplier-cell">${o.supplier_name ? cellItem(o.supplier_name) : cellEmpty()}</td>
         <td class="py-3 pr-3">${cellProcurementTag(o.procurement_method)}</td>
         <td class="py-3 pr-3">${cellMoney(o.amount)}</td>
         <td class="py-3 pr-3 status-cell">${financeStatusPill(o.finance_status)}</td>
-        <td class="py-3 pr-3">${orderReceiptStatusCell(o)}</td>
+        <td class="py-3 pr-3 receipt-cell">${orderReceiptStatusCell(o)}</td>
         <td class="py-3 pr-3 date-cell"><div class="cell-person-date">${fmtDate(o.created_at)}</div></td>
         <td class="py-3 pr-3 received-cell">${poReceivedCell(o)}</td>
         <td class="py-3 pr-3 status-cell">${statusPill(o.status)}</td>
         <td class="py-3 pr-3 action-cell">
           <div class="cell-action-stack">
-            ${canUploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-bold border-none cursor-pointer">Upload receipt</button>` : ''}
-            ${canReuploadReceipt ? `<button onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-bold border-none cursor-pointer">Reupload receipt</button>` : ''}
-            ${canReportLostReceipt ? `<button onclick="openReportLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Report lost receipt</button>` : ''}
-            ${canDeclareLostReceipt ? `<button onclick="openLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Lost receipt</button>` : ''}
-            ${canReviewLostReceiptReport ? `<button onclick="openReviewLostReceiptReportModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Review lost receipt</button>` : ''}
-            ${canRejectReceipt ? `<button onclick="openRejectReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Reject receipt</button>` : ''}
+            ${canUploadReceipt ? `<button type="button" onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-bold cursor-pointer">Upload receipt</button>` : ''}
+            ${canReuploadReceipt ? `<button type="button" onclick="openUploadReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-navy800 border border-creamBorder text-[.75rem] font-bold cursor-pointer">Reupload receipt</button>` : ''}
+            ${canReportLostReceipt ? `<button type="button" onclick="openReportLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Report lost receipt</button>` : ''}
+            ${canDeclareLostReceipt ? `<button type="button" onclick="openLostReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-amberBg text-amberTx text-[.75rem] font-semibold border-none cursor-pointer">Lost receipt</button>` : ''}
+            ${canReviewLostReceiptReport ? `<button type="button" onclick="openReviewLostReceiptReportModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Review lost receipt</button>` : ''}
+            ${canRejectReceipt ? `<button type="button" onclick="openRejectReceiptModal(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Reject receipt</button>` : ''}
             ${awaitingFinance ? cellHint('Awaiting Finance', 'muted') : ''}
-            ${canMarkReceived ? `<button onclick="markReceived(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Mark received</button>` : ''}
+            ${canMarkReceived ? `<button type="button" onclick="markReceived(${o.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Mark received</button>` : ''}
             ${awaitingManagerReceive ? cellHint('Awaiting manager', 'info') : ''}
             ${awaitingReupload ? cellHint('Awaiting reupload', 'warn') : ''}
             ${awaitingLostReceiptReview ? cellHint('Review lost receipt', 'warn') : ''}
             ${staffAwaitingLostReceiptReview ? cellHint('Sent to manager', 'info') : ''}
-            ${canResendFinance ? `<button onclick="resendFinance(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Resend to Finance</button>` : ''}
-            ${o.status === 'Placed' && roleAtLeast('super_admin') ? `<button onclick="cancelOrder(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Cancel</button>` : ''}
-            <button onclick="openOrderSlip(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Slip</button>
+            ${canResendFinance ? `<button type="button" onclick="resendFinance(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Resend to Finance</button>` : ''}
+            ${o.status === 'Placed' && roleAtLeast('super_admin') ? `<button type="button" onclick="cancelOrder(${o.id})" class="px-3 py-1.5 rounded-lg bg-redBg text-redTx text-[.75rem] font-semibold border-none cursor-pointer">Cancel</button>` : ''}
+            <button type="button" onclick="openOrderSlip(${o.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Slip</button>
           </div>
         </td>
       </tr>`;
@@ -4841,7 +5070,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('reviewLostReceiptReportAmount').textContent = order.receipt_lost_report_amount != null ? peso(order.receipt_lost_report_amount) : '—';
     document.getElementById('reviewLostReceiptReportNote').textContent = order.receipt_lost_report_note || '—';
     const managerNoteField = document.getElementById('reviewLostReceiptReportManagerNote');
-    managerNoteField.value = order.receipt_lost_report_note || '';
+    managerNoteField.value = '';
     const when = order.receipt_lost_report_at ? fmtDateTime(order.receipt_lost_report_at) : '—';
     const who = order.receipt_lost_report_by || '—';
     document.getElementById('reviewLostReceiptReportMeta').textContent = `${who} · ${when}`;
@@ -5339,7 +5568,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const pricedKeys = new Set(supEditPrices.map(p => p.item_key));
     const items = state.inventory.filter(i => ['consumable', 'equipment'].includes(i.item_type) && i.active !== false && !pricedKeys.has(i.item_key));
     select.innerHTML = `<option value="">Add item…</option>` +
-      items.map(i => `<option value="${i.item_key}" data-label="${escapeHtml(i.label)}">${escapeHtml(i.label)}${i.item_type === 'equipment' ? ' (equipment)' : ''}</option>`).join('');
+      items.map(i => `<option value="${i.item_key}" data-label="${escapeHtml(itemDisplayLabel(i))}">${escapeHtml(itemDisplayLabel(i))}${i.item_type === 'equipment' ? ' (equipment)' : ''}</option>`).join('');
   }
 
   window.openEditSupplierModal = function(id){
@@ -5406,6 +5635,7 @@ document.addEventListener('DOMContentLoaded', function(){
   function renderDocuments(){
     const filter = activeDocumentFilter();
     const query = tableSearchQuery('documentsTableSearch');
+    const dates = tableDateRange('documentsTable');
     const base = documentsForActiveTab();
     const emptyDefaults = {
       pr: 'No purchase request documents yet.',
@@ -5416,11 +5646,12 @@ document.addEventListener('DOMContentLoaded', function(){
     if(filter === 'po'){
       const visible = base.filter(d => {
         const order = orderForPoRef(d.ref_code);
-        return rowMatchesSearch(query, d.doc_code, d.ref_code, documentPoSummaryText(order), ...documentPoSearchFields(order));
+        return rowMatchesSearch(query, d.doc_code, d.ref_code, documentPoSummaryText(order), ...documentPoSearchFields(order))
+          && rowMatchesDateRange(d.created_at, dates.from, dates.to);
       });
       const tbody = document.getElementById('documentsPoTableBody');
       if(!visible.length){
-        tbody.innerHTML = tableSearchEmptyMessage(7, query, emptyDefaults.po);
+        tbody.innerHTML = tableSearchEmptyMessage(7, tableHasActiveFilters(query, 'documentsTable'), emptyDefaults.po);
         return;
       }
       tbody.innerHTML = visible.map(d => {
@@ -5443,16 +5674,19 @@ document.addEventListener('DOMContentLoaded', function(){
     const colspan = 5;
     const kind = filter === 'vendor' ? 'vendor' : 'pr';
     const visible = base.filter(d => {
+      const matchesDate = rowMatchesDateRange(d.created_at, dates.from, dates.to);
       if(filter === 'vendor'){
         const app = vendorAppForRef(d.ref_code);
-        return rowMatchesSearch(query, d.doc_code, d.ref_code, documentVendorSummaryText(d.ref_code), ...documentVendorSearchFields(app));
+        return rowMatchesSearch(query, d.doc_code, d.ref_code, documentVendorSummaryText(d.ref_code), ...documentVendorSearchFields(app))
+          && matchesDate;
       }
       const r = requestForRef(d.ref_code);
-      return rowMatchesSearch(query, d.doc_code, d.ref_code, documentPrSummaryText(d.ref_code), ...documentPrSearchFields(r));
+      return rowMatchesSearch(query, d.doc_code, d.ref_code, documentPrSummaryText(d.ref_code), ...documentPrSearchFields(r))
+        && matchesDate;
     });
     const tbody = document.getElementById(tbodyId);
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(colspan, query, emptyDefaults[filter] || 'No documents yet.');
+      tbody.innerHTML = tableSearchEmptyMessage(colspan, tableHasActiveFilters(query, 'documentsTable'), emptyDefaults[filter] || 'No documents yet.');
       return;
     }
     tbody.innerHTML = visible.map(d => `
@@ -5471,6 +5705,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.querySelectorAll('#documentFilters .filter-pill').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     clearTableSearch('documentsTableSearch');
+    clearTableDateRange('documentsTable');
     showDocumentTab(btn.dataset.docFilter);
   });
 
@@ -5592,7 +5827,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const select = document.getElementById('reqCatalogPick');
     const items = activeItems().filter(it => mode === 'equipment' ? it.item_type === 'equipment' : it.item_type === 'consumable');
     select.innerHTML = `<option value="">No catalog link — describe the item above</option>` +
-      items.map(it => `<option value="${it.item_key}">${escapeHtml(it.label)}</option>`).join('');
+      items.map(it => `<option value="${it.item_key}">${escapeHtml(itemDisplayLabel(it))}</option>`).join('');
     if(selectedKey && items.some(i => i.item_key === selectedKey)) select.value = selectedKey;
     else select.value = '';
   }
@@ -5604,10 +5839,16 @@ document.addEventListener('DOMContentLoaded', function(){
     const label = (req.requested_label || req.display_label || '').trim();
     const norm = normalizeItemLabel(label);
     select.innerHTML = `<option value="">— Choose catalog item —</option>` +
-      items.map(it => `<option value="${it.item_key}">${escapeHtml(it.label)}</option>`).join('');
-    const exact = items.find(it => it.label.toLowerCase() === label.toLowerCase());
+      items.map(it => `<option value="${it.item_key}">${escapeHtml(itemDisplayLabel(it))}</option>`).join('');
+    const exact = items.find(it =>
+      itemDisplayLabel(it).toLowerCase() === label.toLowerCase()
+      || it.label.toLowerCase() === label.toLowerCase()
+    );
     const similar = !exact && norm.length >= 3
-      ? items.filter(it => normalizeItemLabel(it.label) === norm)
+      ? items.filter(it =>
+        normalizeItemLabel(itemDisplayLabel(it)) === norm
+        || normalizeItemLabel(it.label) === norm
+      )
       : [];
     if(exact){
       select.value = exact.item_key;
@@ -5713,7 +5954,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('reqTypeWrap').classList.toggle('hidden', Boolean(item) || opts.equipmentOnly);
 
     document.getElementById('requestModalTitle').textContent = item
-      ? (mode === 'equipment' ? `Request equipment — ${item.label}` : `New purchase request — ${item.label}`)
+      ? (mode === 'equipment' ? `Request equipment — ${itemDisplayLabel(item)}` : `New purchase request — ${item.label}`)
       : (opts.equipmentOnly ? 'Request equipment' : 'New purchase request');
 
     document.getElementById('reqItemNeeded').value = item?.label || '';
@@ -5810,7 +6051,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('showInactiveInventory').addEventListener('change', function(){
     state.showInactiveInventory = this.checked;
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
-    if(active?.dataset.view !== 'vouchers' && active?.dataset.view !== 'issues' && active?.dataset.view !== 'stock-requests'){
+    if(active?.dataset.view !== 'issues' && active?.dataset.view !== 'stock-requests'){
       renderInventory(active?.dataset.filter || 'all');
     }
   });
@@ -5824,6 +6065,10 @@ document.addEventListener('DOMContentLoaded', function(){
   wireTableSearch('requestsTableSearch', renderRequests);
   wireTableSearch('ordersTableSearch', renderOrders);
   wireTableSearch('documentsTableSearch', renderDocuments);
+  wireTableDateRange('inventoryTable', rerenderActiveInventoryTable);
+  wireTableDateRange('requestsTable', renderRequests);
+  wireTableDateRange('ordersTable', renderOrders);
+  wireTableDateRange('documentsTable', renderDocuments);
   showDocumentTab('pr');
 
   /* ---------- init ---------- */
@@ -5832,7 +6077,7 @@ document.addEventListener('DOMContentLoaded', function(){
     updateProfileUI();
     applyRoleUI();
     await loadLocations();
-    await Promise.all([loadInventory(), loadVouchers(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments(), loadDemandInsights()]);
+    await Promise.all([loadInventory(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments(), loadDemandInsights()]);
     populateDepartmentSelect('issueDepartment', DEPARTMENTS[0]);
     renderDashboard();
     dismissAttentionForPage(pageIdFromHash(location.hash));
