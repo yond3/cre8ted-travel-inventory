@@ -1,5 +1,5 @@
--- Run once on an existing wayfarer_inventory database:
---   Get-Content ".\sql\migration_po_receipt_rejection.sql" | mysql -u root wayfarer_inventory
+-- Run once on an existing cre8ted_inventory database:
+--   Get-Content ".\sql\migration_po_receipt_rejection.sql" | mysql -u root cre8ted_inventory
 --
 -- Lets a manager reject an uploaded receipt (with a required note) instead of
 -- only accepting-or-ignoring it. While rejected, the order cannot be marked
@@ -7,7 +7,7 @@
 -- clears the rejection. Requires migration_po_receipts.sql and
 -- migration_po_receipt_waiver.sql to already be applied.
 
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 ALTER TABLE purchase_orders
     ADD COLUMN receipt_rejected TINYINT(1) NOT NULL DEFAULT 0 AFTER receipt_waived_by,

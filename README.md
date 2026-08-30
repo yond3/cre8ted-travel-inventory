@@ -51,7 +51,7 @@ From the project root (PowerShell):
 Get-Content ".\sql\schema.sql" | mysql -u root -p
 ```
 
-This creates `wayfarer_inventory` and loads demo seed data (items, suppliers, sample requests, vouchers, etc.).
+This creates `cre8ted_inventory` and loads demo seed data (items, suppliers, sample requests, vouchers, etc.).
 
 If MySQL is not on your PATH, use the full path, for example:
 
@@ -59,25 +59,27 @@ If MySQL is not on your PATH, use the full path, for example:
 Get-Content ".\sql\schema.sql" | & "C:\xampp\mysql\bin\mysql.exe" -u root -p
 ```
 
-**Already have a database from before?** `schema.sql` is the full current schema (receipts, Finance integration, receipt reject/reupload, vendor applications, etc.). Rebuilding from scratch **drops all data**. To upgrade an existing `wayfarer_inventory` database instead, run each migration below **once**, in order, skipping any you already applied:
+**Already have a database from before?** `schema.sql` is the full current schema (receipts, Finance integration, receipt reject/reupload, vendor applications, etc.). Rebuilding from scratch **drops all data**. To upgrade an existing `cre8ted_inventory` database instead, run each migration below **once**, in order, skipping any you already applied:
 
 ```powershell
-Get-Content ".\sql\migration_vendor_applications.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_stock_issues.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_month_closes.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_supplier_active.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_items_locations_active.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_po_receipts.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_po_finance_status.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_po_receipt_waiver.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_po_receipt_rejection.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_po_lost_receipt_report.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_stock_requests.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_items_assigned_department.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_inventory_retirements.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_vendor_contact_details.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_login_attempts.sql" | mysql -u root wayfarer_inventory
-Get-Content ".\sql\migration_equipment_groups.sql" | mysql -u root wayfarer_inventory
+Get-Content ".\sql\migration_vendor_applications.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_stock_issues.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_month_closes.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_supplier_active.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_items_locations_active.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_po_receipts.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_po_finance_status.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_po_receipt_waiver.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_po_receipt_rejection.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_po_lost_receipt_report.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_stock_requests.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_items_assigned_department.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_inventory_retirements.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_vendor_contact_details.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_login_attempts.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_equipment_groups.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_equipment_returns.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_stock_requests_free_text.sql" | mysql -u root cre8ted_inventory
 ```
 
 If a migration fails with “duplicate column” or “table already exists”, that file was already applied — skip it and continue.
@@ -97,7 +99,7 @@ Edit these if your machine is different:
 $env:DB_HOST = "127.0.0.1"
 $env:DB_USER = "root"
 $env:DB_PASSWORD = "your_password"
-$env:DB_NAME = "wayfarer_inventory"
+$env:DB_NAME = "cre8ted_inventory"
 ```
 
 ---
@@ -183,6 +185,8 @@ Sign in with one of the demo accounts:
 | `juan` | `staff123` | Staff | View everything, create purchase requests, **request stock from inventory**, use vouchers, issue stock to a department, fulfill department stock requests, upload a purchase order receipt |
 | `maria` | `manager123` | Manager | Staff + approve/reject requests, create POs, resend a PO to Financial Management, record lost receipt on an order, **mark orders received**, edit stock, close month, restock vouchers, approve vendor quotes, void a stock issue |
 | `admin` | `admin123` | Super Admin | Manager + mark items/suppliers/locations inactive, edit voucher quantities, cancel POs |
+| `fleet_dept` | `staff123` | Department API | **API-only** — scoped to Fleet; free-text stock/PR requests. Use `department-api.html` or your own UI. See [API.md](API.md) |
+| `tour_ops_dept` | `staff123` | Department API | Same as above, scoped to Tour Operations |
 
 The vendor quote form (`vendor-apply.html`) stays **public** — no login required, by design.
 
@@ -200,6 +204,20 @@ Departments can ask for items from shelf **before** inventory staff hand them ou
 Official departments (used on stock requests and the issue log): Human resource management, Financial management, Fleet & Transportation management, Facilities & Administration management, Tour Operations, Back-office.
 
 API: `GET/POST /api/stock_requests.php`, `PUT /api/stock_requests.php?id=<id> { action: 'fulfill' | 'cancel' }`.
+
+Department API accounts (`fleet_dept`, `tour_ops_dept`) use the **same flows** as central “Request from stock” / “Request equipment” — catalog item picker, not free-text. UI: `department-api.html`. Contract: [API.md](API.md).
+
+---
+
+## Department API (build your own UI)
+
+Departments integrate via JSON API — no inventory catalog access. Demo page: `http://localhost:8000/department-api.html` after signing in as `fleet_dept`.
+
+Run migration on existing DBs:
+
+```powershell
+Get-Content ".\sql\migration_stock_requests_free_text.sql" | mysql -u root cre8ted_inventory
+```
 
 ---
 

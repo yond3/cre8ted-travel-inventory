@@ -60,14 +60,28 @@ const REQUEST_SELECT = "SELECT r.*, i.label, i.unit, i.item_type,
          LEFT JOIN items i ON i.item_key = r.item_key";
 
 if ($method === 'GET') {
-    require_auth();
-    $rows = $pdo->query(REQUEST_SELECT . ' ORDER BY r.created_at DESC, r.id DESC')->fetchAll();
-    echo json_encode(array_map('format_request', $rows));
+    $user = require_auth();
+    $where = [];
+    $params = [];
+    apply_purchase_request_list_scope($user, $where, $params);
+
+    $sql = REQUEST_SELECT;
+    if ($where) {
+        $sql .= ' WHERE ' . implode(' AND ', $where);
+    }
+    $sql .= ' ORDER BY r.created_at DESC, r.id DESC';
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    echo json_encode(array_map('format_request', $stmt->fetchAll()));
     exit;
 }
 
 if ($method === 'POST') {
-    $user = require_staff_or_above();
+    $user = require_auth();
+    if (!is_central_user($user) && !is_department_user($user)) {
+        json_error('insufficient permissions', 403);
+    }
     $body = read_json_body();
     $employee = $user['name'];
     $qty = $body['qty'] ?? null;
@@ -91,6 +105,44 @@ if ($method === 'POST') {
     if ($qty <= 0) {
         json_error('qty must be greater than 0');
     }
+
+    if (is_department_user($user)) {
+        if (!empty($body['department']) && trim($body['department']) !== $user['department']) {
+            json_error('department accounts cannot submit requests for other departments', 403);
+        }
+        $isEquipment = $requestType === 'equipment';
+        $department = $isEquipment ? $user['department'] : null;
+        $reason = normalize_purchase_reason($body['reason'] ?? null) ?? 'new_need';
+        if ($isEquipment && $qty != floor($qty)) {
+            json_error('equipment quantity must be a whole number');
+        }
+
+        $code = next_code('PR', 'purchase_requests', 'request_code');
+        $stmt = $pdo->prepare(
+            'INSERT INTO purchase_requests (request_code, employee, department, item_key, requested_label, qty, notes, reason, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $code,
+            $employee,
+            $department,
+            null,
+            $requestedLabel,
+            $qty,
+            parse_optional_note($body['notes'] ?? null),
+            $reason,
+            'Pending',
+        ]);
+        create_document('Purchase request', $code, 'Pending');
+
+        $row = $pdo->query(
+            REQUEST_SELECT . ' WHERE r.request_code = ' . $pdo->quote($code)
+        )->fetch();
+        echo json_encode(format_request($row));
+        exit;
+    }
+
+    require_staff_or_above();
 
     if ($requestedLabel === '' && $itemKey !== null) {
         $item = get_item_or_404($itemKey);

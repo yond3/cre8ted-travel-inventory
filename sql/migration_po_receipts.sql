@@ -1,10 +1,10 @@
--- Run once on an existing wayfarer_inventory database:
---   Get-Content ".\sql\migration_po_receipts.sql" | mysql -u root wayfarer_inventory
+-- Run once on an existing cre8ted_inventory database:
+--   Get-Content ".\sql\migration_po_receipts.sql" | mysql -u root cre8ted_inventory
 --
 -- Adds receipt upload fields to purchase_orders. A receipt must be attached
 -- before a Placed order can be marked Received (see purchase_orders.php).
 
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 ALTER TABLE purchase_orders
     ADD COLUMN receipt_filename VARCHAR(255) NULL AFTER received_at,

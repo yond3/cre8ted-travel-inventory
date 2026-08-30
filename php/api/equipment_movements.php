@@ -5,6 +5,7 @@
  * GET /api/equipment_movements.php?department=<name>  -> filter by department
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 $pdo = get_pdo();
 

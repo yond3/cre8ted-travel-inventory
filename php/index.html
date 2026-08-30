@@ -1511,7 +1511,13 @@
     <form id="issueForm" class="flex flex-col gap-4">
       <input type="hidden" id="issueItemKey" value="">
       <input type="hidden" id="issueStockRequestId" value="">
-      <div>
+      <div id="issueItemPickWrap" class="hidden field-wrap">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Match to catalog item</label>
+        <select id="issueItemPick" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+        <p class="text-[.72rem] text-textSoft mt-1">This request was described in free text — pick the shelf item to issue.</p>
+        <p class="field-error hidden" role="alert"></p>
+      </div>
+      <div id="issueItemDisplayWrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item</label>
         <div id="issueItemLabel" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#eef2f7] text-[.88rem] font-semibold text-textDark"></div>
         <p class="text-[.72rem] text-textSoft mt-1" id="issueStockHint"></p>
@@ -2643,8 +2649,8 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   /* ---------- auth / RBAC ---------- */
-  const ROLE_RANK = { staff: 1, manager: 2, super_admin: 3 };
-  const ROLE_LABELS = { staff: 'Staff', manager: 'Manager', super_admin: 'Super Admin' };
+  const ROLE_RANK = { department: 0, staff: 1, manager: 2, super_admin: 3 };
+  const ROLE_LABELS = { department: 'Department API', staff: 'Staff', manager: 'Manager', super_admin: 'Super Admin' };
 
   function roleAtLeast(minRole){
     if(!state.user) return false;
@@ -2659,6 +2665,10 @@ document.addEventListener('DOMContentLoaded', function(){
       return false;
     }
     state.user = data.user;
+    if(state.user.role === 'department'){
+      location.href = 'department-api.html';
+      return false;
+    }
     loadAttentionDismissedFromStorage();
     return true;
   }
@@ -4928,9 +4938,9 @@ document.addEventListener('DOMContentLoaded', function(){
     const query = tableSearchQuery('inventoryTableSearch');
     const dates = tableDateRange('inventoryTable');
     const visible = state.stockRequests.filter(sr => rowMatchesSearch(
-      query, sr.request_code, sr.department, sr.item_label, sr.item_type, sr.requested_by, sr.notes, sr.status, sr.fulfilled_issue_code
+      query, sr.request_code, sr.department, sr.item_label, sr.requested_label, sr.item_type, sr.requested_by, sr.notes, sr.status, sr.fulfilled_issue_code
     ) && rowMatchesDateRange(sr.created_at, dates.from, dates.to)
-      && rowMatchesCatalogFilters(sr.item_type, sr.item_key, 'inventoryTable'));
+      && (sr.is_free_text || rowMatchesCatalogFilters(sr.item_type, sr.item_key, 'inventoryTable')));
     const tbody = document.getElementById('stockRequestsTableBody');
     if(!visible.length){
       tbody.innerHTML = tableSearchEmptyMessage(10, tableHasActiveFilters(query, 'inventoryTable'), 'No stock requests yet. Ask inventory to pull items from the shelf.', { label: 'Request from stock', icon: 'bx-package', onclick: 'openStockRequestModal()', className: 'btn-primary' });
@@ -4944,8 +4954,8 @@ document.addEventListener('DOMContentLoaded', function(){
       <tr class="border-b border-line last:border-0">
         <td class="py-3 pr-3 code-cell">${cellCode(sr.request_code)}</td>
         <td class="py-3 pr-3">${cellDeptChip(sr.department)}</td>
-        <td class="py-3 pr-3">${cellTypeTag(sr.item_type)}</td>
-        <td class="py-3 pr-3">${cellItem(sr.item_label)}</td>
+        <td class="py-3 pr-3">${sr.is_free_text ? cellHint('Described', 'info') : cellTypeTag(sr.item_type)}</td>
+        <td class="py-3 pr-3">${cellItem(sr.item_label, { badge: sr.is_free_text ? 'Free-text' : null })}</td>
         <td class="py-3 pr-3 qty-cell">${cellQty(sr.qty, sr.unit)}</td>
         <td class="py-3 pr-3 qty-cell">${sr.current_qty == null ? cellEmpty() : cellQty(sr.current_qty, sr.unit, { warn: !enoughStock })}</td>
         <td class="py-3 pr-3">${cellStack(escapeHtml(sr.requested_by), fmtDate(sr.created_at))}</td>
@@ -4965,11 +4975,42 @@ document.addEventListener('DOMContentLoaded', function(){
   window.fulfillStockRequest = function(id){
     const sr = state.stockRequests.find(r => r.id === id);
     if(!sr || sr.status !== 'Pending') return;
-    openIssueModal(sr.item_key, { stockRequest: sr });
+    openIssueModal(sr.item_key || null, { stockRequest: sr });
   };
+
+  function populateIssueItemPick(selectedKey){
+    const select = document.getElementById('issueItemPick');
+    if(!select) return;
+    const items = activeItems().filter(it => it.current_qty > 0 && (it.item_type === 'consumable' || it.item_type === 'equipment'));
+    select.innerHTML = '<option value="">Choose catalog item…</option>' + items.map(it =>
+      `<option value="${escapeHtml(it.item_key)}">${escapeHtml(itemDisplayLabel(it))} (${it.current_qty} ${escapeHtml(it.unit)})</option>`
+    ).join('');
+    if(selectedKey) select.value = selectedKey;
+  }
+
+  function syncIssueItemPickSelection(){
+    const key = document.getElementById('issueItemPick')?.value || '';
+    const pickWrap = document.getElementById('issueItemPickWrap');
+    if(!pickWrap || pickWrap.classList.contains('hidden')) return;
+    const it = state.inventory.find(i => i.item_key === key);
+    document.getElementById('issueItemKey').value = key;
+    if(it){
+      document.getElementById('issueStockHint').textContent = `${it.current_qty} ${it.unit} currently on hand.`;
+      const qtyEl = document.getElementById('issueQty');
+      qtyEl.max = it.current_qty;
+      if(Number(qtyEl.value) > it.current_qty) qtyEl.value = it.current_qty;
+    } else {
+      document.getElementById('issueStockHint').textContent = 'Pick a catalog item to see stock on hand.';
+    }
+  }
+
+  document.getElementById('issueItemPick')?.addEventListener('change', syncIssueItemPickSelection);
 
   function resetIssueModalMode(){
     document.getElementById('issueStockRequestId').value = '';
+    document.getElementById('issueItemPickWrap').classList.add('hidden');
+    document.getElementById('issueItemDisplayWrap').classList.remove('hidden');
+    document.getElementById('issueItemKey').value = '';
     document.getElementById('issueModalTitle').textContent = 'Issue stock';
     document.getElementById('issueModalHint').textContent = 'Record who took this from storage — stock updates right away.';
     document.getElementById('issueFormSubmitBtn').textContent = 'Record issue';
@@ -4982,14 +5023,26 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   window.openIssueModal = function(itemKey, { stockRequest = null } = {}){
-    const it = state.inventory.find(i => i.item_key === itemKey);
-    if(!it) return;
+    const needsPick = stockRequest && (stockRequest.is_free_text || !itemKey);
+    const it = itemKey ? state.inventory.find(i => i.item_key === itemKey) : null;
+    if(!needsPick && !it) return;
     document.getElementById('issueForm').reset();
     resetIssueModalMode();
-    document.getElementById('issueItemKey').value = it.item_key;
-    document.getElementById('issueItemLabel').textContent = itemDisplayLabel(it);
-    document.getElementById('issueStockHint').textContent = `${it.current_qty} ${it.unit} currently on hand.`;
-    document.getElementById('issueQty').max = it.current_qty;
+    document.getElementById('issueItemPickWrap').classList.toggle('hidden', !needsPick);
+    document.getElementById('issueItemDisplayWrap').classList.toggle('hidden', !!needsPick);
+
+    if(needsPick){
+      populateIssueItemPick(itemKey || '');
+      document.getElementById('issueItemLabel').textContent = stockRequest.item_label || '—';
+      document.getElementById('issueStockHint').textContent = `Requested: ${stockRequest.qty} ${stockRequest.unit || 'unit(s)'}. Pick the matching catalog item below.`;
+      document.getElementById('issueItemKey').value = '';
+    } else {
+      document.getElementById('issueItemKey').value = it.item_key;
+      document.getElementById('issueItemLabel').textContent = itemDisplayLabel(it);
+      document.getElementById('issueStockHint').textContent = `${it.current_qty} ${it.unit} currently on hand.`;
+      document.getElementById('issueQty').max = it.current_qty;
+    }
+
     document.getElementById('issueQty').value = stockRequest ? stockRequest.qty : 1;
     populateDepartmentSelect('issueDepartment', stockRequest ? stockRequest.department : DEPARTMENTS[0]);
     document.getElementById('issueIssuedTo').value = stockRequest ? (stockRequest.requested_by || '') : '';
@@ -5310,7 +5363,12 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('issueForm').addEventListener('submit', async function(e){
     e.preventDefault();
     clearFormFieldErrors(this);
-    const itemKey = document.getElementById('issueItemKey').value;
+    let itemKey = document.getElementById('issueItemKey').value;
+    const pickWrap = document.getElementById('issueItemPickWrap');
+    if(!itemKey && pickWrap && !pickWrap.classList.contains('hidden')){
+      itemKey = document.getElementById('issueItemPick').value;
+      document.getElementById('issueItemKey').value = itemKey;
+    }
     const it = state.inventory.find(i => i.item_key === itemKey);
     const qtyEl = document.getElementById('issueQty');
     const notesEl = document.getElementById('issueNotes');
@@ -5320,6 +5378,12 @@ document.addEventListener('DOMContentLoaded', function(){
     const stockRequestId = document.getElementById('issueStockRequestId').value;
     const issuedTo = issuedToEl.value.trim();
     let ok = true;
+    if(!itemKey){
+      if(pickWrap && !pickWrap.classList.contains('hidden')){
+        setFieldError(document.getElementById('issueItemPick'), 'Choose the catalog item to issue.');
+        ok = false;
+      }
+    }
     if(!department){
       setFieldError(document.getElementById('issueDepartment'), 'Choose a department.');
       ok = false;
@@ -5336,6 +5400,7 @@ document.addEventListener('DOMContentLoaded', function(){
       if(stockRequestId){
         await apiSend(`stock_requests.php?id=${stockRequestId}`, 'PUT', {
           action: 'fulfill',
+          item_key: itemKey,
           qty,
           issued_to: issuedTo || null,
           notes: notesEl.value.trim() || null,

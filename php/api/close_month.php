@@ -7,6 +7,7 @@
  *      -> logs usage, updates stock, saves month_closes row for next month.
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);

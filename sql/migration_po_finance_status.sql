@@ -1,12 +1,12 @@
--- Run once on an existing wayfarer_inventory database:
---   Get-Content ".\sql\migration_po_finance_status.sql" | mysql -u root wayfarer_inventory
+-- Run once on an existing cre8ted_inventory database:
+--   Get-Content ".\sql\migration_po_finance_status.sql" | mysql -u root cre8ted_inventory
 --
 -- Adds the Financial Management integration state machine to purchase
 -- orders (disbursement request -> funded -> expense sent -> recorded) and a
 -- log table for every outbound/inbound call. Requires
 -- migration_po_receipts.sql to already be applied.
 
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 ALTER TABLE purchase_orders
     ADD COLUMN finance_status ENUM(

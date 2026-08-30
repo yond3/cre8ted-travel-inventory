@@ -5,6 +5,7 @@
  *      -> staff+ for good/damaged; manager+ required when condition is broken (write-off).
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 $pdo = get_pdo();
 

@@ -5,6 +5,7 @@
  *      -> add or overwrite one month's usage number directly.
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 $itemKey = $_GET['item'] ?? '';
 if ($itemKey === '') {

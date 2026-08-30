@@ -17,6 +17,7 @@
  *      -> approve copies prices into suppliers + supplier_prices.
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];

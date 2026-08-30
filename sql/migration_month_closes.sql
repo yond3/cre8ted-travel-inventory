@@ -1,10 +1,10 @@
--- Run once on an existing wayfarer_inventory database:
---   mysql -u root wayfarer_inventory < sql/migration_month_closes.sql
+-- Run once on an existing cre8ted_inventory database:
+--   mysql -u root cre8ted_inventory < sql/migration_month_closes.sql
 --
 -- Stores opening/received/closing each time a month is closed so the next
 -- month's opening is remembered automatically (no manual recall needed).
 
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 CREATE TABLE IF NOT EXISTS month_closes (
     item_key VARCHAR(50) NOT NULL,

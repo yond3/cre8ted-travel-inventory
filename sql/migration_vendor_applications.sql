@@ -1,7 +1,7 @@
--- Run once on an existing wayfarer_inventory database:
---   mysql -u root wayfarer_inventory < sql/migration_vendor_applications.sql
+-- Run once on an existing cre8ted_inventory database:
+--   mysql -u root cre8ted_inventory < sql/migration_vendor_applications.sql
 
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 CREATE TABLE IF NOT EXISTS vendor_applications (
     id INT AUTO_INCREMENT PRIMARY KEY,

@@ -13,6 +13,7 @@
  *        expense.recorded       { expense_id }
  */
 require __DIR__ . '/config.php';
+block_department_user();
 require __DIR__ . '/finance_client.php';
 
 $pdo = get_pdo();

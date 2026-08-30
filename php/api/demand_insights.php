@@ -6,6 +6,7 @@
  * recent purchase order activity (Placed + Received).
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     json_error('method not allowed', 405);

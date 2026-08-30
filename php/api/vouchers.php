@@ -10,6 +10,7 @@
  *   { action: "edit", label, tour_package, current_qty, notes }
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];

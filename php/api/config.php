@@ -41,7 +41,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 enforce_session_timeout();
 
 const DB_HOST = '127.0.0.1';
-const DB_NAME = 'wayfarer_inventory';
+const DB_NAME = 'cre8ted_inventory';
 const DB_USER = 'root';
 const DB_PASSWORD = '';
 
@@ -109,6 +109,19 @@ const AUTH_USERS = [
         'name' => 'System Administrator',
         'role' => 'super_admin',
     ],
+    // Department API demo accounts (password: staff123 — same demo hash as juan).
+    'fleet_dept' => [
+        'password' => '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a',
+        'name' => 'Fleet Department',
+        'role' => 'department',
+        'department' => 'Fleet & Transportation management',
+    ],
+    'tour_ops_dept' => [
+        'password' => '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a',
+        'name' => 'Tour Operations Department',
+        'role' => 'department',
+        'department' => 'Tour Operations',
+    ],
 ];
 
 // Login rate limiting (see login_attempts table + auth.php). Separate
@@ -120,6 +133,7 @@ const LOGIN_ATTEMPT_WINDOW_MINUTES = 10;
 const LOGIN_LOCKOUT_MINUTES = 15;
 
 const ROLE_RANK = [
+    'department' => 0,
     'staff' => 1,
     'manager' => 2,
     'super_admin' => 3,
@@ -349,11 +363,15 @@ function parse_optional_person_name(?string $value, string $fieldLabel = 'Issued
 
 function public_user(array $user): array
 {
-    return [
+    $out = [
         'username' => $user['username'],
         'name' => $user['name'],
         'role' => $user['role'],
     ];
+    if (!empty($user['department'])) {
+        $out['department'] = $user['department'];
+    }
+    return $out;
 }
 
 function get_session_user(): ?array
@@ -395,6 +413,7 @@ function authenticate_user(string $username, string $password): ?array
         'username' => $key,
         'name' => AUTH_USERS[$key]['name'],
         'role' => AUTH_USERS[$key]['role'],
+        'department' => AUTH_USERS[$key]['department'] ?? null,
     ];
 }
 
@@ -504,6 +523,145 @@ function require_role(string ...$roles): array
 function require_staff_or_above(): array
 {
     return require_role('staff', 'manager', 'super_admin');
+}
+
+function is_department_user(array $user): bool
+{
+    return ($user['role'] ?? '') === 'department' && !empty($user['department']);
+}
+
+function is_central_user(array $user): bool
+{
+    return in_array($user['role'] ?? '', ['staff', 'manager', 'super_admin'], true);
+}
+
+/** Reject department API accounts from central inventory endpoints. */
+function block_department_user(): void
+{
+    $user = get_session_user();
+    if ($user && is_department_user($user)) {
+        json_error('this endpoint is not available for department accounts', 403);
+    }
+}
+
+function assert_stock_request_access(array $user, array $row): void
+{
+    if (is_department_user($user) && ($row['department'] ?? '') !== $user['department']) {
+        json_error('access denied for this department', 403);
+    }
+}
+
+function apply_stock_request_list_scope(array $user, array &$where, array &$params): void
+{
+    if (is_department_user($user)) {
+        $where[] = 'sr.department = ?';
+        $params[] = $user['department'];
+        return;
+    }
+    if (!empty($_GET['department'])) {
+        $dept = trim((string) $_GET['department']);
+        if (!is_valid_department($dept)) {
+            json_error('invalid department filter');
+        }
+        $where[] = 'sr.department = ?';
+        $params[] = $dept;
+    }
+    if (!empty($_GET['requested_by'])) {
+        $where[] = 'sr.requested_by = ?';
+        $params[] = trim((string) $_GET['requested_by']);
+    }
+}
+
+function apply_purchase_request_list_scope(array $user, array &$where, array &$params): void
+{
+    if (is_department_user($user)) {
+        $where[] = '(r.department = ? OR (r.department IS NULL AND r.employee = ?))';
+        $params[] = $user['department'];
+        $params[] = $user['name'];
+        return;
+    }
+    if (!empty($_GET['department'])) {
+        $dept = trim((string) $_GET['department']);
+        if (!is_valid_department($dept)) {
+            json_error('invalid department filter');
+        }
+        $where[] = 'r.department = ?';
+        $params[] = $dept;
+    }
+    if (!empty($_GET['employee'])) {
+        $where[] = 'r.employee = ?';
+        $params[] = trim((string) $_GET['employee']);
+    }
+}
+
+/**
+ * Items departments (and central stock-request UI) can pick from — active rows with storage qty.
+ *
+ * @return list<array{item_key: string, label: string, display_label: string, unit: string, item_type: string, max_qty: float}>
+ */
+function fetch_requestable_stock_items(PDO $pdo, ?string $typeFilter = null): array
+{
+    $stmt = $pdo->query(
+        'SELECT i.* FROM items i WHERE i.active = 1 ORDER BY i.label ASC, i.item_key ASC'
+    );
+    $out = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $itemType = $row['item_type'] ?? 'consumable';
+        if ($typeFilter !== null && $typeFilter !== '' && $itemType !== $typeFilter) {
+            continue;
+        }
+        if ($itemType === 'equipment') {
+            if (!empty($row['assigned_department'])) {
+                continue;
+            }
+            if (empty($row['location_id'])) {
+                continue;
+            }
+        }
+        $onHand = (float) ($row['current_qty'] ?? 0);
+        if ($onHand <= 0) {
+            continue;
+        }
+        $out[] = [
+            'item_key' => $row['item_key'],
+            'label' => $row['label'],
+            'display_label' => equipment_item_display_label($row),
+            'unit' => $row['unit'],
+            'item_type' => $itemType,
+            'max_qty' => $onHand,
+        ];
+    }
+    return $out;
+}
+
+/** Validates catalog stock request and returns the item row. */
+function validate_catalog_stock_request_item(array $item, float $qty): void
+{
+    if ((int) ($item['active'] ?? 1) !== 1) {
+        json_error('cannot request an inactive item');
+    }
+    if (($item['item_type'] ?? '') !== 'consumable' && ($item['item_type'] ?? '') !== 'equipment') {
+        json_error('only consumable items and equipment can be requested from stock');
+    }
+    if (($item['item_type'] ?? '') === 'equipment') {
+        if (!empty($item['assigned_department'])) {
+            json_error('that equipment row is legacy — use the catalog item in storage', 409);
+        }
+        if (empty($item['location_id'])) {
+            json_error('that equipment has no storage location — assign a cabinet or shelf first', 409);
+        }
+        if ((float) $item['current_qty'] <= 0) {
+            json_error('no units of that equipment are available in storage', 409);
+        }
+    } elseif ((float) $item['current_qty'] <= 0) {
+        json_error('no stock on hand for that item', 409);
+    }
+    if ($qty > (float) $item['current_qty']) {
+        json_error(
+            "only {$item['current_qty']} {$item['unit']} on hand — cannot request $qty",
+            409
+        );
+    }
 }
 
 function require_manager_or_above(): array

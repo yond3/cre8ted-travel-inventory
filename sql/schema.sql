@@ -1,8 +1,8 @@
 -- Cre8ted Travel inventory system - full MySQL schema + demo seed data
 -- Regenerate with sql/generate_seed.py after changing the seed data in that file.
 
-CREATE DATABASE IF NOT EXISTS wayfarer_inventory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE wayfarer_inventory;
+CREATE DATABASE IF NOT EXISTS cre8ted_inventory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE cre8ted_inventory;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS login_attempts;
@@ -305,7 +305,9 @@ CREATE TABLE stock_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     request_code VARCHAR(20) NOT NULL UNIQUE,
     department VARCHAR(100) NOT NULL,
-    item_key VARCHAR(50) NOT NULL,
+    item_key VARCHAR(50) NULL,
+    requested_label VARCHAR(100) NULL,
+    requested_unit VARCHAR(15) NULL,
     qty DECIMAL(10,2) NOT NULL,
     requested_by VARCHAR(100) NOT NULL,
     notes VARCHAR(255) NULL,

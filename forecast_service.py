@@ -1,5 +1,5 @@
 """
-Wayfarer Travel & Tours — AI Demand Forecasting microservice
+Cre8ted Travel — AI Demand Forecasting microservice
 -------------------------------------------------------------
 This is the Prophet-only piece of the stack. Everything else (inventory,
 purchase requests/orders, supplier directory, document tracking, stock
@@ -37,7 +37,7 @@ DB_CONFIG = dict(
     host=os.environ.get("DB_HOST", "127.0.0.1"),
     user=os.environ.get("DB_USER", "root"),
     password=os.environ.get("DB_PASSWORD", ""),
-    database=os.environ.get("DB_NAME", "wayfarer_inventory"),
+    database=os.environ.get("DB_NAME", "cre8ted_inventory"),
     cursorclass=pymysql.cursors.DictCursor,
 )
 

@@ -1,5 +1,5 @@
 """
-Wayfarer Travel & Tours — Receipt OCR microservice
+Cre8ted Travel — Receipt OCR microservice
 ---------------------------------------------------
 Second Python sidecar next to forecast_service.py, same "PHP calls a local
 Python service over HTTP" pattern. This one reads an uploaded receipt image,

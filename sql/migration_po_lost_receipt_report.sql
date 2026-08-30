@@ -1,5 +1,5 @@
 -- Apply on an existing database:
---   Get-Content ".\sql\migration_po_lost_receipt_report.sql" | mysql -u root wayfarer_inventory
+--   Get-Content ".\sql\migration_po_lost_receipt_report.sql" | mysql -u root cre8ted_inventory
 --
 -- Staff can report a lost receipt; a manager must approve before it counts
 -- as proof and is sent to Financial Management.

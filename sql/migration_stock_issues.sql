@@ -1,12 +1,12 @@
--- Run once on an existing wayfarer_inventory database:
---   Get-Content ".\sql\migration_stock_issues.sql" | mysql -u root wayfarer_inventory
+-- Run once on an existing cre8ted_inventory database:
+--   Get-Content ".\sql\migration_stock_issues.sql" | mysql -u root cre8ted_inventory
 --
 -- Stock issue / checkout log: records who took stock and for which
 -- department at the moment items leave storage. Decrements items.current_qty
 -- immediately (separate from Close month, which reconciles against a
 -- physical shelf count at month end).
 
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 CREATE TABLE IF NOT EXISTS stock_issues (
     id INT AUTO_INCREMENT PRIMARY KEY,

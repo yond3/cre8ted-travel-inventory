@@ -7,6 +7,7 @@
  * inventory (including equipment), see inventory.php.
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 require_auth();
 

@@ -9,6 +9,7 @@
  * for order history. Set active = 0 to mark inactive; active = 1 to reactivate.
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];

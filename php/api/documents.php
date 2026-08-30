@@ -5,6 +5,7 @@
  * purchase_orders.php — one row per PR or PO, status kept in sync.
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     json_error('method not allowed', 405);

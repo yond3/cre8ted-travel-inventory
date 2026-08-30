@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Department requests — Cre8ted Travel</title>
+<link rel="icon" type="image/png" href="assets/logo-icon.png">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.625rem 1rem;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#173868,#0c1f3f);color:#fff;font-size:.85rem;font-weight:700;box-shadow:0 8px 18px rgba(15,42,82,.22)}
+  .btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.625rem 1rem;border-radius:12px;cursor:pointer;background:#fff;color:#0f2a52;border:1.5px solid #c8d9f5;font-size:.85rem;font-weight:700}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;display:none;align-items:flex-start;justify-content:center;padding:1.5rem 1rem;overflow-y:auto}
+  .modal-overlay.show{display:flex}
+  .field-error{color:#d5362f;font-size:.72rem;margin-top:.25rem}
+  .toast{position:fixed;bottom:1.25rem;right:1.25rem;background:#0f2242;color:#fff;padding:.75rem 1rem;border-radius:12px;font-size:.85rem;z-index:3000;max-width:20rem}
+  .toast.hidden{display:none}
+</style>
+</head>
+<body class="min-h-screen bg-[#eef2f7] font-[Inter] text-[#0e1b3c] pb-8">
+  <div class="max-w-3xl mx-auto px-4 py-8">
+    <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+      <div class="flex items-center gap-3">
+        <img src="assets/logo-icon.png" alt="" class="w-11 h-11 object-contain">
+        <div>
+          <div class="font-[Plus_Jakarta_Sans] font-extrabold text-lg">Department requests</div>
+          <div class="text-[.78rem] text-[#5b6b85]" id="headerDept">—</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="API.md" class="text-[.78rem] font-semibold text-[#173868] px-3 py-2">API docs</a>
+        <button id="logoutBtn" type="button" class="px-4 py-2 rounded-xl bg-white border border-[#e7ecf3] text-[.85rem] font-semibold cursor-pointer">Logout</button>
+      </div>
+    </div>
+
+    <section class="bg-white rounded-2xl border border-[#e7ecf3] p-6 shadow-sm mb-5">
+      <p class="text-[.68rem] font-semibold uppercase tracking-wide text-[#94a3bb] mb-2">Request supplies</p>
+      <div class="flex flex-wrap gap-2 mb-2">
+        <button type="button" id="openStockBtn" class="btn-primary"><i class='bx bx-package'></i> Request from stock</button>
+        <button type="button" id="openEquipmentBtn" class="btn-secondary"><i class='bx bx-wrench'></i> Request equipment</button>
+      </div>
+      <p class="text-[.78rem] text-[#5b6b85]">Pick up from office storage or ask for new equipment to be purchased.</p>
+    </section>
+
+    <section class="bg-white rounded-2xl border border-[#e7ecf3] p-6 shadow-sm mb-5">
+      <h2 class="font-[Plus_Jakarta_Sans] font-bold text-[1.05rem] mb-3">My stock requests</h2>
+      <div id="stockRequestsList" class="text-[.85rem] text-[#5b6b85]">Loading…</div>
+    </section>
+
+    <section class="bg-white rounded-2xl border border-[#e7ecf3] p-6 shadow-sm">
+      <h2 class="font-[Plus_Jakarta_Sans] font-bold text-[1.05rem] mb-3">My purchase requests</h2>
+      <div id="purchaseRequestsList" class="text-[.85rem] text-[#5b6b85]">Loading…</div>
+    </section>
+  </div>
+
+  <!-- Stock request modal (same flow as central app) -->
+  <div class="modal-overlay" id="stockModal">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 my-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-[Plus_Jakarta_Sans] font-extrabold text-[1.1rem]" id="stockModalTitle">Request from stock</h3>
+        <button type="button" class="modal-close w-8 h-8 rounded-full border-none bg-[#eef2f7] cursor-pointer text-[1.1rem]" data-close="stockModal"><i class='bx bx-x'></i></button>
+      </div>
+      <p class="text-[.8rem] text-[#5b6b85] mb-4">Ask inventory to pull this from storage — stock is not deducted until staff fulfill the request.</p>
+      <form id="stockForm" class="flex flex-col gap-4">
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Requested by</label>
+          <div id="stockEmployee" class="px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#eef2f7] text-[.88rem] font-semibold">—</div>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Department</label>
+          <div id="stockDepartment" class="px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#eef2f7] text-[.88rem] font-semibold">—</div>
+        </div>
+        <div id="stockTypeWrap">
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Request type</label>
+          <div class="flex gap-2">
+            <label class="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.85rem] cursor-pointer">
+              <input type="radio" name="stockType" value="consumable" checked> Office supplies
+            </label>
+            <label class="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.85rem] cursor-pointer">
+              <input type="radio" name="stockType" value="equipment"> Equipment
+            </label>
+          </div>
+          <p class="text-[.72rem] text-[#94a3bb] mt-1" id="stockTypeHint">Pens, paper, cleaning supplies, and other consumables.</p>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1" id="stockItemLabel">Supply</label>
+          <select id="stockItem" class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]" required></select>
+          <p class="text-[.72rem] text-[#94a3bb] mt-1" id="stockQtyHint"></p>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Quantity</label>
+          <input id="stockQty" type="number" min="0.01" step="any" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]">
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Notes (optional)</label>
+          <textarea id="stockNotes" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]" placeholder="e.g. for front desk use this week"></textarea>
+        </div>
+        <button type="submit" class="btn-primary justify-center w-full">Submit request</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Equipment purchase request modal -->
+  <div class="modal-overlay" id="equipmentModal">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 my-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-[Plus_Jakarta_Sans] font-extrabold text-[1.1rem]">Request equipment</h3>
+        <button type="button" class="modal-close w-8 h-8 rounded-full border-none bg-[#eef2f7] cursor-pointer text-[1.1rem]" data-close="equipmentModal"><i class='bx bx-x'></i></button>
+      </div>
+      <p class="text-[.8rem] text-[#5b6b85] mb-4">Submit a purchase request for new equipment your department needs.</p>
+      <form id="equipmentForm" class="flex flex-col gap-4">
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Requested by</label>
+          <div id="eqEmployee" class="px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#eef2f7] text-[.88rem] font-semibold">—</div>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Department</label>
+          <div id="eqDepartment" class="px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#eef2f7] text-[.88rem] font-semibold">—</div>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Item needed</label>
+          <input id="eqItemNeeded" required maxlength="100" class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]" placeholder="e.g. HP LaserJet printer, heavy-duty extension cord 25ft">
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Reason</label>
+          <select id="eqReason" class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]">
+            <option value="replacement">Replacement (broken or lost)</option>
+            <option value="new_need" selected>New need</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Quantity</label>
+          <input id="eqQty" type="number" min="1" step="1" value="1" required class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]">
+        </div>
+        <div>
+          <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Notes (optional)</label>
+          <textarea id="eqNotes" rows="2" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]"></textarea>
+        </div>
+        <button type="submit" class="btn-primary justify-center w-full">Submit purchase request</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+<script>
+(async function(){
+  let user = null;
+  let requestableItems = [];
+
+  async function api(path, method, body){
+    const res = await fetch('api/' + path, {
+      method: method || 'GET',
+      credentials: 'include',
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok) throw data;
+    return data;
+  }
+
+  function toast(msg){
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 3500);
+  }
+
+  function openModal(id){ document.getElementById(id).classList.add('show'); }
+  function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+  document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', () => closeModal(btn.dataset.close));
+  });
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if(e.target === overlay) overlay.classList.remove('show'); });
+  });
+
+  const auth = await fetch('api/auth.php', { credentials: 'include' }).then(r => r.json());
+  if(!auth.authenticated || auth.user.role !== 'department'){
+    location.href = 'login.html';
+    return;
+  }
+  user = auth.user;
+  document.getElementById('headerDept').textContent = user.department;
+  document.getElementById('stockEmployee').textContent = user.name;
+  document.getElementById('stockDepartment').textContent = user.department;
+  document.getElementById('eqEmployee').textContent = user.name;
+  document.getElementById('eqDepartment').textContent = user.department;
+
+  async function loadRequestable(){
+    requestableItems = await api('stock_requests.php?requestable=1');
+  }
+
+  function stockType(){ return document.querySelector('input[name="stockType"]:checked')?.value || 'consumable'; }
+
+  function itemsForType(type){
+    return requestableItems.filter(it => it.item_type === type);
+  }
+
+  function syncStockItemSelect(){
+    const type = stockType();
+    const items = itemsForType(type);
+    document.getElementById('stockItemLabel').textContent = type === 'equipment' ? 'Equipment' : 'Supply';
+    document.getElementById('stockTypeHint').textContent = type === 'equipment'
+      ? 'Laptops, projectors, and tools currently in storage.'
+      : 'Pens, paper, cleaning supplies, and other consumables.';
+    const select = document.getElementById('stockItem');
+    select.innerHTML = items.length
+      ? items.map(it => `<option value="${it.item_key}">${it.display_label || it.label} (${it.max_qty} ${it.unit} available)</option>`).join('')
+      : '<option value="">Nothing available in storage</option>';
+    updateStockQtyHint();
+  }
+
+  function updateStockQtyHint(){
+    const key = document.getElementById('stockItem').value;
+    const item = requestableItems.find(i => i.item_key === key);
+    const hint = document.getElementById('stockQtyHint');
+    const qtyEl = document.getElementById('stockQty');
+    if(!item){
+      hint.textContent = itemsForType(stockType()).length ? '' : 'No items in storage for this type right now.';
+      return;
+    }
+    qtyEl.max = item.max_qty;
+    if(Number(qtyEl.value) > item.max_qty) qtyEl.value = item.max_qty;
+    hint.textContent = `${item.max_qty} ${item.unit} available in storage. Inventory staff will issue when they fulfill this request.`;
+  }
+
+  document.querySelectorAll('input[name="stockType"]').forEach(r => r.addEventListener('change', syncStockItemSelect));
+  document.getElementById('stockItem').addEventListener('change', updateStockQtyHint);
+
+  document.getElementById('openStockBtn').addEventListener('click', async () => {
+    await loadRequestable();
+    document.querySelector('input[name="stockType"][value="consumable"]').checked = true;
+    syncStockItemSelect();
+    document.getElementById('stockQty').value = 1;
+    document.getElementById('stockNotes').value = '';
+    openModal('stockModal');
+  });
+
+  document.getElementById('openEquipmentBtn').addEventListener('click', () => {
+    document.getElementById('eqItemNeeded').value = '';
+    document.getElementById('eqQty').value = 1;
+    document.getElementById('eqNotes').value = '';
+    document.getElementById('eqReason').value = 'new_need';
+    openModal('equipmentModal');
+  });
+
+  document.getElementById('stockForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const itemKey = document.getElementById('stockItem').value;
+    const qty = Number(document.getElementById('stockQty').value);
+    if(!itemKey){ toast('Choose an item.'); return; }
+    const item = requestableItems.find(i => i.item_key === itemKey);
+    if(!item || qty <= 0 || qty > item.max_qty){ toast('Check quantity — cannot exceed available stock.'); return; }
+    try {
+      const row = await api('stock_requests.php', 'POST', {
+        item_key: itemKey,
+        qty,
+        notes: document.getElementById('stockNotes').value.trim() || null,
+      });
+      closeModal('stockModal');
+      document.getElementById('stockModalTitle').textContent = 'Request from stock';
+      toast('Submitted ' + row.request_code);
+      loadStockRequests();
+    } catch (err) {
+      toast(err.error || 'Could not submit request.');
+    }
+  });
+
+  document.getElementById('equipmentForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const label = document.getElementById('eqItemNeeded').value.trim();
+    const qty = Number(document.getElementById('eqQty').value);
+    if(!label || qty < 1 || qty !== Math.floor(qty)){ toast('Enter item description and a whole-number quantity.'); return; }
+    try {
+      const row = await api('purchase_requests.php', 'POST', {
+        requested_label: label,
+        qty,
+        request_type: 'equipment',
+        reason: document.getElementById('eqReason').value,
+        notes: document.getElementById('eqNotes').value.trim() || null,
+      });
+      closeModal('equipmentModal');
+      toast('Submitted ' + row.request_code);
+      loadPurchaseRequests();
+    } catch (err) {
+      toast(err.error || 'Could not submit request.');
+    }
+  });
+
+  async function loadStockRequests(){
+    const el = document.getElementById('stockRequestsList');
+    try {
+      const rows = await api('stock_requests.php');
+      if(!rows.length){ el.textContent = 'No stock requests yet.'; return; }
+      el.innerHTML = rows.map(r => `
+        <div class="py-2.5 border-b border-[#e7ecf3] last:border-0 flex justify-between gap-3 flex-wrap">
+          <div><strong>${r.request_code}</strong> · ${r.item_label} · ${r.qty} ${r.unit}</div>
+          <div class="flex items-center gap-2">
+            <span class="font-semibold">${r.status}</span>
+            ${r.status === 'Pending' ? `<button type="button" class="text-[.75rem] text-[#173868] font-semibold border-none bg-transparent cursor-pointer" data-cancel-stock="${r.id}">Cancel</button>` : ''}
+          </div>
+        </div>`).join('');
+      el.querySelectorAll('[data-cancel-stock]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await api('stock_requests.php?id=' + btn.dataset.cancelStock, 'PUT', { action: 'cancel' });
+            toast('Request cancelled.');
+            loadStockRequests();
+          } catch (err) { toast(err.error || 'Could not cancel.'); }
+        });
+      });
+    } catch (err) {
+      el.textContent = err.error || 'Could not load requests.';
+    }
+  }
+
+  async function loadPurchaseRequests(){
+    const el = document.getElementById('purchaseRequestsList');
+    try {
+      const rows = await api('purchase_requests.php');
+      if(!rows.length){ el.textContent = 'No purchase requests yet.'; return; }
+      el.innerHTML = rows.map(r => `
+        <div class="py-2.5 border-b border-[#e7ecf3] last:border-0">
+          <strong>${r.request_code}</strong> · ${r.display_label || r.item_label} · ${r.qty} ${r.unit || 'unit(s)'} · <span class="font-semibold">${r.status}</span>
+        </div>`).join('');
+    } catch (err) {
+      el.textContent = err.error || 'Could not load requests.';
+    }
+  }
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await fetch('api/auth.php', { method: 'DELETE', credentials: 'include' });
+    location.href = 'login.html';
+  });
+
+  await loadRequestable();
+  loadStockRequests();
+  loadPurchaseRequests();
+})();
+</script>
+</body>
+</html>

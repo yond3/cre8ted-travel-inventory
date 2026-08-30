@@ -12,6 +12,7 @@
  * GET  /api/receipts.php?check_number=<or>&exclude_po_id=<id> -> duplicate OR check (auth required).
  */
 require __DIR__ . '/config.php';
+block_department_user();
 require __DIR__ . '/finance_client.php';
 
 $pdo = get_pdo();

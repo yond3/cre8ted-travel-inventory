@@ -23,7 +23,7 @@
     <form id="loginForm" class="flex flex-col gap-4">
       <div>
         <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Username</label>
-        <input id="username" autocomplete="username" required class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]" placeholder="juan, maria, or admin">
+        <input id="username" autocomplete="username" required class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]" placeholder="juan, maria, admin, or fleet_dept">
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1">Password</label>
@@ -37,13 +37,14 @@
       <div><strong>juan</strong> / staff123 — Staff</div>
       <div><strong>maria</strong> / manager123 — Manager</div>
       <div><strong>admin</strong> / admin123 — Super Admin</div>
+      <div><strong>fleet_dept</strong> / staff123 — Department API (see API.md)</div>
     </div>
   </div>
 <script>
 (async function(){
   const res = await fetch('api/auth.php', { credentials: 'include' });
   const data = await res.json();
-  if(data.authenticated) location.href = 'index.html';
+  if(data.authenticated) location.href = data.user?.role === 'department' ? 'department-api.html' : 'index.html';
 
   document.getElementById('loginForm').addEventListener('submit', async function(e){
     e.preventDefault();
@@ -60,7 +61,7 @@
       });
       const data = await res.json();
       if(!res.ok) throw data;
-      location.href = 'index.html';
+      location.href = data.user?.role === 'department' ? 'department-api.html' : 'index.html';
     } catch (err) {
       errEl.textContent = err.error || 'Sign in failed.';
       errEl.classList.remove('hidden');

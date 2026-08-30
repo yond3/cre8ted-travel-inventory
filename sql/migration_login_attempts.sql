@@ -2,7 +2,7 @@
 -- out that username/IP for 15 minutes — see config.php + auth.php).
 -- Safe to re-run: only creates the table if it doesn't already exist.
 
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 CREATE TABLE IF NOT EXISTS login_attempts (
     id INT AUTO_INCREMENT PRIMARY KEY,

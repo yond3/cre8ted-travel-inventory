@@ -1,7 +1,7 @@
--- Run once on an existing wayfarer_inventory database:
---   mysql -u root wayfarer_inventory < sql/migration_items_locations_active.sql
+-- Run once on an existing cre8ted_inventory database:
+--   mysql -u root cre8ted_inventory < sql/migration_items_locations_active.sql
 
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 ALTER TABLE items
     ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1 AFTER max_qty;

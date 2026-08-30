@@ -1,10 +1,10 @@
--- Run once on an existing wayfarer_inventory database:
---   Get-Content ".\sql\migration_stock_requests.sql" | mysql -u root wayfarer_inventory
+-- Run once on an existing cre8ted_inventory database:
+--   Get-Content ".\sql\migration_stock_requests.sql" | mysql -u root cre8ted_inventory
 --
 -- Department stock requests: formal in-app requests before inventory staff
 -- issue items from shelf. Fulfill creates a stock_issues row and links back.
 
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 CREATE TABLE IF NOT EXISTS stock_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
