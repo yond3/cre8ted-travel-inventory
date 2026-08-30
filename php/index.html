@@ -199,6 +199,104 @@
     color:var(--t-text) !important;
   }
   .profile-menu.show{ opacity:1; visibility:visible; transform:translateY(0); }
+  .filter-pill .pill-attention-dot.hidden{ display:none; }
+
+  /* —— Section tabs (inventory catalog vs activity) —— */
+  .section-tabs{ display:flex; gap:.35rem; padding:.25rem; background:var(--t-hover-strong); border-radius:12px; width:fit-content; max-width:100%; flex-wrap:wrap; }
+  .section-tab{
+    padding:.55rem 1rem; border-radius:10px; border:none; background:transparent; color:var(--t-text-mid);
+    font-size:.82rem; font-weight:600; cursor:pointer; transition:background .15s, color .15s, box-shadow .15s;
+    min-height:44px;
+  }
+  .section-tab:hover{ color:var(--t-text); background:var(--t-hover); }
+  .section-tab.active{ background:var(--t-card); color:var(--t-text); box-shadow:0 2px 8px rgba(15,42,82,.08); }
+
+  /* —— Action button hierarchy —— */
+  .btn-primary{
+    display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+    padding:.625rem 1rem; border-radius:12px; border:none; cursor:pointer;
+    background:linear-gradient(135deg,#173868,#0c1f3f); color:#fff;
+    font-size:.85rem; font-weight:700; box-shadow:0 8px 18px rgba(15,42,82,.22);
+    transition:transform .15s, box-shadow .15s;
+  }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 10px 22px rgba(15,42,82,.28); }
+  .btn-secondary{
+    display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+    padding:.625rem 1rem; border-radius:12px; cursor:pointer;
+    background:var(--t-card); color:#0f2a52; border:1.5px solid #c8d9f5;
+    font-size:.85rem; font-weight:700; transition:background .15s, border-color .15s;
+  }
+  .btn-secondary:hover{ background:#eef4ff; border-color:#173868; }
+  .btn-tertiary{
+    display:inline-flex; align-items:center; justify-content:center; gap:.4rem;
+    padding:.5rem .85rem; border-radius:10px; cursor:pointer;
+    background:transparent; color:var(--t-text-mid); border:1px solid var(--t-line);
+    font-size:.78rem; font-weight:600; transition:background .15s, color .15s;
+  }
+  .btn-tertiary:hover{ background:var(--t-hover); color:var(--t-text); }
+  .inventory-header-actions{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:1rem 1.25rem; }
+  .inventory-action-group{ display:flex; flex-direction:column; gap:.35rem; }
+  .inventory-action-label{ font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--t-text-soft); margin:0; }
+  .inventory-action-hint{ font-size:.72rem; color:var(--t-text-soft); margin:0; max-width:16rem; line-height:1.4; }
+
+  /* —— Dashboard launcher & waiting —— */
+  .dashboard-launcher{ display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; margin-bottom:1.25rem; }
+  .dashboard-launcher-card{
+    display:flex; flex-direction:column; align-items:flex-start; gap:.75rem; text-align:left;
+    padding:1.25rem; border-radius:16px; border:1px solid var(--t-line); background:var(--t-card);
+    box-shadow:0 4px 20px rgba(15,42,82,.06); cursor:pointer; transition:transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .dashboard-launcher-card:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(15,42,82,.1); border-color:#c8d9f5; }
+  .dashboard-launcher-icon{
+    width:2.75rem; height:2.75rem; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-size:1.35rem;
+  }
+  .dashboard-waiting-item{
+    display:flex; align-items:flex-start; gap:.75rem; padding:.75rem 0; border-bottom:1px solid var(--t-line);
+  }
+  .dashboard-waiting-item:last-child{ border-bottom:none; }
+  .dashboard-stat-card{ text-align:left; transition:transform .15s, box-shadow .15s; border-left:4px solid transparent; }
+  .dashboard-stat-card:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(15,42,82,.1); }
+  .dashboard-stat-card.stat-accent-navy{ border-left-color:#173868; }
+  .dashboard-stat-card.stat-accent-red{ border-left-color:#d5362f; }
+  .dashboard-stat-card.stat-accent-amber{ border-left-color:#c07d10; }
+  .dashboard-stat-card.stat-accent-green{ border-left-color:#1a9b58; }
+
+  /* —— Tables —— */
+  .gl-table-wrap-sticky{ max-height:min(70vh, 720px); overflow:auto; }
+  .gl-table thead th{
+    position:sticky; top:0; z-index:2; background:var(--t-card);
+    box-shadow:0 1px 0 var(--t-line);
+  }
+  .gl-table tbody td{ font-size:.9rem; }
+  .gl-table td.qty-cell, .gl-table td.code-cell{ font-variant-numeric:tabular-nums; }
+  .gl-table tbody tr:hover td{ background:var(--t-hover); }
+  .table-empty-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.75rem;
+    padding:2.5rem 1.5rem; text-align:center; max-width:24rem; margin:0 auto;
+  }
+  .table-empty-state p{ font-size:.88rem; color:var(--t-text-mid); line-height:1.45; margin:0; }
+  .table-empty-icon{
+    width:3rem; height:3rem; border-radius:14px; background:var(--t-hover-strong);
+    display:flex; align-items:center; justify-content:center; font-size:1.5rem; color:var(--t-text-soft);
+  }
+
+  /* —— Mobile quick actions —— */
+  .mobile-action-bar{
+    display:none; position:fixed; bottom:0; left:0; right:0; z-index:2400;
+    padding:.65rem 1rem calc(.65rem + env(safe-area-inset-bottom, 0px));
+    background:var(--t-card); border-top:1px solid var(--t-line);
+    box-shadow:0 -4px 20px rgba(15,42,82,.08); gap:.5rem;
+  }
+  .mobile-action-bar .btn-primary, .mobile-action-bar .btn-secondary{ flex:1; min-height:44px; font-size:.8rem; }
+  @media (max-width:900px){
+    .mobile-action-bar{ display:flex; }
+    .main-content{ padding-bottom:5.5rem; }
+    .filter-pill{ min-height:44px; padding-top:.55rem; padding-bottom:.55rem; }
+  }
+
+  .field-hint{ line-height:1.45; }
+
   .filter-pill.active{ background:linear-gradient(135deg,#173868,#0c1f3f); color:#fff; box-shadow:0 8px 18px rgba(15,42,82,.25); }
   .nav-item{ position:relative; }
   .nav-attention-badge{
@@ -332,7 +430,7 @@
   }
   .cell-action-stack button,
   .cell-action-stack .cell-hint{ white-space:nowrap; }
-  .po-table-wrap{ width:100%; overflow:hidden; }
+  .po-table-wrap{ width:100%; overflow:auto; max-height:min(70vh, 720px); }
   .po-table{
     table-layout:auto;
     width:max-content;
@@ -680,11 +778,22 @@
 <section class="page-section" id="page-dashboard">
   <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center gap-3">
     <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-grid-alt'></i></div>
-    <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Dashboard</h1>
+    <div>
+      <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Dashboard</h1>
+      <p class="text-[.78rem] text-textMid mt-0.5" id="dashboardSubtitle">What do you need today?</p>
+    </div>
   </div>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-    <button type="button" class="dashboard-stat-card bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('items')" aria-label="View items tracked">
+  <div class="dashboard-launcher mb-5" id="dashboardLauncher"></div>
+
+  <div class="bg-card rounded-card shadow-panel border border-line p-5 mb-5 hidden" id="dashboardWaitingCard">
+    <h3 class="font-display font-bold text-[1.02rem] text-textDark mb-1">Waiting on you</h3>
+    <p class="text-[.75rem] text-textMid mb-3" id="dashboardWaitingHint"></p>
+    <div id="dashboardWaitingList"></div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5" id="dashboardStatsGrid">
+    <button type="button" class="dashboard-stat-card stat-accent-navy bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('items')" aria-label="View items tracked">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Items tracked</span>
         <div class="w-9 h-9 rounded-lg bg-[#eaf1fb] flex items-center justify-center text-navy800 text-[1.05rem]"><i class='bx bx-archive'></i></div>
@@ -693,7 +802,7 @@
       <div class="text-[.78rem] text-textSoft mt-1" id="statTotalItemsHint">Across 4 storage locations</div>
       <div class="text-[.72rem] text-navy800 font-semibold mt-2">Click to view list</div>
     </button>
-    <button type="button" class="dashboard-stat-card bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('low-stock')" aria-label="View low stock items">
+    <button type="button" class="dashboard-stat-card stat-accent-red bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('low-stock')" aria-label="View low stock items">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Low stock items</span>
         <div class="w-9 h-9 rounded-lg bg-redBg flex items-center justify-center text-redTx text-[1.05rem]"><i class='bx bx-error-circle'></i></div>
@@ -702,7 +811,7 @@
       <div class="text-[.78rem] text-textSoft mt-1">Below minimum threshold</div>
       <div class="text-[.72rem] text-navy800 font-semibold mt-2">Click to view list</div>
     </button>
-    <button type="button" class="dashboard-stat-card bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('pending')" aria-label="View pending purchase requests">
+    <button type="button" class="dashboard-stat-card stat-accent-amber bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('pending')" aria-label="View pending purchase requests">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Pending requests</span>
         <div class="w-9 h-9 rounded-lg bg-amberBg flex items-center justify-center text-amberTx text-[1.05rem]"><i class='bx bx-time-five'></i></div>
@@ -711,7 +820,7 @@
       <div class="text-[.78rem] text-textSoft mt-1">Awaiting manager approval</div>
       <div class="text-[.72rem] text-navy800 font-semibold mt-2">Click to view list</div>
     </button>
-    <button type="button" class="dashboard-stat-card bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('suppliers')" aria-label="View active suppliers">
+    <button type="button" class="dashboard-stat-card stat-accent-green bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('suppliers')" aria-label="View active suppliers">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Active suppliers</span>
         <div class="w-9 h-9 rounded-lg bg-greenBg flex items-center justify-center text-greenTx text-[1.05rem]"><i class='bx bx-store'></i></div>
@@ -722,7 +831,7 @@
     </button>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-5" id="dashboardInsightsGrid">
     <div class="lg:col-span-3 bg-card rounded-card shadow-panel border border-line p-5">
       <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
         <h3 class="font-display font-bold text-[1.02rem] text-textDark">Demand insights</h3>
@@ -755,32 +864,49 @@
         <p class="text-[.78rem] text-textMid mt-0.5">No warehouse needed — just cabinets, drawers, shelves and a locker.</p>
       </div>
     </div>
-    <div id="inventoryRequestActions" class="hidden items-center gap-2 flex-wrap">
-      <button onclick="openStockRequestModal()" id="inventoryRequestStockBtn" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:-translate-y-px">
-        <i class='bx bx-package text-[1.1rem]'></i> Request from stock
-      </button>
-      <button onclick="openEquipmentRequestModal()" id="inventoryRequestEquipmentBtn" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:-translate-y-px">
-        <i class='bx bx-wrench text-[1.1rem]'></i> Request equipment
-      </button>
+    <div class="inventory-header-actions">
+      <div class="inventory-action-group" id="inventoryRequestActions">
+        <p class="inventory-action-label">Request supplies</p>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button onclick="openStockRequestModal()" id="inventoryRequestStockBtn" type="button" class="btn-primary">
+            <i class='bx bx-package text-[1.1rem]'></i> Request from stock
+          </button>
+          <button onclick="openEquipmentRequestModal()" id="inventoryRequestEquipmentBtn" type="button" class="btn-secondary">
+            <i class='bx bx-wrench text-[1.1rem]'></i> Request equipment
+          </button>
+        </div>
+        <p class="inventory-action-hint hidden" id="inventoryRequestHint">Pick up from office storage or ask for new equipment.</p>
+      </div>
+      <div class="inventory-action-group hidden" id="inventoryManageGroup">
+        <p class="inventory-action-label">Manage catalog</p>
+        <button onclick="openItemModal()" id="inventoryAddItemBtn" type="button" class="btn-tertiary">
+          <i class='bx bx-plus text-[1.05rem]'></i> Add item
+        </button>
+      </div>
     </div>
-    <button onclick="openItemModal()" id="inventoryAddItemBtn" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.85rem] font-bold cursor-pointer border-none shadow-btn transition-all duration-200 hover:shadow-btnhover hover:-translate-y-px">
-      <i class='bx bx-plus text-[1.1rem]'></i> Add item
-    </button>
   </div>
 
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
-    <div class="flex items-center gap-2 mb-4 flex-wrap" id="inventoryFilters">
-      <button class="filter-pill active px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="all" data-slug="all">All items</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Low stock" data-slug="low-stock">Low stock</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="In stock" data-slug="in-stock">In stock</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="equipment" data-slug="equipment">Equipment</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="stock-requests" data-slug="stock-requests">Stock requests</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="issues" data-slug="issue-log">Issue log</button>
-      <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="equipment-history" data-slug="equipment-history">Equipment history</button>
-      <label class="ml-auto flex items-center gap-2 text-[.8rem] text-textMid cursor-pointer select-none">
-        <input type="checkbox" id="showInactiveInventory" class="rounded border-line">
-        Show inactive
-      </label>
+    <div class="section-tabs mb-4" id="inventorySectionTabs" role="tablist" aria-label="Inventory sections">
+      <button type="button" class="section-tab active" data-inventory-section="catalog" role="tab" aria-selected="true">Catalog</button>
+      <button type="button" class="section-tab" data-inventory-section="activity" role="tab" aria-selected="false">Requests &amp; activity</button>
+    </div>
+    <div id="inventoryFilters">
+      <div class="flex items-center gap-2 mb-4 flex-wrap inventory-filter-row" id="inventoryCatalogFilters">
+        <button class="filter-pill active px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="all" data-slug="all">All items</button>
+        <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="Low stock" data-slug="low-stock">Low stock</button>
+        <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="In stock" data-slug="in-stock">In stock</button>
+        <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-filter="equipment" data-slug="equipment">Equipment</button>
+        <label class="ml-auto flex items-center gap-2 text-[.8rem] text-textMid cursor-pointer select-none" id="inventoryCatalogExtras">
+          <input type="checkbox" id="showInactiveInventory" class="rounded border-line">
+          Show inactive
+        </label>
+      </div>
+      <div class="hidden flex items-center gap-2 mb-4 flex-wrap inventory-filter-row" id="inventoryActivityFilters">
+        <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="stock-requests" data-slug="stock-requests">Stock requests</button>
+        <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="issues" data-slug="issue-log">Issue log</button>
+        <button class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-view="equipment-history" data-slug="equipment-history">Equipment history</button>
+      </div>
     </div>
     <div class="table-toolbar">
       <div class="table-search-wrap">
@@ -805,7 +931,7 @@
         </label>
       </div>
     </div>
-    <div class="overflow-x-auto" id="inventoryTableWrap">
+    <div class="overflow-x-auto gl-table-wrap-sticky" id="inventoryTableWrap">
       <table class="gl-table w-full text-[.85rem] border-collapse">
         <thead>
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
@@ -824,7 +950,7 @@
     </div>
     <div class="hidden" id="stockRequestsPanel">
       <p class="text-[.78rem] text-textMid mb-4">Departments request items here before inventory staff issue them from storage. Fulfill creates an issue log entry and reduces stock on hand.</p>
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto gl-table-wrap-sticky">
         <table class="gl-table w-full text-[.85rem] border-collapse">
           <thead>
             <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
@@ -846,7 +972,7 @@
     </div>
     <div class="hidden" id="issuePanel">
       <p class="text-[.78rem] text-textMid mb-4">Checkouts and write-offs from storage — when inventory pulls items off the shelf or retires broken stock. Equipment retirements also appear in <strong>Equipment history</strong>.</p>
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto gl-table-wrap-sticky">
         <table class="gl-table w-full text-[.85rem] border-collapse">
           <thead>
             <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
@@ -866,7 +992,7 @@
     </div>
     <div class="hidden" id="equipmentHistoryPanel">
       <p class="text-[.78rem] text-textMid mb-4">Every equipment assignment and storage receipt — issues from storage, returns from departments, purchase receipts, and write-offs.</p>
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto gl-table-wrap-sticky">
         <table class="gl-table w-full text-[.85rem] border-collapse">
           <thead>
             <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
@@ -928,7 +1054,7 @@
         </label>
       </div>
     </div>
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto gl-table-wrap-sticky">
       <table class="gl-table w-full text-[.85rem] border-collapse">
         <thead>
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
@@ -2243,6 +2369,11 @@
 
 <div id="appToast" class="app-toast hidden" role="status" aria-live="polite"></div>
 
+<nav class="mobile-action-bar" id="mobileActionBar" aria-label="Quick actions">
+  <button type="button" class="btn-primary" id="mobileRequestStockBtn"><i class='bx bx-package'></i> Request stock</button>
+  <button type="button" class="btn-secondary" id="mobileMyRequestsBtn"><i class='bx bx-list-ul'></i> My requests</button>
+</nav>
+
 </div>
 </div>
 </div>
@@ -2270,6 +2401,15 @@ document.addEventListener('DOMContentLoaded', function(){
   themeToggle?.addEventListener('click', () => {
     const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     applyTheme(next);
+  });
+
+  document.getElementById('mobileRequestStockBtn')?.addEventListener('click', () => {
+    navigateToPage('page-inventory', { updateHash: true });
+    openStockRequestModal();
+  });
+  document.getElementById('mobileMyRequestsBtn')?.addEventListener('click', () => {
+    navigateToPage('page-inventory', { updateHash: true });
+    location.hash = hashForInventoryTab('stock-requests');
   });
 
   /* ---------- shell behaviors (sidebar, clock, profile menu) ---------- */
@@ -2350,7 +2490,24 @@ document.addEventListener('DOMContentLoaded', function(){
     return slug === 'all' ? 'inventory' : `inventory/${slug}`;
   }
 
+  const INVENTORY_ACTIVITY_SLUGS = new Set(['stock-requests', 'issue-log', 'equipment-history']);
+
+  function inventorySectionForSlug(slug){
+    return INVENTORY_ACTIVITY_SLUGS.has(slug) ? 'activity' : 'catalog';
+  }
+
+  function setInventorySection(section){
+    document.querySelectorAll('#inventorySectionTabs .section-tab').forEach(tab => {
+      const active = tab.dataset.inventorySection === section;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.getElementById('inventoryCatalogFilters')?.classList.toggle('hidden', section !== 'catalog');
+    document.getElementById('inventoryActivityFilters')?.classList.toggle('hidden', section !== 'activity');
+  }
+
   function activateInventoryTab(slug){
+    setInventorySection(inventorySectionForSlug(slug));
     const prevActive = document.querySelector('#inventoryFilters .filter-pill.active');
     const prevView = prevActive?.dataset.view || 'items';
     const btn = document.querySelector(`#inventoryFilters .filter-pill[data-slug="${slug}"]`)
@@ -2526,6 +2683,11 @@ document.addEventListener('DOMContentLoaded', function(){
       state.showInactiveSuppliers = false;
       state.showInactiveLocations = false;
     }
+    document.getElementById('dashboardStatsGrid')?.classList.toggle('hidden', !managerUp);
+    document.getElementById('dashboardInsightsGrid')?.classList.toggle('hidden', !managerUp);
+    document.getElementById('dashboardSubtitle').textContent = managerUp
+      ? 'Overview and quick actions'
+      : 'What do you need today?';
     const activeView = document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view;
     setInventoryHeaderAction(
       activeView === 'issues' ? 'issues'
@@ -2537,25 +2699,24 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function setInventoryHeaderAction(mode){
-    const itemBtn = document.getElementById('inventoryAddItemBtn');
+    const manageGroup = document.getElementById('inventoryManageGroup');
     const requestActions = document.getElementById('inventoryRequestActions');
+    const requestHint = document.getElementById('inventoryRequestHint');
     const managerUp = roleAtLeast('manager');
 
-    itemBtn.classList.add('hidden');
-    itemBtn.classList.remove('flex');
-    requestActions.classList.add('hidden');
-    requestActions.classList.remove('flex');
-
     if(mode === 'issues' || mode === 'equipment-history'){
+      requestActions?.classList.add('hidden');
+      manageGroup?.classList.add('hidden');
       return;
     }
 
-    requestActions.classList.remove('hidden');
-    requestActions.classList.add('flex');
+    requestActions?.classList.remove('hidden');
+    requestHint?.classList.remove('hidden');
 
     if(managerUp && mode !== 'stock-requests'){
-      itemBtn.classList.remove('hidden');
-      itemBtn.classList.add('flex');
+      manageGroup?.classList.remove('hidden');
+    } else {
+      manageGroup?.classList.add('hidden');
     }
   }
 
@@ -3409,8 +3570,17 @@ document.addEventListener('DOMContentLoaded', function(){
     return text.includes(query);
   }
 
-  function tableSearchEmptyMessage(colspan, hasFilters, defaultMessage){
-    return `<tr><td colspan="${colspan}" class="py-6 text-center text-textMid">${hasFilters ? 'No rows match your filters.' : defaultMessage}</td></tr>`;
+  function tableSearchEmptyMessage(colspan, hasFilters, defaultMessage, cta){
+    if(hasFilters){
+      return `<tr><td colspan="${colspan}"><div class="table-empty-state"><div class="table-empty-icon"><i class='bx bx-search-alt'></i></div><p>No rows match your filters.</p></div></td></tr>`;
+    }
+    const ctaHtml = cta
+      ? `<button type="button" class="${cta.className || 'btn-secondary'}" onclick="${cta.onclick}">${cta.label}</button>`
+      : '';
+    return `<tr><td colspan="${colspan}"><div class="table-empty-state">
+      <div class="table-empty-icon"><i class='bx ${cta?.icon || 'bx-inbox'}'></i></div>
+      <p>${defaultMessage}</p>${ctaHtml}
+    </div></td></tr>`;
   }
 
   function tableDateRange(prefix){
@@ -4472,7 +4642,7 @@ document.addEventListener('DOMContentLoaded', function(){
       .filter(([groupName, variants]) => equipmentGroupMatchesSearch(groupName, variants, query));
 
     if(!consumables.length && !equipmentGroups.length){
-      tbody.innerHTML = tableSearchEmptyMessage(8, tableHasActiveFilters(query, 'inventoryTable'), state.showInactiveInventory ? 'No items match this filter.' : 'No active items. Turn on “Show inactive” to see hidden items.');
+      tbody.innerHTML = tableSearchEmptyMessage(8, tableHasActiveFilters(query, 'inventoryTable'), state.showInactiveInventory ? 'No items match this filter.' : 'No active items in the catalog yet.', roleAtLeast('manager') ? { label: 'Add item', icon: 'bx-plus', onclick: 'openItemModal()' } : null);
       return;
     }
 
@@ -4511,6 +4681,13 @@ document.addEventListener('DOMContentLoaded', function(){
     const slug = btn.dataset.slug || 'all';
     dismissAttentionForInventoryPill(slug);
     location.hash = hashForInventoryTab(slug);
+  });
+
+  document.getElementById('inventorySectionTabs')?.addEventListener('click', (e) => {
+    const tab = e.target.closest('.section-tab');
+    if(!tab || tab.classList.contains('active')) return;
+    const section = tab.dataset.inventorySection;
+    location.hash = hashForInventoryTab(section === 'catalog' ? 'all' : 'stock-requests');
   });
 
   function showInventoryPanel(filter){
@@ -4756,7 +4933,7 @@ document.addEventListener('DOMContentLoaded', function(){
       && rowMatchesCatalogFilters(sr.item_type, sr.item_key, 'inventoryTable'));
     const tbody = document.getElementById('stockRequestsTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(10, tableHasActiveFilters(query, 'inventoryTable'), 'No stock requests yet. Click Request from stock to ask inventory for items on the shelf.');
+      tbody.innerHTML = tableSearchEmptyMessage(10, tableHasActiveFilters(query, 'inventoryTable'), 'No stock requests yet. Ask inventory to pull items from the shelf.', { label: 'Request from stock', icon: 'bx-package', onclick: 'openStockRequestModal()', className: 'btn-primary' });
       return;
     }
     tbody.innerHTML = visible.map(sr => {
@@ -5698,7 +5875,155 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   };
 
+  function renderDashboardLauncher(){
+    const el = document.getElementById('dashboardLauncher');
+    if(!el) return;
+    el.innerHTML = `
+      <button type="button" class="dashboard-launcher-card" onclick="dashboardQuickAction('stock')">
+        <div class="dashboard-launcher-icon bg-[#eaf1fb] text-navy800"><i class='bx bx-package'></i></div>
+        <div>
+          <div class="font-display font-bold text-[1rem] text-textDark">Request from stock</div>
+          <p class="text-[.78rem] text-textMid mt-1 mb-0">Pick up supplies already on the shelf.</p>
+        </div>
+      </button>
+      <button type="button" class="dashboard-launcher-card" onclick="dashboardQuickAction('equipment')">
+        <div class="dashboard-launcher-icon bg-[#eaf1fb] text-navy800"><i class='bx bx-wrench'></i></div>
+        <div>
+          <div class="font-display font-bold text-[1rem] text-textDark">Borrow equipment</div>
+          <p class="text-[.78rem] text-textMid mt-1 mb-0">Request laptops, projectors, and tools in storage.</p>
+        </div>
+      </button>
+      <button type="button" class="dashboard-launcher-card" onclick="dashboardQuickAction('purchase')">
+        <div class="dashboard-launcher-icon bg-amberBg text-amberTx"><i class='bx bx-cart'></i></div>
+        <div>
+          <div class="font-display font-bold text-[1rem] text-textDark">Buy something new</div>
+          <p class="text-[.78rem] text-textMid mt-1 mb-0">Submit a purchase request for manager approval.</p>
+        </div>
+      </button>
+      ${roleAtLeast('manager') ? `
+      <button type="button" class="dashboard-launcher-card" onclick="dashboardQuickAction('review')">
+        <div class="dashboard-launcher-icon bg-greenBg text-greenTx"><i class='bx bx-check-shield'></i></div>
+        <div>
+          <div class="font-display font-bold text-[1rem] text-textDark">Review requests</div>
+          <p class="text-[.78rem] text-textMid mt-1 mb-0">Approve purchase requests and fulfill stock pickups.</p>
+        </div>
+      </button>` : ''}`;
+  }
+
+  function renderWaitingOnYou(){
+    const card = document.getElementById('dashboardWaitingCard');
+    const list = document.getElementById('dashboardWaitingList');
+    const hint = document.getElementById('dashboardWaitingHint');
+    if(!card || !list || !hint) return;
+
+    const items = [];
+    const userName = state.user?.name;
+
+    if(roleAtLeast('manager')){
+      state.requests.filter(r => r.status === 'Pending').slice(0, 6).forEach(r => {
+        items.push({
+          icon: 'bx-time-five', tone: 'amber',
+          title: `Approve ${r.request_code}`,
+          sub: `${r.employee} · ${r.display_label || r.item_label}`,
+          action: () => navigateToPage('page-requests', { updateHash: true }),
+        });
+      });
+      state.stockRequests.filter(sr => sr.status === 'Pending').slice(0, 6).forEach(sr => {
+        items.push({
+          icon: 'bx-package', tone: 'navy',
+          title: 'Fulfill stock request',
+          sub: `${sr.requested_by} · ${sr.item_label}`,
+          action: () => {
+            navigateToPage('page-inventory', { updateHash: true });
+            location.hash = hashForInventoryTab('stock-requests');
+          },
+        });
+      });
+      state.orders.filter(orderNeedsAttention).slice(0, 4).forEach(o => {
+        items.push({
+          icon: 'bx-receipt', tone: 'red',
+          title: `PO ${o.po_code}`,
+          sub: o.receipt_rejected ? 'Receipt rejected — re-upload needed' : 'Receipt or finance step pending',
+          action: () => navigateToPage('page-orders', { updateHash: true }),
+        });
+      });
+      hint.textContent = 'Items that need a manager decision or follow-up.';
+    } else {
+      state.requests.filter(r => r.employee === userName).slice(0, 5).forEach(r => {
+        if(r.status === 'Pending' || r.status === 'Approved' || r.status === 'Rejected'){
+          items.push({
+            icon: 'bx-file', tone: 'amber',
+            title: r.request_code,
+            sub: `${r.status} · ${r.display_label || r.item_label}`,
+            action: () => navigateToPage('page-requests', { updateHash: true }),
+          });
+        }
+      });
+      state.stockRequests.filter(sr => sr.requested_by === userName && sr.status === 'Pending').forEach(sr => {
+        items.push({
+          icon: 'bx-package', tone: 'navy',
+          title: 'Stock request pending',
+          sub: sr.item_label,
+          action: () => {
+            navigateToPage('page-inventory', { updateHash: true });
+            location.hash = hashForInventoryTab('stock-requests');
+          },
+        });
+      });
+      state.orders.filter(o => orderNeedsAttention(o) && o.ordered_by === userName).forEach(o => {
+        items.push({
+          icon: 'bx-upload', tone: 'red',
+          title: `Upload receipt · ${o.po_code}`,
+          sub: o.item_label,
+          action: () => navigateToPage('page-orders', { updateHash: true }),
+        });
+      });
+      hint.textContent = 'Your open requests and next steps.';
+    }
+
+    if(!items.length){
+      card.classList.add('hidden');
+      state.dashboardWaitingActions = [];
+      return;
+    }
+
+    card.classList.remove('hidden');
+    state.dashboardWaitingActions = items.map(it => it.action);
+    const toneClass = { amber: 'bg-amberBg text-amberTx', red: 'bg-redBg text-redTx', green: 'bg-greenBg text-greenTx', navy: 'bg-[#eaf1fb] text-navy800' };
+    list.innerHTML = items.map((it, i) => `
+      <div class="dashboard-waiting-item">
+        <div class="dashboard-launcher-icon ${toneClass[it.tone] || toneClass.navy}"><i class='bx ${it.icon}'></i></div>
+        <div class="flex-1">
+          <button type="button" class="text-left bg-transparent border-none p-0 cursor-pointer w-full" onclick="dashboardWaitingAction(${i})">
+            <div class="text-[.88rem] font-semibold text-textDark">${escapeHtml(it.title)}</div>
+            <div class="text-[.75rem] text-textMid">${escapeHtml(it.sub)}</div>
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  window.dashboardQuickAction = function(action){
+    if(action === 'stock'){
+      navigateToPage('page-inventory', { updateHash: true });
+      openStockRequestModal();
+    } else if(action === 'equipment'){
+      navigateToPage('page-inventory', { updateHash: true });
+      openEquipmentRequestModal();
+    } else if(action === 'purchase'){
+      openRequestModal();
+    } else if(action === 'review'){
+      navigateToPage('page-requests', { updateHash: true });
+    }
+  };
+
+  window.dashboardWaitingAction = function(index){
+    state.dashboardWaitingActions?.[index]?.();
+  };
+
   function renderDashboard(){
+    renderDashboardLauncher();
+    renderWaitingOnYou();
+
     const lowStock = activeItems().filter(it => it.status === 'Low stock');
     const storageLocCount = activeLocations().filter(l => l.location_type === 'storage').length;
 
@@ -5742,7 +6067,7 @@ document.addEventListener('DOMContentLoaded', function(){
       && rowMatchesCatalogFilters(r.item_type, r.item_key, 'requestsTable'));
     const tbody = document.getElementById('requestsTableBody');
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(10, tableHasActiveFilters(query, 'requestsTable'), 'No purchase requests yet.');
+      tbody.innerHTML = tableSearchEmptyMessage(10, tableHasActiveFilters(query, 'requestsTable'), 'No purchase requests yet.', { label: 'New purchase request', icon: 'bx-cart', onclick: 'openRequestModal()', className: 'btn-primary' });
       return;
     }
     tbody.innerHTML = visible.map(r => `
@@ -7503,7 +7828,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('showInactiveInventory').addEventListener('change', function(){
     state.showInactiveInventory = this.checked;
     const active = document.querySelector('#inventoryFilters .filter-pill.active');
-    if(active?.dataset.view !== 'issues' && active?.dataset.view !== 'stock-requests'){
+    if(active?.dataset.view !== 'issues' && active?.dataset.view !== 'stock-requests' && active?.dataset.view !== 'equipment-history'){
       renderInventory(active?.dataset.filter || 'all');
     }
   });
