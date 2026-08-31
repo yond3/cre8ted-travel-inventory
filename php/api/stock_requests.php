@@ -17,7 +17,7 @@ require __DIR__ . '/config.php';
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];
 
-const STOCK_REQUEST_SELECT = 'SELECT sr.*, i.label, i.item_type, i.unit, i.current_qty, si.issue_code
+const STOCK_REQUEST_SELECT = 'SELECT sr.*, i.label, i.equipment_group, i.item_type, i.unit, i.current_qty, si.issue_code
     FROM stock_requests sr
     LEFT JOIN items i ON i.item_key = sr.item_key
     LEFT JOIN stock_issues si ON si.id = sr.fulfilled_issue_id';
@@ -27,7 +27,7 @@ function format_stock_request(array $row): array
     $freeText = empty($row['item_key']);
     $label = $freeText
         ? ($row['requested_label'] ?? '—')
-        : ($row['label'] ?? $row['requested_label'] ?? '—');
+        : equipment_item_display_label($row);
     $unit = $freeText
         ? ($row['requested_unit'] ?? 'unit(s)')
         : ($row['unit'] ?? 'unit(s)');

@@ -21,7 +21,7 @@ function format_issue(array $row): array
         'id' => (int) $row['id'],
         'issue_code' => $row['issue_code'],
         'item_key' => $row['item_key'],
-        'item_label' => $row['label'],
+        'item_label' => equipment_item_display_label($row),
         'unit' => $row['unit'],
         'qty' => (float) $row['qty'],
         'department' => $row['department'],
@@ -35,7 +35,7 @@ function format_issue(array $row): array
     ];
 }
 
-const ISSUE_SELECT = 'SELECT si.*, i.label, i.unit FROM stock_issues si
+const ISSUE_SELECT = 'SELECT si.*, i.label, i.equipment_group, i.item_type, i.unit FROM stock_issues si
     JOIN items i ON i.item_key = si.item_key';
 
 if ($method === 'GET') {
