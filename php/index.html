@@ -5630,7 +5630,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const where = source === 'department' ? department : 'storage';
     const reasonLabel = RETIREMENT_REASON_LABELS[reason] || reason;
-    if(!await showConfirmModal({ title: `Retire ${qty} ${it.unit}?`, message: `${itemDisplayLabel(it)} from ${where}.\n\nReason: ${reasonLabel}`, confirmText: 'Retire units', danger: true })) return;
+    if(!await showConfirmModal({ title: `Retire ${qty} ${it.unit}?`, message: `${itemDisplayLabel(it)} from ${where}.\n\nReason: ${reasonLabel}`, confirmText: 'Retire units', danger: true, delaySeconds: CONFIRM_HOLD_SECONDS })) return;
 
     try {
       await apiSend('inventory_retirements.php', 'POST', {
@@ -5734,6 +5734,14 @@ document.addEventListener('DOMContentLoaded', function(){
     const iss = state.stockIssues.find(i => i.id === id);
     if(!iss) return;
     const reason = reasonEl.value.trim() || null;
+    const ok = await showConfirmModal({
+      title: `Void ${iss.issue_code}?`,
+      message: `${iss.qty} ${iss.unit} of ${iss.item_label} will be added back to stock.`,
+      confirmText: 'Void issue',
+      danger: true,
+      delaySeconds: CONFIRM_HOLD_SECONDS,
+    });
+    if(!ok) return;
     try {
       await apiSend(`stock_issues.php?id=${id}`, 'PUT', { action: 'void', reason });
       closeModal('voidIssueModalOverlay');
@@ -6531,7 +6539,19 @@ document.addEventListener('DOMContentLoaded', function(){
     if(selectAll) selectAll.checked = all.length > 0 && all.every(cb => cb.checked);
   }
 
+  function purchaseRequestConfirmDetail(r){
+    if(!r) return '';
+    return `${r.request_code}: ${r.employee} asked for ${r.qty} ${r.unit || ''} of ${r.display_label || r.item_label}.`.replace(/\s+/g, ' ').trim();
+  }
+
   window.approveRequest = async function(id){
+    const r = state.requests.find(x => x.id === id);
+    const ok = await showConfirmModal({
+      title: `Approve ${r?.request_code || 'this request'}?`,
+      message: (purchaseRequestConfirmDetail(r) + '\n\nStaff will see this as Approved. You can still wait to create a purchase order.').trim(),
+      confirmText: 'Approve',
+    });
+    if(!ok) return;
     try {
       await apiSend(`purchase_requests.php?id=${id}`, 'PUT', { action: 'approve' });
       await Promise.all([loadRequests(), loadDocuments()]);
@@ -6539,6 +6559,14 @@ document.addEventListener('DOMContentLoaded', function(){
     } catch (err) { showError(err.error || 'Could not approve request.'); }
   };
   window.rejectRequest = async function(id){
+    const r = state.requests.find(x => x.id === id);
+    const ok = await showConfirmModal({
+      title: `Reject ${r?.request_code || 'this request'}?`,
+      message: (purchaseRequestConfirmDetail(r) + '\n\nStaff will see this as Rejected. You can reopen it later if this was a mistake.').trim(),
+      confirmText: 'Reject',
+      danger: true,
+    });
+    if(!ok) return;
     try {
       await apiSend(`purchase_requests.php?id=${id}`, 'PUT', { action: 'reject' });
       await Promise.all([loadRequests(), loadDocuments()]);
@@ -6561,12 +6589,20 @@ document.addEventListener('DOMContentLoaded', function(){
   window.bulkUpdateRequests = async function(action){
     const ids = selectedPendingRequestIds();
     if(!ids.length) return;
+    const noun = ids.length === 1 ? 'request' : 'requests';
     if(action === 'reject'){
       const ok = await showConfirmModal({
-        title: `Reject ${ids.length} request${ids.length === 1 ? '' : 's'}?`,
+        title: `Reject ${ids.length} ${noun}?`,
         message: 'Rejected requests can be reopened later if this was a mistake.',
         confirmText: 'Reject',
         danger: true,
+      });
+      if(!ok) return;
+    } else if(action === 'approve'){
+      const ok = await showConfirmModal({
+        title: `Approve ${ids.length} ${noun}?`,
+        message: 'Staff will see these as Approved. You can still wait to create purchase orders.',
+        confirmText: 'Approve selected',
       });
       if(!ok) return;
     }
@@ -6696,6 +6732,17 @@ document.addEventListener('DOMContentLoaded', function(){
       if(est !== '' && Number(est) > 0) amount = Number(est);
     }
 
+    const req = pendingRequest;
+    const methodLabel = PROCUREMENT_LABELS[method] || method;
+    const supplierName = supplier?.name || 'no supplier selected';
+    const ok = await showConfirmModal({
+      title: 'Create this purchase order?',
+      message: `${req.request_code}: ${req.qty} ${req.unit || ''} of ${req.display_label || req.item_label}\nSupplier: ${supplierName}\nHow: ${methodLabel}${amount != null ? `\nAmount: ${peso(amount)}` : ''}\n\nThis will ask Finance to release budget.`,
+      confirmText: 'Create purchase order',
+      delaySeconds: CONFIRM_HOLD_SECONDS,
+    });
+    if(!ok) return;
+
     try {
       await apiSend('purchase_orders.php', 'POST', {
         request_id: pendingRequest.id,
@@ -6794,6 +6841,14 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   window.resendFinance = async function(id){
+    const order = state.orders.find(o => o.id === id);
+    const ok = await showConfirmModal({
+      title: 'Resend to Finance?',
+      message: `${order?.po_code || 'This order'} will ask Finance again to release budget. Use this only if the first request failed or was rejected.`,
+      confirmText: 'Resend to Finance',
+      delaySeconds: CONFIRM_HOLD_SECONDS,
+    });
+    if(!ok) return;
     try {
       await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'resend_finance' });
       await loadOrders();
@@ -7134,7 +7189,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const id = document.getElementById('lostReceiptPoId').value;
     const note = document.getElementById('lostReceiptNote').value.trim();
     if(note.length < 10){ showError('Note for Finance must be at least 10 characters.', 'Note too short'); return; }
-    if(!await showConfirmModal({ title: 'Record lost receipt?', message: 'The note will be sent to Financial Management.', confirmText: 'Send to Finance' })) return;
+    if(!await showConfirmModal({ title: 'Record lost receipt?', message: 'The note will be sent to Financial Management.', confirmText: 'Send to Finance', delaySeconds: CONFIRM_HOLD_SECONDS })) return;
     try {
       await apiSend(`purchase_orders.php?id=${id}`, 'PUT', {
         action: 'declare_receipt_lost',
@@ -7200,7 +7255,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(reviewLostReceiptReportId == null) return;
     const note = document.getElementById('reviewLostReceiptReportManagerNote').value.trim();
     if(note.length < 10){ showError('Official note for Finance must be at least 10 characters.', 'Note too short'); return; }
-    if(!await showConfirmModal({ title: 'Approve lost-receipt report?', message: 'Your note will be sent to Financial Management and the order can be marked received.', confirmText: 'Approve report' })) return;
+    if(!await showConfirmModal({ title: 'Approve lost-receipt report?', message: 'Your note will be sent to Financial Management and the order can be marked received.', confirmText: 'Approve report', delaySeconds: CONFIRM_HOLD_SECONDS })) return;
     try {
       await apiSend(`purchase_orders.php?id=${reviewLostReceiptReportId}`, 'PUT', { action: 'approve_lost_receipt_report', note });
       closeModal('reviewLostReceiptReportModalOverlay');
@@ -7301,7 +7356,7 @@ document.addEventListener('DOMContentLoaded', function(){
       openReceiveEquipmentModal(id);
       return;
     }
-    if(!await showConfirmModal({ title: 'Mark as received?', message: `${order.qty} ${order.unit} of ${order.item_label} — confirm the receipt or lost-receipt note matches this order.`, confirmText: 'Mark received' })) return;
+    if(!await showConfirmModal({ title: 'Mark as received?', message: `${order.qty} ${order.unit} of ${order.item_label} — confirm the receipt or lost-receipt note matches this order.`, confirmText: 'Mark received', delaySeconds: CONFIRM_HOLD_SECONDS })) return;
     try {
       const result = await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'receive' });
       await Promise.all([loadOrders(), loadRequests(), loadDocuments(), loadInventory(), loadEquipmentMovements(), loadDemandInsights()]);
@@ -7360,6 +7415,12 @@ document.addEventListener('DOMContentLoaded', function(){
       showError('Choose a storage location, or deploy to the requesting department.', 'Receive options required');
       return;
     }
+    if(!await showConfirmModal({
+      title: 'Mark as received?',
+      message: `${order.qty} ${order.unit} of ${order.item_label} will be added to inventory.`,
+      confirmText: 'Mark received',
+      delaySeconds: CONFIRM_HOLD_SECONDS,
+    })) return;
     try {
       const result = await apiSend(`purchase_orders.php?id=${orderId}`, 'PUT', {
         action: 'receive',
@@ -7382,7 +7443,7 @@ document.addEventListener('DOMContentLoaded', function(){
   window.cancelOrder = async function(id){
     const order = state.orders.find(o => o.id === id);
     if(!order) return;
-    if(!await showConfirmModal({ title: `Cancel ${order.po_code}?`, message: 'The purchase request will go back to Approved so a new PO can be created.', confirmText: 'Cancel order', danger: true })) return;
+    if(!await showConfirmModal({ title: `Cancel ${order.po_code}?`, message: 'The purchase request will go back to Approved so a new PO can be created.', confirmText: 'Cancel order', danger: true, delaySeconds: CONFIRM_HOLD_SECONDS })) return;
     try {
       await apiSend(`purchase_orders.php?id=${id}`, 'PUT', { action: 'cancel' });
       await Promise.all([loadOrders(), loadRequests(), loadDocuments()]);
@@ -7925,8 +7986,22 @@ document.addEventListener('DOMContentLoaded', function(){
 
   /* ---------- modals & notifications ---------- */
   let confirmModalResolve = null;
+  let confirmHoldTimer = null;
   let noticeModalResolve = null;
   let toastTimer = null;
+  const CONFIRM_HOLD_SECONDS = 3;
+
+  function clearConfirmHold(){
+    if(confirmHoldTimer){
+      clearInterval(confirmHoldTimer);
+      confirmHoldTimer = null;
+    }
+    const okBtn = document.getElementById('confirmModalOkBtn');
+    if(okBtn){
+      okBtn.disabled = false;
+      okBtn.removeAttribute('aria-disabled');
+    }
+  }
 
   function showToast(message, ms = 3200){
     const el = document.getElementById('appToast');
@@ -7973,7 +8048,7 @@ document.addEventListener('DOMContentLoaded', function(){
     return showNoticeModal({ title, message: String(message || title), variant: 'error' });
   }
 
-  function showConfirmModal({ title, message = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = {}){
+  function showConfirmModal({ title, message = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false, delaySeconds = 0 } = {}){
     let modalTitle = title;
     let modalMessage = message;
     if(!modalTitle && modalMessage.includes('\n\n')){
@@ -7982,28 +8057,52 @@ document.addEventListener('DOMContentLoaded', function(){
       modalMessage = parts.slice(1).join('\n\n');
     }
     if(!modalTitle) modalTitle = 'Confirm';
+    const hold = Math.max(0, Math.floor(Number(delaySeconds) || 0));
     return new Promise(resolve => {
+      clearConfirmHold();
       confirmModalResolve = resolve;
       document.getElementById('confirmModalTitle').textContent = modalTitle;
       document.getElementById('confirmModalMessage').textContent = modalMessage || modalTitle;
       const okBtn = document.getElementById('confirmModalOkBtn');
       okBtn.textContent = confirmText;
       okBtn.className = danger
-        ? 'flex-1 px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border-none shadow-btn'
-        : 'flex-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn';
+        ? 'flex-1 px-4 py-2.5 rounded-xl bg-redBg text-redTx text-[.88rem] font-bold cursor-pointer border-none shadow-btn disabled:opacity-50 disabled:cursor-not-allowed'
+        : 'flex-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none shadow-btn disabled:opacity-50 disabled:cursor-not-allowed';
       document.getElementById('confirmModalCancelBtn').textContent = cancelText;
       document.getElementById('confirmModalOverlay').classList.add('show');
+      if(hold > 0){
+        let left = hold;
+        okBtn.disabled = true;
+        okBtn.setAttribute('aria-disabled', 'true');
+        okBtn.textContent = `${confirmText} (${left})`;
+        confirmHoldTimer = setInterval(() => {
+          left -= 1;
+          if(left <= 0){
+            clearInterval(confirmHoldTimer);
+            confirmHoldTimer = null;
+            okBtn.disabled = false;
+            okBtn.removeAttribute('aria-disabled');
+            okBtn.textContent = confirmText;
+            return;
+          }
+          okBtn.textContent = `${confirmText} (${left})`;
+        }, 1000);
+      }
     });
   }
 
   function finishConfirmModal(result){
+    clearConfirmHold();
     document.getElementById('confirmModalOverlay').classList.remove('show');
     const resolve = confirmModalResolve;
     confirmModalResolve = null;
     resolve?.(result);
   }
 
-  document.getElementById('confirmModalOkBtn').addEventListener('click', () => finishConfirmModal(true));
+  document.getElementById('confirmModalOkBtn').addEventListener('click', function(){
+    if(this.disabled) return;
+    finishConfirmModal(true);
+  });
   document.getElementById('confirmModalCancelBtn').addEventListener('click', () => finishConfirmModal(false));
 
   window.openCopyLinkModal = function(url, { title = 'Copy link', hint = 'Automatic copy failed. Select and copy the link below.' } = {}){
