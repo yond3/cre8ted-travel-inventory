@@ -219,12 +219,57 @@ if ($method === 'POST') {
 
 if ($method === 'PUT') {
     require_manager_or_above();
+    $body = read_json_body();
+    $action = $body['action'] ?? '';
+
+    // Bulk approve/reject: body { action: 'approve'|'reject', ids: [1,2,3] }.
+    // Each id is validated independently — one already-decided or missing
+    // request in the batch doesn't block the rest; it's reported back in
+    // 'skipped' so the UI can tell the manager exactly what happened.
+    if (array_key_exists('ids', $body) && is_array($body['ids'])) {
+        if (!in_array($action, ['approve', 'reject'], true)) {
+            json_error("action must be 'approve' or 'reject' for bulk updates");
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $body['ids']))));
+        if (empty($ids)) {
+            json_error('ids must be a non-empty array of request ids');
+        }
+        $newStatus = $action === 'approve' ? 'Approved' : 'Rejected';
+        $updated = [];
+        $skipped = [];
+        foreach ($ids as $rid) {
+            $stmt = $pdo->prepare('SELECT * FROM purchase_requests WHERE id = ?');
+            $stmt->execute([$rid]);
+            $req = $stmt->fetch();
+            if (!$req) {
+                $skipped[] = ['id' => $rid, 'reason' => 'not found'];
+                continue;
+            }
+            if ($req['status'] !== 'Pending') {
+                $skipped[] = ['id' => $rid, 'request_code' => $req['request_code'], 'reason' => "already {$req['status']}"];
+                continue;
+            }
+            $pdo->prepare('UPDATE purchase_requests SET status = ? WHERE id = ?')->execute([$newStatus, $rid]);
+            update_document('Purchase request', $req['request_code'], $newStatus);
+            $updated[] = ['id' => $rid, 'request_code' => $req['request_code'], 'new_status' => $newStatus];
+        }
+        if (!empty($updated)) {
+            record_audit(
+                'purchase_request.bulk_' . $action,
+                'purchase_request',
+                implode(',', array_column($updated, 'request_code')),
+                null,
+                ['count' => count($updated), 'new_status' => $newStatus]
+            );
+        }
+        echo json_encode(['status' => 'ok', 'updated' => $updated, 'skipped' => $skipped]);
+        exit;
+    }
+
     $id = (int) ($_GET['id'] ?? 0);
     if (!$id) {
         json_error('missing required query param: id');
     }
-    $body = read_json_body();
-    $action = $body['action'] ?? '';
 
     $stmt = $pdo->prepare('SELECT * FROM purchase_requests WHERE id = ?');
     $stmt->execute([$id]);
@@ -232,6 +277,20 @@ if ($method === 'PUT') {
     if (!$req) {
         json_error('unknown request', 404);
     }
+
+    // Undo-reject: bring a Rejected request back to Pending for reconsideration
+    // (e.g. rejected by mistake) instead of asking the employee to resubmit.
+    if ($action === 'reopen') {
+        if ($req['status'] !== 'Rejected') {
+            json_error("request is '{$req['status']}', not Rejected — nothing to reopen", 409);
+        }
+        $pdo->prepare("UPDATE purchase_requests SET status = 'Pending' WHERE id = ?")->execute([$id]);
+        update_document('Purchase request', $req['request_code'], 'Pending');
+        record_audit('purchase_request.reopen', 'purchase_request', $req['request_code'], ['status' => 'Rejected'], ['status' => 'Pending']);
+        echo json_encode(['status' => 'ok', 'id' => $id, 'new_status' => 'Pending']);
+        exit;
+    }
+
     if ($req['status'] !== 'Pending') {
         json_error("request is '{$req['status']}', not Pending — can't approve/reject again", 409);
     }
@@ -241,11 +300,18 @@ if ($method === 'PUT') {
     } elseif ($action === 'reject') {
         $newStatus = 'Rejected';
     } else {
-        json_error("action must be 'approve' or 'reject'");
+        json_error("action must be 'approve', 'reject', or 'reopen'");
     }
 
     $pdo->prepare('UPDATE purchase_requests SET status = ? WHERE id = ?')->execute([$newStatus, $id]);
     update_document('Purchase request', $req['request_code'], $newStatus);
+    record_audit(
+        'purchase_request.' . $action,
+        'purchase_request',
+        $req['request_code'],
+        ['status' => 'Pending'],
+        ['status' => $newStatus]
+    );
 
     echo json_encode(['status' => 'ok', 'id' => $id, 'new_status' => $newStatus]);
     exit;

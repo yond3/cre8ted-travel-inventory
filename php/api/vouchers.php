@@ -145,6 +145,13 @@ if ($method === 'PUT') {
             trim($body['notes'] ?? '') ?: null,
             $id,
         ]);
+        record_audit(
+            'voucher.edit',
+            'voucher',
+            (string) $id,
+            ['label' => $voucher['label'], 'current_qty' => (int) $voucher['current_qty']],
+            ['label' => $label, 'current_qty' => $currentQty]
+        );
     } else {
         json_error("action must be 'use_one', 'restock', or 'edit'");
     }

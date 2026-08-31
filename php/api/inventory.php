@@ -304,7 +304,13 @@ if ($method === 'POST') {
         $maxQty,
     ]);
 
-    echo json_encode(format_item($pdo, fetch_item_row($pdo, $itemKey)));
+    $created = fetch_item_row($pdo, $itemKey);
+    record_audit('item.create', 'item', $itemKey, null, [
+        'label' => $created['label'],
+        'item_type' => $created['item_type'],
+        'current_qty' => (float) $created['current_qty'],
+    ]);
+    echo json_encode(format_item($pdo, $created));
     exit;
 }
 
@@ -423,7 +429,15 @@ if ($method === 'PUT') {
     $stmt = $pdo->prepare('UPDATE items SET ' . implode(', ', $fields) . ' WHERE item_key = ?');
     $stmt->execute($values);
 
-    echo json_encode(format_item($pdo, fetch_item_row($pdo, $itemKey)));
+    $updatedRow = fetch_item_row($pdo, $itemKey);
+    record_audit(
+        'item.edit',
+        'item',
+        $itemKey,
+        ['label' => $existing['label'], 'active' => (int) ($existing['active'] ?? 1), 'current_qty' => (float) $existing['current_qty'], 'min_qty' => $existing['min_qty'], 'max_qty' => $existing['max_qty']],
+        ['label' => $updatedRow['label'], 'active' => (int) ($updatedRow['active'] ?? 1), 'current_qty' => (float) $updatedRow['current_qty'], 'min_qty' => $updatedRow['min_qty'], 'max_qty' => $updatedRow['max_qty']]
+    );
+    echo json_encode(format_item($pdo, $updatedRow));
     exit;
 }
 

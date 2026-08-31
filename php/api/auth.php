@@ -14,7 +14,7 @@ if ($method === 'GET') {
         echo json_encode(['authenticated' => false]);
         exit;
     }
-    echo json_encode(['authenticated' => true, 'user' => public_user($user)]);
+    echo json_encode(['authenticated' => true, 'user' => public_user($user), 'csrf_token' => get_csrf_token()]);
     exit;
 }
 
@@ -45,7 +45,7 @@ if ($method === 'POST') {
         json_error('invalid username or password', 401);
     }
     login_user($user);
-    echo json_encode(['status' => 'ok', 'user' => public_user($user)]);
+    echo json_encode(['status' => 'ok', 'user' => public_user($user), 'csrf_token' => get_csrf_token()]);
     exit;
 }
 

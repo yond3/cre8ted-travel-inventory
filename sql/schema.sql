@@ -5,7 +5,10 @@ CREATE DATABASE IF NOT EXISTS cre8ted_inventory CHARACTER SET utf8mb4 COLLATE ut
 USE cre8ted_inventory;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS audit_log;
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS login_attempts;
+DROP TABLE IF EXISTS month_closes;
 DROP TABLE IF EXISTS finance_integration_log;
 DROP TABLE IF EXISTS inventory_retirements;
 DROP TABLE IF EXISTS equipment_movements;
@@ -320,6 +323,59 @@ CREATE TABLE stock_requests (
     FOREIGN KEY (item_key) REFERENCES items(item_key),
     FOREIGN KEY (fulfilled_issue_id) REFERENCES stock_issues(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+CREATE TABLE month_closes (
+    item_key VARCHAR(50) NOT NULL,
+    month DATE NOT NULL,
+    opening_qty DECIMAL(10,2) NOT NULL,
+    received_qty DECIMAL(10,2) NOT NULL,
+    closing_qty DECIMAL(10,2) NOT NULL,
+    usage_qty DECIMAL(10,2) NOT NULL,
+    closed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (item_key, month),
+    FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Login accounts (see sql/migration_users_table.sql). Managed via the
+-- Manage Users page / users.php (super admin only) — no more hardcoded
+-- AUTH_USERS array in config.php.
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    role ENUM('department', 'staff', 'manager', 'super_admin') NOT NULL,
+    department VARCHAR(100) NULL,
+    active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NULL
+) ENGINE=InnoDB;
+
+-- Audit trail for admin/config-change actions (see sql/migration_audit_log.sql).
+CREATE TABLE audit_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    actor_username VARCHAR(50) NOT NULL,
+    actor_name VARCHAR(100) NOT NULL,
+    actor_role VARCHAR(20) NOT NULL,
+    action VARCHAR(60) NOT NULL,
+    entity_type VARCHAR(40) NOT NULL,
+    entity_id VARCHAR(40) NULL,
+    before_json JSON NULL,
+    after_json JSON NULL,
+    ip_address VARCHAR(45) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_audit_entity (entity_type, entity_id),
+    INDEX idx_audit_created (created_at),
+    INDEX idx_audit_actor (actor_username, created_at)
+) ENGINE=InnoDB;
+
+INSERT INTO users (username, password_hash, name, role, department) VALUES
+('juan', '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a', 'Juan Dela Cruz', 'staff', NULL),
+('maria', '$2y$10$x1iYBp20Zhvbq798nnUnAemwxW8A0CDA8TApsGkoH.bj0CZaan1P.', 'Maria Santos', 'manager', NULL),
+('admin', '$2y$10$aZHU4bDaT0CaqOOt3GVyu.Gk2EM7tYI7JaLuN12qR5S1vGBoSdcUq', 'System Administrator', 'super_admin', NULL),
+('fleet_dept', '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a', 'Fleet Department', 'department', 'Fleet & Transportation management'),
+('tour_ops_dept', '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a', 'Tour Operations Department', 'department', 'Tour Operations');
 
 INSERT INTO locations (name, location_type, description) VALUES
 ('Cabinet A / Drawer 1', 'storage', 'Ink and toner'),

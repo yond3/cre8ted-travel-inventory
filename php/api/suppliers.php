@@ -101,6 +101,7 @@ if ($method === 'PUT') {
     if (!$id) {
         json_error('missing required query param: id');
     }
+    $beforeRow = $pdo->query("SELECT * FROM suppliers WHERE id = $id")->fetch();
     $body = read_json_body();
     if (array_key_exists('active', $body)) {
         require_super_admin();
@@ -193,6 +194,15 @@ if ($method === 'PUT') {
     $row = $pdo->query("SELECT * FROM suppliers WHERE id = $id")->fetch();
     if (!$row) {
         json_error('unknown supplier', 404);
+    }
+    if ($beforeRow) {
+        record_audit(
+            'supplier.edit',
+            'supplier',
+            (string) $id,
+            ['name' => $beforeRow['name'], 'active' => (int) ($beforeRow['active'] ?? 1)],
+            ['name' => $row['name'], 'active' => (int) ($row['active'] ?? 1)]
+        );
     }
     echo json_encode(format_supplier($pdo, $row));
     exit;

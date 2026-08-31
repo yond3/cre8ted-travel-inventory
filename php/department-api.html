@@ -148,13 +148,17 @@
 <script>
 (async function(){
   let user = null;
+  let csrfToken = '';
   let requestableItems = [];
 
   async function api(path, method, body){
+    const headers = {};
+    if(body) headers['Content-Type'] = 'application/json';
+    if(method && method !== 'GET') headers['X-CSRF-Token'] = csrfToken || '';
     const res = await fetch('api/' + path, {
       method: method || 'GET',
       credentials: 'include',
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: Object.keys(headers).length ? headers : undefined,
       body: body ? JSON.stringify(body) : undefined,
     });
     const data = await res.json().catch(() => ({}));
@@ -185,6 +189,7 @@
     return;
   }
   user = auth.user;
+  csrfToken = auth.csrf_token || '';
   document.getElementById('headerDept').textContent = user.department;
   document.getElementById('stockEmployee').textContent = user.name;
   document.getElementById('stockDepartment').textContent = user.department;
@@ -334,7 +339,7 @@
   }
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await fetch('api/auth.php', { method: 'DELETE', credentials: 'include' });
+    await fetch('api/auth.php', { method: 'DELETE', credentials: 'include', headers: { 'X-CSRF-Token': csrfToken || '' } });
     location.href = 'login.html';
   });
 

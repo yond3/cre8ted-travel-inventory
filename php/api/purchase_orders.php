@@ -519,6 +519,7 @@ if ($method === 'PUT') {
             $pdo->rollBack();
             json_error('failed to cancel: ' . $e->getMessage(), 500);
         }
+        record_audit('purchase_order.cancel', 'purchase_order', $row['po_code'], ['status' => 'Placed'], ['status' => 'Cancelled']);
         echo json_encode(['status' => 'ok', 'id' => $id, 'new_status' => 'Cancelled']);
         exit;
     }

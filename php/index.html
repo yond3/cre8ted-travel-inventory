@@ -718,6 +718,26 @@
       <div class="nav-icon w-[34px] h-[34px] rounded-[10px] flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200"><i class='bx bx-folder'></i></div>
       <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold">Document Tracking</span><span class="sub text-[.68rem] font-medium">Records &amp; receipts</span></div>
     </a>
+    <a class="nav-item group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative hidden" id="navReportsItem" data-page="Reports" data-target="page-reports">
+      <div class="nav-icon w-[34px] h-[34px] rounded-[10px] flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200"><i class='bx bx-export'></i></div>
+      <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold">Reports</span><span class="sub text-[.68rem] font-medium">CSV &amp; printable export</span></div>
+    </a>
+
+    <div id="navAdminBlock" class="hidden">
+    <div class="sidebar-divider -mx-[.9rem] mt-[1.2rem] mb-[1.6rem] h-px" id="navAdminDivider"></div>
+    <div class="nav-section-title flex items-center gap-2 px-[.9rem] pt-[.4rem] pb-[.9rem]" id="navAdminSectionTitle">
+      <span class="w-[6px] h-[6px] rounded-full shrink-0"></span>
+      <span class="text-[.66rem] font-semibold tracking-[2px] uppercase whitespace-nowrap">Admin</span>
+    </div>
+    <a class="nav-item group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative" id="navUsersItem" data-page="Manage Users" data-target="page-users">
+      <div class="nav-icon w-[34px] h-[34px] rounded-[10px] flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200"><i class='bx bx-user-plus'></i></div>
+      <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold">Manage Users</span><span class="sub text-[.68rem] font-medium">Accounts &amp; roles</span></div>
+    </a>
+    <a class="nav-item group flex items-center gap-[.8rem] px-[.9rem] py-[.85rem] rounded-xl no-underline cursor-pointer mb-[.35rem] transition-all duration-200 relative" id="navAuditItem" data-page="Audit Log" data-target="page-audit">
+      <div class="nav-icon w-[34px] h-[34px] rounded-[10px] flex items-center justify-center text-[1.15rem] shrink-0 transition-all duration-200"><i class='bx bx-history'></i></div>
+      <div class="nav-text flex flex-col leading-[1.25]"><span class="main text-[.88rem] font-bold">Audit Log</span><span class="sub text-[.68rem] font-medium">Who changed what</span></div>
+    </a>
+    </div>
   </nav>
 </aside>
 
@@ -766,6 +786,7 @@
           </div>
         </div>
         <button class="w-full px-4 py-[.95rem] bg-transparent border-none flex items-center gap-3 text-textDark text-[.95rem] cursor-pointer text-left hover:bg-[rgba(14,27,60,.05)]" id="profileViewBtn" title="Profile"><i class='bx bx-user text-[1.1rem]'></i>Profile</button>
+        <button class="w-full px-4 py-[.95rem] bg-transparent border-none flex items-center gap-3 text-textDark text-[.95rem] cursor-pointer text-left hover:bg-[rgba(14,27,60,.05)]" id="changePasswordBtn" title="Change password"><i class='bx bx-lock-alt text-[1.1rem]'></i>Change password</button>
         <button class="w-full px-4 py-[.95rem] bg-transparent border-none flex items-center gap-3 text-textDark text-[.95rem] cursor-pointer text-left hover:bg-[rgba(14,27,60,.05)]" id="logoutBtn" title="Logout"><i class='bx bx-log-out text-[1.1rem]'></i>Logout</button>
       </div>
     </div>
@@ -811,13 +832,13 @@
       <div class="text-[.78rem] text-textSoft mt-1">Below minimum threshold</div>
       <div class="text-[.72rem] text-navy800 font-semibold mt-2">Click to view list</div>
     </button>
-    <button type="button" class="dashboard-stat-card stat-accent-amber bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('pending')" aria-label="View pending purchase requests">
+    <button type="button" class="dashboard-stat-card stat-accent-amber bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('pending')" id="statPendingCard" aria-label="View pending purchase requests">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide">Pending requests</span>
+        <span class="text-[.75rem] font-semibold text-textMid uppercase tracking-wide" id="statPendingLabel">Pending requests</span>
         <div class="w-9 h-9 rounded-lg bg-amberBg flex items-center justify-center text-amberTx text-[1.05rem]"><i class='bx bx-time-five'></i></div>
       </div>
       <div class="font-display text-[1.8rem] font-extrabold text-textDark" id="statPending">1</div>
-      <div class="text-[.78rem] text-textSoft mt-1">Awaiting manager approval</div>
+      <div class="text-[.78rem] text-textSoft mt-1" id="statPendingHint">Awaiting manager approval</div>
       <div class="text-[.72rem] text-navy800 font-semibold mt-2">Click to view list</div>
     </button>
     <button type="button" class="dashboard-stat-card stat-accent-green bg-card rounded-card shadow-panel border border-line p-5" onclick="openDashboardStatDetail('suppliers')" aria-label="View active suppliers">
@@ -1030,6 +1051,14 @@
     </button>
   </div>
 
+  <div class="hidden mb-4 bg-card rounded-card shadow-panel border border-line p-4 flex-wrap items-center justify-between gap-3" id="requestsBulkBar">
+    <span class="text-[.85rem] font-semibold text-textDark" id="requestsBulkCount">0 selected</span>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" onclick="bulkUpdateRequests('approve')" class="px-3 py-2 rounded-lg bg-greenTx text-white text-[.8rem] font-semibold border-none cursor-pointer">Approve selected</button>
+      <button type="button" onclick="bulkUpdateRequests('reject')" class="px-3 py-2 rounded-lg bg-[#eef2f7] text-textMid text-[.8rem] font-semibold border-none cursor-pointer">Reject selected</button>
+    </div>
+  </div>
+
   <div class="bg-card rounded-card shadow-panel border border-line p-5">
     <div class="table-toolbar">
       <div class="table-search-wrap">
@@ -1058,6 +1087,7 @@
       <table class="gl-table w-full text-[.85rem] border-collapse">
         <thead>
           <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+            <th class="py-3 pr-3 font-semibold w-8 hidden" id="requestsSelectAllWrap"><input type="checkbox" id="requestsSelectAll" aria-label="Select all pending requests"></th>
             <th class="py-3 pr-3 font-semibold code-cell">Request ID</th>
             <th class="py-3 pr-3 font-semibold">Requested by</th>
             <th class="py-3 pr-3 font-semibold">Department</th>
@@ -1301,6 +1331,129 @@
           </tr>
         </thead>
         <tbody id="documentsVendorTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== REPORTS ===================== -->
+<section class="page-section hidden" id="page-reports">
+  <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center gap-3">
+    <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-export'></i></div>
+    <div>
+      <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Reports</h1>
+      <p class="text-[.78rem] text-textMid mt-0.5">Pick a date range and export a CSV or a printable page (Save as PDF from the browser).</p>
+    </div>
+  </div>
+  <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <div class="flex flex-wrap gap-2 mb-4" id="reportPresetRow">
+      <button type="button" class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-preset="this-month">This month</button>
+      <button type="button" class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-preset="last-month">Last month</button>
+      <button type="button" class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-preset="90">Last 90 days</button>
+      <button type="button" class="filter-pill px-4 py-2 rounded-full text-[.8rem] font-semibold bg-[#eef2f7] text-textMid cursor-pointer border-none" data-preset="custom">Custom</button>
+    </div>
+    <div class="flex flex-wrap gap-4 mb-5">
+      <label class="table-date-label"><span>From</span><input type="date" id="reportDateFrom" class="table-date-input" aria-label="Report from date"></label>
+      <label class="table-date-label"><span>To</span><input type="date" id="reportDateTo" class="table-date-input" aria-label="Report to date"></label>
+    </div>
+    <p class="text-[.75rem] text-textMid mb-3">Choose what to export. Snapshot reports (inventory, suppliers) ignore the date range.</p>
+    <div class="flex flex-col gap-2 mb-5" id="reportTypeList">
+      <label class="flex items-center gap-2 text-[.88rem] text-textDark"><input type="radio" name="reportType" value="purchase_requests" checked> Purchase requests</label>
+      <label class="flex items-center gap-2 text-[.88rem] text-textDark"><input type="radio" name="reportType" value="purchase_orders"> Purchase orders</label>
+      <label class="flex items-center gap-2 text-[.88rem] text-textDark"><input type="radio" name="reportType" value="stock_issues"> Stock issues / checkouts</label>
+      <label class="flex items-center gap-2 text-[.88rem] text-textDark"><input type="radio" name="reportType" value="inventory_retirements"> Write-offs / retirements</label>
+      <label class="flex items-center gap-2 text-[.88rem] text-textDark"><input type="radio" name="reportType" value="equipment_movements"> Equipment movements</label>
+      <label class="flex items-center gap-2 text-[.88rem] text-textDark"><input type="radio" name="reportType" value="month_closes"> Month-close / usage history</label>
+      <label class="flex items-center gap-2 text-[.88rem] text-textDark"><input type="radio" name="reportType" value="inventory"> Inventory snapshot (as of now)</label>
+      <label class="flex items-center gap-2 text-[.88rem] text-textDark"><input type="radio" name="reportType" value="suppliers"> Supplier directory (as of now)</label>
+      <label class="flex items-center gap-2 text-[.88rem] text-textDark hidden" id="reportFinanceOption"><input type="radio" name="reportType" value="finance_log"> Finance integration log</label>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" onclick="exportReport('csv')" class="btn-primary"><i class='bx bx-download'></i> Download CSV</button>
+      <button type="button" onclick="exportReport('html')" class="btn-secondary"><i class='bx bx-printer'></i> Printable report</button>
+    </div>
+    <p class="text-[.72rem] text-textSoft mt-3 mb-0">Date range is capped at 1 year. Printable reports open in a new tab — use Print → Save as PDF for a PDF copy.</p>
+  </div>
+</section>
+
+<!-- ===================== MANAGE USERS ===================== -->
+<section class="page-section hidden" id="page-users">
+  <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-user-plus'></i></div>
+      <div>
+        <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Manage Users</h1>
+        <p class="text-[.78rem] text-textMid mt-0.5">Create accounts, change roles, and set passwords. Accounts are deactivated, not deleted.</p>
+      </div>
+    </div>
+    <button type="button" onclick="openUserModal()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.85rem] font-bold cursor-pointer border-none shadow-btn">
+      <i class='bx bx-plus text-[1.1rem]'></i> Add user
+    </button>
+  </div>
+  <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <div class="overflow-x-auto gl-table-wrap-sticky">
+      <table class="gl-table w-full text-[.85rem] border-collapse">
+        <thead>
+          <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+            <th class="py-3 pr-3 font-semibold">Username</th>
+            <th class="py-3 pr-3 font-semibold">Name</th>
+            <th class="py-3 pr-3 font-semibold">Role</th>
+            <th class="py-3 pr-3 font-semibold">Department</th>
+            <th class="py-3 pr-3 font-semibold">Status</th>
+            <th class="py-3 pr-3 font-semibold">Action</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== AUDIT LOG ===================== -->
+<section class="page-section hidden" id="page-audit">
+  <div class="gl-header bg-card rounded-card shadow-panel border border-line p-5 mb-5 flex items-center gap-3">
+    <div class="w-11 h-11 rounded-xl bg-navy800 flex items-center justify-center text-amberBg text-[1.3rem] shrink-0"><i class='bx bx-history'></i></div>
+    <div>
+      <h1 class="font-display text-[1.3rem] font-extrabold text-textDark">Audit Log</h1>
+      <p class="text-[.78rem] text-textMid mt-0.5">Admin and config changes — who did what, and when.</p>
+    </div>
+  </div>
+  <div class="bg-card rounded-card shadow-panel border border-line p-5">
+    <div class="table-toolbar">
+      <div class="table-search-wrap">
+        <i class='bx bx-search table-search-icon'></i>
+        <input type="search" id="auditActorSearch" class="table-search-input" placeholder="Filter by username…" autocomplete="off" aria-label="Filter audit log by username">
+      </div>
+      <div class="table-date-range">
+        <label class="table-date-label"><span>From</span><input type="date" id="auditDateFrom" class="table-date-input" aria-label="Audit from date"></label>
+        <label class="table-date-label"><span>To</span><input type="date" id="auditDateTo" class="table-date-input" aria-label="Audit to date"></label>
+      </div>
+      <select id="auditEntityFilter" class="table-item-select" aria-label="Filter by entity">
+        <option value="">All types</option>
+        <option value="user">Users</option>
+        <option value="item">Items</option>
+        <option value="supplier">Suppliers</option>
+        <option value="location">Locations</option>
+        <option value="voucher">Vouchers</option>
+        <option value="purchase_request">Purchase requests</option>
+        <option value="purchase_order">Purchase orders</option>
+        <option value="month_close">Month closes</option>
+        <option value="report">Reports</option>
+      </select>
+      <button type="button" class="table-date-clear" id="auditReloadBtn">Apply</button>
+    </div>
+    <div class="overflow-x-auto gl-table-wrap-sticky">
+      <table class="gl-table w-full text-[.85rem] border-collapse">
+        <thead>
+          <tr class="text-left text-textMid text-[.72rem] uppercase tracking-wide border-b border-line">
+            <th class="py-3 pr-3 font-semibold date-cell">When</th>
+            <th class="py-3 pr-3 font-semibold">Who</th>
+            <th class="py-3 pr-3 font-semibold">Action</th>
+            <th class="py-3 pr-3 font-semibold">Entity</th>
+            <th class="py-3 pr-3 font-semibold">Details</th>
+          </tr>
+        </thead>
+        <tbody id="auditTableBody"></tbody>
       </table>
     </div>
   </div>
@@ -2375,6 +2528,86 @@
 
 <div id="appToast" class="app-toast hidden" role="status" aria-live="polite"></div>
 
+<!-- ===================== MODAL: CHANGE PASSWORD ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2500]" id="changePasswordModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Change password</h3>
+      <button type="button" onclick="closeModal('changePasswordModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <p class="text-[.8rem] text-textMid mb-4">Enter your current password, then a new one (at least 8 characters).</p>
+    <form id="changePasswordForm" class="flex flex-col gap-3">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Current password</label>
+        <input type="password" id="changePwCurrent" required autocomplete="current-password" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">New password</label>
+        <input type="password" id="changePwNew" required minlength="8" autocomplete="new-password" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Confirm new password</label>
+        <input type="password" id="changePwConfirm" required minlength="8" autocomplete="new-password" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+      </div>
+      <p class="text-[.82rem] text-redTx hidden" id="changePwError"></p>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none">Update password</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ADD / EDIT USER ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2500]" id="userModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="userModalTitle">Add user</h3>
+      <button type="button" onclick="closeModal('userModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <form id="userForm" class="flex flex-col gap-3 mt-3">
+      <input type="hidden" id="userEditId" value="">
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Username</label>
+        <input id="userUsername" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="jane" autocomplete="off">
+        <p class="text-[.72rem] text-textSoft mt-1">3–30 characters, lowercase letters, numbers, underscore. Starts with a letter.</p>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Display name</label>
+        <input id="userName" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Jane Cruz">
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Role</label>
+        <select id="userRole" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <option value="staff">Staff</option>
+          <option value="manager">Manager</option>
+          <option value="super_admin">Super Admin</option>
+          <option value="department">Department API</option>
+        </select>
+      </div>
+      <div id="userDepartmentWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Department</label>
+        <select id="userDepartment" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
+      </div>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1" id="userPasswordLabel">Password</label>
+        <input type="password" id="userPassword" minlength="8" autocomplete="new-password" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+        <p class="text-[.72rem] text-textSoft mt-1" id="userPasswordHint">At least 8 characters.</p>
+      </div>
+      <p class="text-[.82rem] text-redTx hidden" id="userFormError"></p>
+      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-navy800 text-white text-[.88rem] font-bold cursor-pointer border-none">Save</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: AUDIT DETAIL ===================== -->
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2500]" id="auditDetailModalOverlay">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display font-extrabold text-[1.1rem] text-textDark">Audit entry</h3>
+      <button type="button" onclick="closeModal('auditDetailModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
+    </div>
+    <pre class="text-[.78rem] text-textDark bg-[#f8fafc] border border-line rounded-xl p-4 overflow-x-auto whitespace-pre-wrap" id="auditDetailBody"></pre>
+  </div>
+</div>
+
 <nav class="mobile-action-bar" id="mobileActionBar" aria-label="Quick actions">
   <button type="button" class="btn-primary" id="mobileRequestStockBtn"><i class='bx bx-package'></i> Request stock</button>
   <button type="button" class="btn-secondary" id="mobileMyRequestsBtn"><i class='bx bx-list-ul'></i> My requests</button>
@@ -2428,7 +2661,7 @@ document.addEventListener('DOMContentLoaded', function(){
      load time and touches attention-badge state, so both must exist
      before that first call — otherwise it's a temporal-dead-zone error
      that silently aborts the rest of this script. */
-  const state = { user: null, locations: [], inventory: [], stockIssues: [], inventoryRetirements: [], stockRequests: [], equipmentMovements: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], demandInsights: null, demandInsightsError: null, showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false, equipmentGroupExpanded: {} };
+  const state = { user: null, locations: [], inventory: [], stockIssues: [], inventoryRetirements: [], stockRequests: [], equipmentMovements: [], suppliers: [], vendorApplications: [], requests: [], orders: [], documents: [], users: [], auditLog: [], demandInsights: null, demandInsightsError: null, showInactiveSuppliers: false, showInactiveInventory: false, showInactiveLocations: false, equipmentGroupExpanded: {} };
   const attentionDismissed = { requests: null, orders: null, inventory: null, stockRequests: null, suppliers: null };
 
   const DEPARTMENTS = [
@@ -2478,7 +2711,7 @@ document.addEventListener('DOMContentLoaded', function(){
     overlay.classList.remove('show');
   });
 
-  const PAGE_IDS = ['page-dashboard','page-inventory','page-requests','page-orders','page-suppliers','page-forecast','page-documents'];
+  const PAGE_IDS = ['page-dashboard','page-inventory','page-requests','page-orders','page-suppliers','page-forecast','page-documents','page-reports','page-users','page-audit'];
 
   function pageIdFromHash(hash){
     const slug = (hash || '').replace(/^#/, '').split('/')[0];
@@ -2544,8 +2777,19 @@ document.addEventListener('DOMContentLoaded', function(){
     return pageId === 'page-dashboard' ? '' : pageId.replace('page-', '');
   }
 
+  function pageAllowed(pageId){
+    if(!state.user) return true;
+    if((pageId === 'page-users' || pageId === 'page-audit') && !roleAtLeast('super_admin')) return false;
+    if(pageId === 'page-reports' && !roleAtLeast('manager')) return false;
+    return true;
+  }
+
   function navigateToPage(pageId, { updateHash = false } = {}){
     if(!PAGE_IDS.includes(pageId)) pageId = 'page-dashboard';
+    if(!pageAllowed(pageId)){
+      pageId = 'page-dashboard';
+      updateHash = true;
+    }
     const navItem = document.querySelector('.nav-item[data-target="' + pageId + '"]');
     if(!navItem) return;
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -2565,6 +2809,10 @@ document.addEventListener('DOMContentLoaded', function(){
       overlay.classList.remove('show');
     }
     dismissAttentionForPage(pageId);
+    if(pageId === 'page-dashboard') renderWaitingOnYou();
+    if(state.user && pageId === 'page-users') loadUsers();
+    if(state.user && pageId === 'page-audit') loadAuditLog();
+    if(pageId === 'page-reports') initReportDates();
   }
 
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -2614,9 +2862,15 @@ document.addEventListener('DOMContentLoaded', function(){
     showNoticeModal({ title: state.user?.name || 'Profile', message: 'Role: ' + (ROLE_LABELS[state.user?.role] || '—'), variant: 'info' });
     profileMenu.classList.remove('show');
   });
+  document.getElementById('changePasswordBtn').addEventListener('click', () => {
+    profileMenu.classList.remove('show');
+    document.getElementById('changePasswordForm').reset();
+    document.getElementById('changePwError').classList.add('hidden');
+    openModal('changePasswordModalOverlay');
+  });
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     profileMenu.classList.remove('show');
-    await fetch('api/auth.php', { method: 'DELETE', credentials: 'include' });
+    await fetch('api/auth.php', { method: 'DELETE', credentials: 'include', headers: { 'X-CSRF-Token': state.csrfToken || '' } });
     location.href = 'login.html';
   });
   document.addEventListener('click', (e) => {
@@ -2639,7 +2893,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const res = await fetch(API + path, {
       method,
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': state.csrfToken || '' },
       body: body != null ? JSON.stringify(body) : undefined,
     });
     if(res.status === 401){ location.href = 'login.html'; throw { error: 'authentication required' }; }
@@ -2665,6 +2919,7 @@ document.addEventListener('DOMContentLoaded', function(){
       return false;
     }
     state.user = data.user;
+    state.csrfToken = data.csrf_token || null;
     if(state.user.role === 'department'){
       location.href = 'department-api.html';
       return false;
@@ -2693,11 +2948,14 @@ document.addEventListener('DOMContentLoaded', function(){
       state.showInactiveSuppliers = false;
       state.showInactiveLocations = false;
     }
-    document.getElementById('dashboardStatsGrid')?.classList.toggle('hidden', !managerUp);
-    document.getElementById('dashboardInsightsGrid')?.classList.toggle('hidden', !managerUp);
     document.getElementById('dashboardSubtitle').textContent = managerUp
       ? 'Overview and quick actions'
       : 'What do you need today?';
+    const adminUp = roleAtLeast('super_admin');
+    document.getElementById('navReportsItem')?.classList.toggle('hidden', !managerUp);
+    document.getElementById('reportFinanceOption')?.classList.toggle('hidden', !adminUp);
+    document.getElementById('navAdminBlock')?.classList.toggle('hidden', !adminUp);
+    document.getElementById('requestsSelectAllWrap')?.classList.toggle('hidden', !managerUp);
     const activeView = document.querySelector('#inventoryFilters .filter-pill.active')?.dataset.view;
     setInventoryHeaderAction(
       activeView === 'issues' ? 'issues'
@@ -2733,7 +2991,10 @@ document.addEventListener('DOMContentLoaded', function(){
   /* ---------- attention badges (sidebar + filter pills) ----------
      "Dismissed" (seen) IDs persist in localStorage per user, so a page
      refresh doesn't bring back a badge for something already looked at.
-     Only genuinely new items (not in the stored set) light the badge. */
+     Only genuinely new items (not in the stored set) light the badge.
+     Low stock is the exception: it is an ongoing condition (0 pens is
+     still a problem after you open the tab), so it stays on the bell
+     until the item is back above minimum. */
   function attentionStorageKey(){
     return state.user?.name ? `scim_attention_dismissed_${state.user.name}` : null;
   }
@@ -2794,6 +3055,30 @@ document.addEventListener('DOMContentLoaded', function(){
     return activeItems().filter(it => it.status === 'Low stock');
   }
 
+  function lowStockAlertSignature(items){
+    return items.map(it => `${it.item_key}:${it.current_qty}`).sort().join('|');
+  }
+
+  function notifyLowStockIfNeeded(){
+    if(!state.user) return;
+    const items = lowStockItems();
+    if(!items.length) return;
+    const key = `scim_low_stock_toast_${state.user.username || state.user.name}`;
+    const sig = lowStockAlertSignature(items);
+    try {
+      if(sessionStorage.getItem(key) === sig) return;
+      sessionStorage.setItem(key, sig);
+    } catch (e) {
+      // sessionStorage blocked — still toast once per page load.
+    }
+    const worst = items.slice().sort((a, b) => Number(a.current_qty) - Number(b.current_qty))[0];
+    const extra = items.length > 1 ? ` (+${items.length - 1} more)` : '';
+    const qtyBit = Number(worst.current_qty) <= 0
+      ? 'out of stock'
+      : `${worst.current_qty} ${worst.unit} left (min ${worst.min_qty})`;
+    showToast(`${worst.label} is ${qtyBit}${extra}`);
+  }
+
   function unseenCount(currentIds, dismissedSet){
     if(!dismissedSet) return currentIds.length;
     return currentIds.filter(id => !dismissedSet.has(id)).length;
@@ -2820,7 +3105,7 @@ document.addEventListener('DOMContentLoaded', function(){
     return {
       requests: unseenCount(requestIds, attentionDismissed.requests),
       orders: unseenCount(orderIds, attentionDismissed.orders),
-      inventory: unseenCount(lowStockKeys, attentionDismissed.inventory),
+      inventory: lowStockKeys.length,
       stockRequests: unseenCount(stockRequestIds, attentionDismissed.stockRequests),
       suppliers: unseenCount(vendorIds, attentionDismissed.suppliers),
     };
@@ -2844,13 +3129,14 @@ document.addEventListener('DOMContentLoaded', function(){
     // pills dismiss only when the user opens that specific sub-tab.
     saveAttentionDismissedToStorage();
     updateAttentionBadges();
+    renderWaitingOnYou();
   }
 
   function dismissAttentionForInventoryPill(slug){
     if(!state.user) return;
-    if(slug === 'low-stock'){
-      attentionDismissed.inventory = new Set(lowStockItems().map(it => it.item_key));
-    } else if(slug === 'stock-requests'){
+    // Low stock stays on the bell until restocked — opening the tab is
+    // not the same as fixing the shortage.
+    if(slug === 'stock-requests'){
       attentionDismissed.stockRequests = new Set(pendingStockRequestIds());
     } else {
       return;
@@ -2931,7 +3217,6 @@ document.addEventListener('DOMContentLoaded', function(){
     } else if(target === 'orders'){
       navigateToPage('page-orders', { updateHash: true });
     } else if(target === 'low-stock'){
-      dismissAttentionForInventoryPill('low-stock');
       navigateToPage('page-inventory', { updateHash: true });
       location.hash = hashForInventoryTab('low-stock');
       activateInventoryTab('low-stock');
@@ -2964,7 +3249,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const requestItems = unseenItems(state.requests.filter(requestNeedsAttention), r => r.id, attentionDismissed.requests);
     const orderItems = unseenItems(state.orders.filter(orderNeedsAttention), o => o.id, attentionDismissed.orders);
-    const lowStock = unseenItems(lowStockItems(), it => it.item_key, attentionDismissed.inventory);
+    const lowStock = lowStockItems();
     const stockReqItems = unseenItems(state.stockRequests.filter(r => r.status === 'Pending'), r => r.id, attentionDismissed.stockRequests);
     const vendorItems = roleAtLeast('manager')
       ? unseenItems(state.vendorApplications.filter(a => a.status === 'Pending'), a => a.id, attentionDismissed.suppliers)
@@ -2983,7 +3268,9 @@ document.addEventListener('DOMContentLoaded', function(){
       ))),
       notifSection('Low stock', lowStock.map(it => notifRow(
         escapeHtml(it.label),
-        `${it.current_qty} ${escapeHtml(it.unit)} left · min ${it.min_qty}`,
+        Number(it.current_qty) <= 0
+          ? `Out of stock · min ${it.min_qty}`
+          : `${it.current_qty} ${escapeHtml(it.unit)} left · min ${it.min_qty}`,
         `goToAttentionTarget('low-stock')`
       ))),
       notifSection('Stock requests', stockReqItems.map(r => notifRow(
@@ -4607,6 +4894,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if(active?.dataset.view !== 'issues' && active?.dataset.view !== 'stock-requests'){
       renderInventory(active?.dataset.filter || 'all');
     }
+    notifyLowStockIfNeeded();
+    updateAttentionBadges();
   }
 
   function activeItems(){
@@ -5891,15 +6180,22 @@ document.addEventListener('DOMContentLoaded', function(){
         statusPill(it.status)
       )).join('') : dashboardStatEmpty('No low stock items right now.');
     } else if(type === 'pending'){
-      const pending = state.requests.filter(r => r.status === 'Pending');
-      titleEl.textContent = `Pending requests (${pending.length})`;
-      subtitleEl.textContent = 'Purchase requests waiting for manager approval.';
+      const pending = dashboardPendingRequests();
+      const managerUp = roleAtLeast('manager');
+      titleEl.textContent = managerUp
+        ? `Pending requests (${pending.length})`
+        : `My pending requests (${pending.length})`;
+      subtitleEl.textContent = managerUp
+        ? 'Purchase requests waiting for manager approval.'
+        : 'Your purchase requests waiting for manager approval.';
       goBtn.textContent = 'Open purchase requests';
       html = pending.length ? pending.map(r => dashboardStatRow(
         escapeHtml(r.request_code),
-        `${escapeHtml(r.employee)} · ${escapeHtml(r.display_label || r.item_label)} · ${r.qty} ${escapeHtml(r.unit)}`,
+        managerUp
+          ? `${escapeHtml(r.employee)} · ${escapeHtml(r.display_label || r.item_label)} · ${r.qty} ${escapeHtml(r.unit)}`
+          : `${escapeHtml(r.display_label || r.item_label)} · ${r.qty} ${escapeHtml(r.unit)}`,
         statusPill(r.status)
-      )).join('') : dashboardStatEmpty('No pending purchase requests.');
+      )).join('') : dashboardStatEmpty(managerUp ? 'No pending purchase requests.' : 'You have no pending purchase requests.');
     } else if(type === 'suppliers'){
       const suppliers = activeSuppliers();
       titleEl.textContent = `Active suppliers (${suppliers.length})`;
@@ -5939,6 +6235,13 @@ document.addEventListener('DOMContentLoaded', function(){
       navigateToPage('page-suppliers', { updateHash: true });
     }
   };
+
+  function dashboardPendingRequests(){
+    const pending = state.requests.filter(r => r.status === 'Pending');
+    if(roleAtLeast('manager')) return pending;
+    const userName = state.user?.name;
+    return pending.filter(r => r.employee === userName);
+  }
 
   function renderDashboardLauncher(){
     const el = document.getElementById('dashboardLauncher');
@@ -6014,15 +6317,29 @@ document.addEventListener('DOMContentLoaded', function(){
       });
       hint.textContent = 'Items that need a manager decision or follow-up.';
     } else {
-      state.requests.filter(r => r.employee === userName).slice(0, 5).forEach(r => {
-        if(r.status === 'Pending' || r.status === 'Approved' || r.status === 'Rejected'){
-          items.push({
-            icon: 'bx-file', tone: 'amber',
-            title: r.request_code,
-            sub: `${r.status} · ${r.display_label || r.item_label}`,
-            action: () => navigateToPage('page-requests', { updateHash: true }),
-          });
-        }
+      unseenItems(
+        state.requests.filter(r => r.employee === userName && requestNeedsAttention(r)),
+        r => r.id,
+        attentionDismissed.requests
+      ).slice(0, 5).forEach(r => {
+        const rejected = r.status === 'Rejected';
+        items.push({
+          icon: rejected ? 'bx-x-circle' : 'bx-check-circle',
+          tone: rejected ? 'red' : 'amber',
+          title: r.request_code,
+          sub: rejected
+            ? `Rejected · ${r.display_label || r.item_label}`
+            : `Approved · ${r.display_label || r.item_label} — PO being prepared`,
+          action: () => navigateToPage('page-requests', { updateHash: true }),
+        });
+      });
+      state.requests.filter(r => r.employee === userName && r.status === 'Pending').slice(0, 5).forEach(r => {
+        items.push({
+          icon: 'bx-time-five', tone: 'amber',
+          title: r.request_code,
+          sub: `Pending approval · ${r.display_label || r.item_label}`,
+          action: () => navigateToPage('page-requests', { updateHash: true }),
+        });
       });
       state.stockRequests.filter(sr => sr.requested_by === userName && sr.status === 'Pending').forEach(sr => {
         items.push({
@@ -6045,6 +6362,21 @@ document.addEventListener('DOMContentLoaded', function(){
       });
       hint.textContent = 'Your open requests and next steps.';
     }
+
+    lowStockItems().slice(0, 4).forEach(it => {
+      const out = Number(it.current_qty) <= 0;
+      items.push({
+        icon: out ? 'bx-error-circle' : 'bx-error',
+        tone: 'red',
+        title: out ? `${it.label} is out of stock` : `${it.label} is low stock`,
+        sub: `${it.current_qty} ${it.unit} · min ${it.min_qty}${it.location_name ? ` · ${it.location_name}` : ''}`,
+        action: () => {
+          navigateToPage('page-inventory', { updateHash: true });
+          location.hash = hashForInventoryTab('low-stock');
+          activateInventoryTab('low-stock');
+        },
+      });
+    });
 
     if(!items.length){
       card.classList.add('hidden');
@@ -6096,7 +6428,17 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('statTotalItemsHint').textContent =
       `Across ${storageLocCount} storage location${storageLocCount === 1 ? '' : 's'}`;
     document.getElementById('statLowStock').textContent = lowStock.length;
-    document.getElementById('statPending').textContent = state.requests.filter(r => r.status === 'Pending').length;
+    const managerUp = roleAtLeast('manager');
+    const pendingRequests = dashboardPendingRequests();
+    document.getElementById('statPending').textContent = pendingRequests.length;
+    document.getElementById('statPendingLabel').textContent = managerUp ? 'Pending requests' : 'My pending requests';
+    document.getElementById('statPendingHint').textContent = managerUp
+      ? 'Awaiting manager approval'
+      : 'Your requests awaiting approval';
+    document.getElementById('statPendingCard')?.setAttribute(
+      'aria-label',
+      managerUp ? 'View pending purchase requests' : 'View my pending purchase requests'
+    );
     document.getElementById('statSuppliers').textContent = activeSuppliers().length;
 
     if(state.demandInsights !== null) renderDemandInsights();
@@ -6131,12 +6473,16 @@ document.addEventListener('DOMContentLoaded', function(){
     ) && rowMatchesDateRange(r.created_at, dates.from, dates.to)
       && rowMatchesCatalogFilters(r.item_type, r.item_key, 'requestsTable'));
     const tbody = document.getElementById('requestsTableBody');
+    const managerUp = roleAtLeast('manager');
+    const colCount = managerUp ? 11 : 10;
     if(!visible.length){
-      tbody.innerHTML = tableSearchEmptyMessage(10, tableHasActiveFilters(query, 'requestsTable'), 'No purchase requests yet.', { label: 'New purchase request', icon: 'bx-cart', onclick: 'openRequestModal()', className: 'btn-primary' });
+      tbody.innerHTML = tableSearchEmptyMessage(colCount, tableHasActiveFilters(query, 'requestsTable'), 'No purchase requests yet.', { label: 'New purchase request', icon: 'bx-cart', onclick: 'openRequestModal()', className: 'btn-primary' });
+      syncRequestsBulkBar();
       return;
     }
     tbody.innerHTML = visible.map(r => `
       <tr class="border-b border-line last:border-0">
+        ${managerUp ? `<td class="py-3 pr-3">${r.status === 'Pending' ? `<input type="checkbox" class="pr-select" value="${r.id}" aria-label="Select ${escapeHtml(r.request_code)}">` : ''}</td>` : ''}
         <td class="py-3 pr-3 code-cell">${cellCode(r.request_code)}</td>
         <td class="py-3 pr-3">${cellStack(escapeHtml(r.employee), fmtDate(r.created_at))}</td>
         <td class="py-3 pr-3">${cellDeptChip(purchaseRequestDepartmentLabel(r))}</td>
@@ -6147,18 +6493,42 @@ document.addEventListener('DOMContentLoaded', function(){
         <td class="py-3 pr-3 text-cell">${cellNotes(r.notes)}</td>
         <td class="py-3 pr-3 status-cell">${statusPill(r.status)}</td>
         <td class="py-3 pr-3 action-cell">${
-          r.status === 'Pending' ? (roleAtLeast('manager') ? `
+          r.status === 'Pending' ? (managerUp ? `
           <div class="flex gap-2">
             <button onclick="approveRequest(${r.id})" class="px-3 py-1.5 rounded-lg bg-greenTx text-white text-[.75rem] font-semibold border-none cursor-pointer">Approve</button>
             <button onclick="rejectRequest(${r.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Reject</button>
           </div>` : cellHint('Awaiting manager', 'muted'))
-          : (r.status === 'Approved' && !r.has_po) ? (roleAtLeast('manager') ? `
+          : (r.status === 'Approved' && !r.has_po) ? (managerUp ? `
             <button onclick="openSupplierChoice(${r.id})" class="px-3 py-1.5 rounded-lg bg-navy800 text-white text-[.75rem] font-semibold border-none cursor-pointer">Create PO</button>` : cellHint('Awaiting manager', 'muted'))
           : r.status === 'Ordered' ? cellHint('See Purchase Orders', 'info')
           : r.status === 'Completed' ? cellHint('Done', 'muted')
+          : r.status === 'Rejected' && managerUp ? `<button type="button" onclick="reopenRequest(${r.id})" class="px-3 py-1.5 rounded-lg bg-[#eaf1fb] text-navy800 text-[.75rem] font-semibold border-none cursor-pointer">Reopen</button>`
           : cellEmpty()
         }</td>
       </tr>`).join('');
+    tbody.querySelectorAll('.pr-select').forEach(cb => cb.addEventListener('change', syncRequestsBulkBar));
+    syncRequestsBulkBar();
+  }
+
+  function selectedPendingRequestIds(){
+    return Array.from(document.querySelectorAll('.pr-select:checked')).map(el => Number(el.value)).filter(Boolean);
+  }
+
+  function syncRequestsBulkBar(){
+    const bar = document.getElementById('requestsBulkBar');
+    const ids = selectedPendingRequestIds();
+    if(!bar) return;
+    if(!roleAtLeast('manager') || !ids.length){
+      bar.classList.add('hidden');
+      bar.classList.remove('flex');
+      return;
+    }
+    bar.classList.remove('hidden');
+    bar.classList.add('flex');
+    document.getElementById('requestsBulkCount').textContent = `${ids.length} selected`;
+    const all = Array.from(document.querySelectorAll('.pr-select'));
+    const selectAll = document.getElementById('requestsSelectAll');
+    if(selectAll) selectAll.checked = all.length > 0 && all.every(cb => cb.checked);
   }
 
   window.approveRequest = async function(id){
@@ -6174,6 +6544,48 @@ document.addEventListener('DOMContentLoaded', function(){
       await Promise.all([loadRequests(), loadDocuments()]);
       renderDashboard();
     } catch (err) { showError(err.error || 'Could not reject request.'); }
+  };
+  window.reopenRequest = async function(id){
+    const ok = await showConfirmModal({
+      title: 'Reopen this request?',
+      message: 'It will go back to Pending so a manager can approve or reject it again.',
+      confirmText: 'Reopen',
+    });
+    if(!ok) return;
+    try {
+      await apiSend(`purchase_requests.php?id=${id}`, 'PUT', { action: 'reopen' });
+      await Promise.all([loadRequests(), loadDocuments()]);
+      renderDashboard();
+    } catch (err) { showError(err.error || 'Could not reopen request.'); }
+  };
+  window.bulkUpdateRequests = async function(action){
+    const ids = selectedPendingRequestIds();
+    if(!ids.length) return;
+    if(action === 'reject'){
+      const ok = await showConfirmModal({
+        title: `Reject ${ids.length} request${ids.length === 1 ? '' : 's'}?`,
+        message: 'Rejected requests can be reopened later if this was a mistake.',
+        confirmText: 'Reject',
+        danger: true,
+      });
+      if(!ok) return;
+    }
+    try {
+      const result = await apiSend('purchase_requests.php', 'PUT', { action, ids });
+      const updated = result.updated?.length || 0;
+      const skipped = result.skipped?.length || 0;
+      await Promise.all([loadRequests(), loadDocuments()]);
+      renderDashboard();
+      if(skipped){
+        showNoticeModal({
+          title: `${updated} updated, ${skipped} skipped`,
+          message: result.skipped.map(s => `${s.request_code || '#' + s.id}: ${s.reason}`).join('\n'),
+          variant: 'info',
+        });
+      } else {
+        showToast(`${updated} request${updated === 1 ? '' : 's'} ${action === 'approve' ? 'approved' : 'rejected'}.`);
+      }
+    } catch (err) { showError(err.error || 'Could not update requests.'); }
   };
 
   /* ---------- create purchase order (supplier + procurement method) ---------- */
@@ -6508,7 +6920,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const fd = new FormData();
     fd.append('receipt', file);
     try {
-      const res = await fetch(`${API}ocr_receipt.php`, { method: 'POST', credentials: 'include', body: fd });
+      const res = await fetch(`${API}ocr_receipt.php`, { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': state.csrfToken || '' }, body: fd });
       const data = await res.json().catch(() => ({}));
       if(!res.ok) throw data;
       if(!data.ok){
@@ -6563,6 +6975,7 @@ document.addEventListener('DOMContentLoaded', function(){
       const res = await fetch(`${API}receipts.php?po_id=${id}`, {
         method: 'POST',
         credentials: 'include',
+        headers: { 'X-CSRF-Token': state.csrfToken || '' },
         body: formData,
       });
       const data = await res.json().catch(() => ({}));
@@ -7918,11 +8331,291 @@ document.addEventListener('DOMContentLoaded', function(){
   showDocumentTab('pr');
   wireAllLimitedFields();
 
+  document.getElementById('requestsSelectAll')?.addEventListener('change', function(){
+    document.querySelectorAll('.pr-select').forEach(cb => { cb.checked = this.checked; });
+    syncRequestsBulkBar();
+  });
+
+  function ymd(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function initReportDates(){
+    const fromEl = document.getElementById('reportDateFrom');
+    const toEl = document.getElementById('reportDateTo');
+    if(!fromEl || (fromEl.value && toEl.value)) return;
+    applyReportPreset('this-month');
+  }
+
+  function applyReportPreset(preset){
+    const fromEl = document.getElementById('reportDateFrom');
+    const toEl = document.getElementById('reportDateTo');
+    const now = new Date();
+    let from = new Date(now);
+    let to = new Date(now);
+    if(preset === 'this-month'){
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if(preset === 'last-month'){
+      from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      to = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if(preset === '90'){
+      from = new Date(now);
+      from.setDate(from.getDate() - 90);
+    } else if(preset === 'custom'){
+      return;
+    }
+    fromEl.value = ymd(from);
+    toEl.value = ymd(to);
+    document.querySelectorAll('#reportPresetRow .filter-pill').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.preset === preset);
+    });
+  }
+
+  document.getElementById('reportPresetRow')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-preset]');
+    if(!btn) return;
+    applyReportPreset(btn.dataset.preset);
+  });
+  document.getElementById('reportDateFrom')?.addEventListener('change', () => applyReportPreset('custom'));
+  document.getElementById('reportDateTo')?.addEventListener('change', () => applyReportPreset('custom'));
+
+  window.exportReport = async function(format){
+    const type = document.querySelector('input[name="reportType"]:checked')?.value;
+    const from = document.getElementById('reportDateFrom').value;
+    const to = document.getElementById('reportDateTo').value;
+    if(!type){ showError('Choose a report type.'); return; }
+    if(from && to && from > to){ showError('From date must be on or before To date.'); return; }
+    if(from && to){
+      const days = (new Date(to) - new Date(from)) / 86400000;
+      if(days > 366){ showError('Date range cannot exceed 1 year.'); return; }
+    }
+    const qs = new URLSearchParams({ type, format });
+    if(from) qs.set('from', from);
+    if(to) qs.set('to', to);
+    const url = API + 'reports.php?' + qs.toString();
+    if(format === 'html'){
+      window.open(url, '_blank');
+      return;
+    }
+    try {
+      const res = await fetch(url, { credentials: 'include' });
+      if(res.status === 401){ location.href = 'login.html'; return; }
+      if(!res.ok){
+        const data = await res.json().catch(() => ({}));
+        throw data;
+      }
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${type}_${ymd(new Date())}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('CSV downloaded.');
+    } catch (err) {
+      showError(err.error || 'Could not export report.');
+    }
+  };
+
+  async function loadUsers(){
+    if(!roleAtLeast('super_admin')) return;
+    try {
+      state.users = await apiGet('users.php');
+      renderUsers();
+    } catch (err) {
+      document.getElementById('usersTableBody').innerHTML =
+        `<tr><td colspan="6" class="py-6 text-center text-redTx text-[.85rem]">${escapeHtml(err.error || 'Could not load users.')}</td></tr>`;
+    }
+  }
+
+  function renderUsers(){
+    const tbody = document.getElementById('usersTableBody');
+    if(!state.users.length){
+      tbody.innerHTML = tableSearchEmptyMessage(6, false, 'No accounts yet.', { label: 'Add user', icon: 'bx-user-plus', onclick: 'openUserModal()' });
+      return;
+    }
+    tbody.innerHTML = state.users.map(u => `
+      <tr class="border-b border-line last:border-0 ${u.active ? '' : 'opacity-60'}">
+        <td class="py-3 pr-3 code-cell">${cellCode(u.username)}</td>
+        <td class="py-3 pr-3">${escapeHtml(u.name)}</td>
+        <td class="py-3 pr-3">${escapeHtml(ROLE_LABELS[u.role] || u.role)}</td>
+        <td class="py-3 pr-3">${u.department ? cellDeptChip(u.department) : cellEmpty()}</td>
+        <td class="py-3 pr-3">${u.active
+          ? '<span class="status-pill px-2 py-1 rounded-full text-[.72rem] font-semibold bg-greenBg text-greenTx">Active</span>'
+          : '<span class="status-pill px-2 py-1 rounded-full text-[.72rem] font-semibold bg-[#eef2f7] text-textMid">Inactive</span>'}</td>
+        <td class="py-3 pr-3 action-cell">
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="openUserModal(${u.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">Edit</button>
+            <button type="button" onclick="toggleUserActive(${u.id}, ${u.active ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg ${u.active ? 'bg-redBg text-redTx' : 'bg-navy800 text-white'} text-[.75rem] font-semibold border-none cursor-pointer">${u.active ? 'Deactivate' : 'Reactivate'}</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  function syncUserDepartmentField(){
+    const isDept = document.getElementById('userRole').value === 'department';
+    document.getElementById('userDepartmentWrap').classList.toggle('hidden', !isDept);
+  }
+
+  window.openUserModal = function(id){
+    const form = document.getElementById('userForm');
+    form.reset();
+    document.getElementById('userFormError').classList.add('hidden');
+    populateDepartmentSelect('userDepartment', DEPARTMENTS[0]);
+    const editing = id ? state.users.find(u => u.id === id) : null;
+    document.getElementById('userEditId').value = editing ? String(editing.id) : '';
+    document.getElementById('userModalTitle').textContent = editing ? 'Edit user' : 'Add user';
+    document.getElementById('userUsername').value = editing?.username || '';
+    document.getElementById('userUsername').disabled = !!editing;
+    document.getElementById('userName').value = editing?.name || '';
+    document.getElementById('userRole').value = editing?.role || 'staff';
+    if(editing?.department) document.getElementById('userDepartment').value = editing.department;
+    document.getElementById('userPassword').required = !editing;
+    document.getElementById('userPasswordLabel').textContent = editing ? 'New password (optional)' : 'Password';
+    document.getElementById('userPasswordHint').textContent = editing
+      ? 'Leave blank to keep the current password. At least 8 characters if changing.'
+      : 'At least 8 characters.';
+    syncUserDepartmentField();
+    openModal('userModalOverlay');
+  };
+
+  document.getElementById('userRole')?.addEventListener('change', syncUserDepartmentField);
+
+  document.getElementById('userForm')?.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const errEl = document.getElementById('userFormError');
+    errEl.classList.add('hidden');
+    const id = document.getElementById('userEditId').value;
+    const password = document.getElementById('userPassword').value;
+    const payload = {
+      name: document.getElementById('userName').value.trim(),
+      role: document.getElementById('userRole').value,
+      department: document.getElementById('userRole').value === 'department'
+        ? document.getElementById('userDepartment').value
+        : null,
+    };
+    try {
+      if(id){
+        await apiSend(`users.php?id=${id}`, 'PUT', payload);
+        if(password){
+          await apiSend(`users.php?id=${id}`, 'PUT', { action: 'set_password', password });
+        }
+      } else {
+        payload.username = document.getElementById('userUsername').value.trim();
+        payload.password = password;
+        await apiSend('users.php', 'POST', payload);
+      }
+      closeModal('userModalOverlay');
+      await loadUsers();
+      showToast(id ? 'User updated.' : 'User created.');
+    } catch (err) {
+      errEl.textContent = err.error || 'Could not save user.';
+      errEl.classList.remove('hidden');
+    }
+  });
+
+  window.toggleUserActive = async function(id, active){
+    const u = state.users.find(x => x.id === id);
+    const ok = await showConfirmModal({
+      title: active ? 'Reactivate this account?' : 'Deactivate this account?',
+      message: u ? `${u.username} will ${active ? 'be able to sign in again' : 'no longer be able to sign in'}.` : '',
+      confirmText: active ? 'Reactivate' : 'Deactivate',
+      danger: !active,
+    });
+    if(!ok) return;
+    try {
+      await apiSend(`users.php?id=${id}`, 'PUT', { active });
+      await loadUsers();
+    } catch (err) { showError(err.error || 'Could not update account.'); }
+  };
+
+  async function loadAuditLog(){
+    if(!roleAtLeast('super_admin')) return;
+    const params = new URLSearchParams({ limit: '200' });
+    const actor = document.getElementById('auditActorSearch')?.value.trim();
+    const from = document.getElementById('auditDateFrom')?.value;
+    const to = document.getElementById('auditDateTo')?.value;
+    const entity = document.getElementById('auditEntityFilter')?.value;
+    if(actor) params.set('actor', actor);
+    if(from) params.set('from', from);
+    if(to) params.set('to', to);
+    if(entity) params.set('entity_type', entity);
+    try {
+      state.auditLog = await apiGet('audit_log.php?' + params.toString());
+      renderAuditLog();
+    } catch (err) {
+      document.getElementById('auditTableBody').innerHTML =
+        `<tr><td colspan="5" class="py-6 text-center text-redTx text-[.85rem]">${escapeHtml(err.error || 'Could not load audit log.')}</td></tr>`;
+    }
+  }
+
+  function renderAuditLog(){
+    const tbody = document.getElementById('auditTableBody');
+    if(!state.auditLog.length){
+      tbody.innerHTML = tableSearchEmptyMessage(5, false, 'No audit entries match these filters.');
+      return;
+    }
+    tbody.innerHTML = state.auditLog.map(row => `
+      <tr class="border-b border-line last:border-0">
+        <td class="py-3 pr-3 date-cell text-[.78rem] text-textMid">${fmtDate(row.created_at)}</td>
+        <td class="py-3 pr-3">${cellStack(escapeHtml(row.actor_name), escapeHtml(row.actor_username))}</td>
+        <td class="py-3 pr-3 font-semibold text-textDark">${escapeHtml(row.action)}</td>
+        <td class="py-3 pr-3">${escapeHtml(row.entity_type)}${row.entity_id ? ' · ' + escapeHtml(row.entity_id) : ''}</td>
+        <td class="py-3 pr-3"><button type="button" onclick="openAuditDetail(${row.id})" class="px-3 py-1.5 rounded-lg bg-[#eef2f7] text-textMid text-[.75rem] font-semibold border-none cursor-pointer">View</button></td>
+      </tr>`).join('');
+  }
+
+  window.openAuditDetail = function(id){
+    const row = state.auditLog.find(r => r.id === id);
+    if(!row) return;
+    document.getElementById('auditDetailBody').textContent = JSON.stringify({
+      when: row.created_at,
+      who: `${row.actor_name} (${row.actor_username}, ${row.actor_role})`,
+      ip: row.ip_address,
+      action: row.action,
+      entity: `${row.entity_type} ${row.entity_id || ''}`.trim(),
+      before: row.before,
+      after: row.after,
+    }, null, 2);
+    openModal('auditDetailModalOverlay');
+  };
+
+  document.getElementById('auditReloadBtn')?.addEventListener('click', () => loadAuditLog());
+  document.getElementById('auditActorSearch')?.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); loadAuditLog(); }
+  });
+
+  document.getElementById('changePasswordForm')?.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const errEl = document.getElementById('changePwError');
+    errEl.classList.add('hidden');
+    const current = document.getElementById('changePwCurrent').value;
+    const next = document.getElementById('changePwNew').value;
+    const confirm = document.getElementById('changePwConfirm').value;
+    if(next !== confirm){
+      errEl.textContent = 'New passwords do not match.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    try {
+      await apiSend('users.php?id=me', 'PUT', { action: 'change_password', current_password: current, new_password: next });
+      closeModal('changePasswordModalOverlay');
+      this.reset();
+      showToast('Password updated.');
+    } catch (err) {
+      errEl.textContent = err.error || 'Could not change password.';
+      errEl.classList.remove('hidden');
+    }
+  });
+
   /* ---------- init ---------- */
   (async function init(){
     if(!(await ensureAuth())) return;
     updateProfileUI();
     applyRoleUI();
+    navigateToPage(pageIdFromHash(location.hash));
     await loadLocations();
     await Promise.all([loadInventory(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments(), loadDemandInsights()]);
     populateDepartmentSelect('issueDepartment', DEPARTMENTS[0]);

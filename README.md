@@ -80,6 +80,8 @@ Get-Content ".\sql\migration_login_attempts.sql" | mysql -u root cre8ted_invento
 Get-Content ".\sql\migration_equipment_groups.sql" | mysql -u root cre8ted_inventory
 Get-Content ".\sql\migration_equipment_returns.sql" | mysql -u root cre8ted_inventory
 Get-Content ".\sql\migration_stock_requests_free_text.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_users_table.sql" | mysql -u root cre8ted_inventory
+Get-Content ".\sql\migration_audit_log.sql" | mysql -u root cre8ted_inventory
 ```
 
 If a migration fails with “duplicate column” or “table already exists”, that file was already applied — skip it and continue.
@@ -90,10 +92,11 @@ If a migration fails with “duplicate column” or “table already exists”, 
 
 Default settings assume local MySQL with user `root` and **empty password**.
 
-Edit these if your machine is different:
+Copy `.env.example` to `.env` at the project root and edit values there (`.env` is gitignored). Real OS environment variables always win over the file. If you skip `.env`, the same previous defaults still apply.
 
-- `php/api/config.php` — `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
-- Forecast service uses the same values via environment variables (optional):
+Alternatively edit `php/api/config.php` only if you are not using `.env` — it reads `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, Finance URLs/keys, and service URLs via `env()`.
+
+Forecast/OCR services use the same DB values via environment variables (optional):
 
 ```powershell
 $env:DB_HOST = "127.0.0.1"
@@ -223,27 +226,36 @@ Get-Content ".\sql\migration_stock_requests_free_text.sql" | mysql -u root cre8t
 
 ## RBAC — how it works and where to swap it later
 
-Authentication is session-based PHP, defined entirely in `php/api/config.php`:
+Authentication is session-based PHP. Demo accounts live in the `users` table (`sql/migration_users_table.sql` / seeded by `schema.sql`), managed on the **Manage Users** page (super admin). Passwords are bcrypt hashes.
 
-- `AUTH_USERS` — the demo account list (username → password hash, name, role). **This is the only place with hardcoded credentials**, and passwords are stored as `password_hash()` output, never plaintext.
-- `authenticate_user()` / `get_session_user()` — look up and read the logged-in user.
-- `require_auth()`, `require_role()`, `require_staff_or_above()`, `require_manager_or_above()`, `require_super_admin()` — guards called at the top of each API endpoint.
+- `authenticate_user()` / `get_session_user()` — look up and read the logged-in user (shape: `{ username, name, role, department? }`).
+- `require_auth()`, `require_role()`, `require_staff_or_above()`, `require_manager_or_above()`, `require_super_admin()` — guards on each API endpoint.
+- Deactivating an account in Manage Users ends that person's next API call (the session is re-checked against `users.active`).
 
-**When the lead programmer's central/super-admin login is ready:** replace `authenticate_user()` (and how `login_user()`/`get_session_user()` store the user) to read from his auth system instead of the `AUTH_USERS` array — for example, verifying his token/session and mapping his user to `{ username, name, role }`. Every `require_role()` call across the API files keeps working unchanged, since they only depend on that shape.
+**When the lead programmer's central login is ready:** replace `authenticate_user()` (and how `login_user()`/`get_session_user()` store the user) to read from that auth source and map to `{ username, name, role }`. Every `require_role()` call keeps working unchanged.
 
 ---
 
 ## Login security
 
-Three protections, all in `php/api/config.php` + `php/api/auth.php`:
+Protections in `php/api/config.php` + `php/api/auth.php`:
 
-1. **Password hashing** — `AUTH_USERS` stores bcrypt hashes (`password_hash()`), and `authenticate_user()` checks them with `password_verify()`. Plaintext passwords are never stored or compared. The three demo passwords shown in the table above still work the same way from the login page — only how they're checked server-side changed.
-2. **Session timeouts** — enforced by `enforce_session_timeout()`, called on every API request right after the session starts:
-   - **Idle timeout: 10 minutes.** No API calls for 10 minutes → next request is treated as logged out.
-   - **Absolute timeout: 1 hour.** Session is force-ended 1 hour after login, even if active the whole time.
-   - The session ID is also regenerated on every successful login (`session_regenerate_id(true)`), and the session cookie is `HttpOnly` + `SameSite=Lax` (and `Secure` automatically once served over HTTPS).
-   - No frontend polling needed — `apiGet`/`apiSend` in `index.html` already redirect to `login.html` on any `401`, which is exactly what an expired session returns on the next request.
-3. **Login rate limiting** — every attempt (success or failure) is logged to the `login_attempts` table (`sql/migration_login_attempts.sql`). After **5 failed attempts for the same username, or 15 for the same IP, within 10 minutes**, further attempts are rejected with `429` and a generic message (`"too many failed login attempts — try again in N minutes"`) for **15 minutes** — checked *before* the password is verified, and the same generic `"invalid username or password"` is returned either way so failed logins never reveal whether the username or password was wrong.
+1. **Password hashing** — `users.password_hash` is bcrypt (`password_hash()` / `password_verify()`). Plaintext is never stored. Demo passwords in the table above still work after the users-table migration.
+2. **CSRF** — after login, `GET /api/auth.php` returns `csrf_token`. Every `POST`/`PUT`/`DELETE` from a logged-in session must send it as header `X-CSRF-Token`. Login itself and the public vendor quote form are exempt (no session yet). `index.html` and `department-api.html` attach the header automatically.
+3. **Session timeouts** — `enforce_session_timeout()` on every API request:
+   - **Idle timeout: 10 minutes.**
+   - **Absolute timeout: 1 hour.**
+   - Session ID regenerated on login; cookie is `HttpOnly` + `SameSite=Lax` (and `Secure` over HTTPS).
+4. **Login rate limiting** — `login_attempts` table. After **5 failed attempts for the same username, or 15 for the same IP, within 10 minutes**, further attempts return `429` for **15 minutes**. Failed logins always say `"invalid username or password"`.
+
+---
+
+## Reports, users, and audit
+
+- **Reports** (manager+): sidebar → Reports. Pick a date range (max 1 year) and export CSV or a printable HTML page (browser Print → Save as PDF). Types include purchase requests/orders, stock issues, retirements, equipment movements, month closes, inventory/supplier snapshots. **Finance integration log** is super-admin only.
+- **Manage Users** (super admin): create accounts, change roles, set passwords, deactivate (never delete). Any signed-in user can **Change password** from the profile menu.
+- **Audit Log** (super admin): who changed users, items, suppliers, locations, vouchers, PRs/POs, month closes, and report exports.
+- **Bulk approve/reject** pending purchase requests (manager+). **Reopen** a rejected request back to Pending.
 
 ---
 

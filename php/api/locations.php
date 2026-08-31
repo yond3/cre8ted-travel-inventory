@@ -126,6 +126,13 @@ if ($method === 'PUT') {
         "SELECT l.*, COUNT(i.item_key) AS item_count FROM locations l
          LEFT JOIN items i ON i.location_id = l.id WHERE l.id = $id GROUP BY l.id"
     )->fetch();
+    record_audit(
+        'location.edit',
+        'location',
+        (string) $id,
+        ['name' => $row['name'], 'active' => (int) ($row['active'] ?? 1)],
+        ['name' => $updated['name'], 'active' => (int) ($updated['active'] ?? 1)]
+    );
     echo json_encode(format_location($updated));
     exit;
 }

@@ -5,11 +5,22 @@
  * writes (usage, stock, close-month) show up in the very next forecast.
  */
 
+require __DIR__ . '/env.php';
+
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+// Reflect the request's own Origin (instead of '*') so this can legitimately
+// be paired with Allow-Credentials — browsers reject '*' + credentials on
+// cross-origin requests anyway. Same-origin requests (the normal case for
+// this app) ignore these headers entirely.
+$requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? null;
+if ($requestOrigin) {
+    header('Access-Control-Allow-Origin: ' . $requestOrigin);
+    header('Access-Control-Allow-Credentials: true');
+} else {
+    header('Access-Control-Allow-Origin: *');
+}
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -39,21 +50,27 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 enforce_session_timeout();
+require_csrf();
 
-const DB_HOST = '127.0.0.1';
-const DB_NAME = 'cre8ted_inventory';
-const DB_USER = 'root';
-const DB_PASSWORD = '';
+// Every value below reads from the environment (see env.php + .env.example)
+// with the same default it always had, so nothing changes for local dev
+// unless a .env file overrides it. This keeps real secrets out of git while
+// staying a drop-in change — every other file still refers to these as the
+// same bare constants as before.
+define('DB_HOST', env('DB_HOST', '127.0.0.1'));
+define('DB_NAME', env('DB_NAME', 'cre8ted_inventory'));
+define('DB_USER', env('DB_USER', 'root'));
+define('DB_PASSWORD', env('DB_PASSWORD', ''));
 
 // Python forecast microservice — kept off the public internet; only this
 // PHP layer is expected to reach it.
-const FORECAST_SERVICE_URL = 'http://127.0.0.1:5050';
+define('FORECAST_SERVICE_URL', env('FORECAST_SERVICE_URL', 'http://127.0.0.1:5050'));
 
 // Python receipt-OCR microservice (ocr_service.py) — same pattern as the
 // forecast service, on its own port. Used to suggest an amount and OR
 // number when a receipt is uploaded; the user still reviews it before
 // submitting, so this service being down is never a hard blocker.
-const OCR_SERVICE_URL = 'http://127.0.0.1:5051';
+define('OCR_SERVICE_URL', env('OCR_SERVICE_URL', 'http://127.0.0.1:5051'));
 
 // Purchase order receipt uploads (proof of purchase, required before an
 // order can be marked Received). Files are stored outside web-served paths
@@ -72,57 +89,32 @@ const RECEIPT_ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'applicat
  *          and demoable end-to-end.
  * 'live' — POSTs to FINANCE_API_BASE_URL with FINANCE_API_KEY. Switch to
  *          this once the Finance team shares real (or staging) endpoints —
- *          no other code changes are needed.
+ *          no other code changes are needed. Set via .env / the real
+ *          environment (see .env.example) — never commit live keys.
  */
-const FINANCE_MODE = 'stub';
-const FINANCE_API_BASE_URL = 'http://127.0.0.1:9090/finance/api';
-const FINANCE_API_KEY = '';
+define('FINANCE_MODE', env('FINANCE_MODE', 'stub'));
+define('FINANCE_API_BASE_URL', env('FINANCE_API_BASE_URL', 'http://127.0.0.1:9090/finance/api'));
+define('FINANCE_API_KEY', env('FINANCE_API_KEY', ''));
 // Shared secret Finance must send back as X-Finance-Secret on webhooks to
 // finance_integration.php. Change before going live.
-const FINANCE_WEBHOOK_SECRET = 'dev-finance-webhook-secret';
+define('FINANCE_WEBHOOK_SECRET', env('FINANCE_WEBHOOK_SECRET', 'dev-finance-webhook-secret'));
 // Used to build the receipt file URL sent to Finance in expense payloads.
-const APP_BASE_URL = 'http://127.0.0.1:8000';
+define('APP_BASE_URL', env('APP_BASE_URL', 'http://127.0.0.1:8000'));
 
 /**
- * Temporary RBAC — demo accounts only. Lead programmer will replace this
- * with the central super-admin login later; when that happens, swap
- * authenticate_user()/get_session_user() to read from his auth source and
- * every require_role() call below keeps working unchanged.
+ * RBAC accounts live in the `users` table (sql/migration_users_table.sql),
+ * managed by a super admin via the Manage Users page / users.php — not
+ * hardcoded here anymore. authenticate_user() below queries that table.
+ * Whatever ends up authenticated still has the exact same shape
+ * ({ username, name, role, department }), so every require_role() call
+ * across the API keeps working unchanged regardless of where accounts live.
  */
-// Passwords below are the same demo passwords as before (staff123 / manager123
-// / admin123) — just stored as password_hash() output instead of plaintext,
-// so nothing changes for the three demo accounts except how the hash is
-// checked (password_verify() instead of a plain ===).
-const AUTH_USERS = [
-    'juan' => [
-        'password' => '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a',
-        'name' => 'Juan Dela Cruz',
-        'role' => 'staff',
-    ],
-    'maria' => [
-        'password' => '$2y$10$x1iYBp20Zhvbq798nnUnAemwxW8A0CDA8TApsGkoH.bj0CZaan1P.',
-        'name' => 'Maria Santos',
-        'role' => 'manager',
-    ],
-    'admin' => [
-        'password' => '$2y$10$aZHU4bDaT0CaqOOt3GVyu.Gk2EM7tYI7JaLuN12qR5S1vGBoSdcUq',
-        'name' => 'System Administrator',
-        'role' => 'super_admin',
-    ],
-    // Department API demo accounts (password: staff123 — same demo hash as juan).
-    'fleet_dept' => [
-        'password' => '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a',
-        'name' => 'Fleet Department',
-        'role' => 'department',
-        'department' => 'Fleet & Transportation management',
-    ],
-    'tour_ops_dept' => [
-        'password' => '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a',
-        'name' => 'Tour Operations Department',
-        'role' => 'department',
-        'department' => 'Tour Operations',
-    ],
-];
+const MIN_PASSWORD_LENGTH = 8;
+
+function is_valid_username(string $username): bool
+{
+    return (bool) preg_match('/^[a-z][a-z0-9_]{2,29}$/', $username);
+}
 
 // Login rate limiting (see login_attempts table + auth.php). Separate
 // per-username and per-IP thresholds: the per-IP one is looser since a
@@ -376,6 +368,34 @@ function public_user(array $user): array
 
 function get_session_user(): ?array
 {
+    if (!isset($_SESSION['user']) || !is_array($_SESSION['user'])) {
+        return null;
+    }
+    // Once per request, re-read the users row so a deactivated (or
+    // re-roled) account can't keep using a leftover session.
+    static $refreshed = false;
+    if (!$refreshed) {
+        $refreshed = true;
+        try {
+            $stmt = get_pdo()->prepare(
+                'SELECT username, name, role, department, active FROM users WHERE username = ?'
+            );
+            $stmt->execute([$_SESSION['user']['username'] ?? '']);
+            $row = $stmt->fetch();
+            if (!$row || (int) ($row['active'] ?? 0) !== 1) {
+                logout_user();
+                return null;
+            }
+            $_SESSION['user'] = [
+                'username' => $row['username'],
+                'name' => $row['name'],
+                'role' => $row['role'],
+                'department' => $row['department'] ?? null,
+            ];
+        } catch (Throwable $e) {
+            // users table not applied yet — keep the session as-is.
+        }
+    }
     return isset($_SESSION['user']) && is_array($_SESSION['user']) ? $_SESSION['user'] : null;
 }
 
@@ -406,14 +426,20 @@ function enforce_session_timeout(): void
 function authenticate_user(string $username, string $password): ?array
 {
     $key = strtolower(trim($username));
-    if (!isset(AUTH_USERS[$key]) || !password_verify($password, AUTH_USERS[$key]['password'])) {
+    if ($key === '') {
+        return null;
+    }
+    $stmt = get_pdo()->prepare('SELECT * FROM users WHERE username = ? AND active = 1');
+    $stmt->execute([$key]);
+    $row = $stmt->fetch();
+    if (!$row || !password_verify($password, $row['password_hash'])) {
         return null;
     }
     return [
-        'username' => $key,
-        'name' => AUTH_USERS[$key]['name'],
-        'role' => AUTH_USERS[$key]['role'],
-        'department' => AUTH_USERS[$key]['department'] ?? null,
+        'username' => $row['username'],
+        'name' => $row['name'],
+        'role' => $row['role'],
+        'department' => $row['department'] ?? null,
     ];
 }
 
@@ -425,6 +451,48 @@ function login_user(array $user): void
     $_SESSION['user'] = $user;
     $_SESSION['login_time'] = time();
     $_SESSION['last_activity'] = time();
+    // Fresh CSRF token per login so a token from a previous session can't
+    // be replayed against a new one.
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+/** Current session's CSRF token, generating one if this session predates the feature. */
+function get_csrf_token(): string
+{
+    if (empty($_SESSION['csrf_token']) || !is_string($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Rejects state-changing requests (POST/PUT/DELETE/PATCH) from an
+ * authenticated session unless a matching X-CSRF-Token header is sent.
+ * Called once per request from the top of this file, right after the
+ * session starts — so every endpoint is covered automatically with no
+ * per-file changes needed.
+ *
+ * Requests with no session yet (the login POST itself, and the public
+ * vendor-quote form) are intentionally not checked here — there's no
+ * session-bound token to compare against, and require_auth()/require_role()
+ * further down each endpoint still gate anything that actually needs a
+ * logged-in user.
+ */
+function require_csrf(): void
+{
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if (!in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)) {
+        return;
+    }
+    if (!isset($_SESSION['user'])) {
+        return;
+    }
+    $expected = $_SESSION['csrf_token'] ?? null;
+    $provided = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (!is_string($expected) || $expected === '' || !is_string($provided) || $provided === ''
+        || !hash_equals($expected, $provided)) {
+        json_error('invalid or missing csrf token — refresh the page and try again', 403);
+    }
 }
 
 function logout_user(): void
@@ -438,6 +506,45 @@ function logout_user(): void
 function get_client_ip(): string
 {
     return (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+}
+
+/**
+ * Records one admin/config-change action to the audit_log table (see
+ * sql/migration_audit_log.sql) — who did it, from where, and (optionally) a
+ * compact before/after snapshot. Wrapped in try/catch on purpose: a logging
+ * failure (e.g. this migration hasn't been applied yet on an older install)
+ * must never break the actual action being audited.
+ */
+function record_audit(
+    string $action,
+    string $entityType,
+    ?string $entityId = null,
+    ?array $before = null,
+    ?array $after = null
+): void {
+    $user = get_session_user();
+    if (!$user) {
+        return;
+    }
+    try {
+        get_pdo()->prepare(
+            'INSERT INTO audit_log
+                (actor_username, actor_name, actor_role, action, entity_type, entity_id, before_json, after_json, ip_address)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        )->execute([
+            $user['username'],
+            $user['name'],
+            $user['role'],
+            $action,
+            $entityType,
+            $entityId,
+            $before !== null ? json_encode($before) : null,
+            $after !== null ? json_encode($after) : null,
+            get_client_ip(),
+        ]);
+    } catch (Throwable $e) {
+        error_log('record_audit failed (' . $action . '): ' . $e->getMessage());
+    }
 }
 
 /**

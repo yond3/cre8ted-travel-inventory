@@ -12,9 +12,11 @@ Session-based JSON API (cookie `PHPSESSID`). Use `credentials: 'include'` in bro
 
 | Method | Endpoint | Body | Response |
 |--------|----------|------|----------|
-| `POST` | `/api/auth.php` | `{ "username", "password" }` | `{ "status": "ok", "user": { username, name, role, department? } }` |
-| `GET` | `/api/auth.php` | — | `{ "authenticated": true/false, "user"? }` |
-| `DELETE` | `/api/auth.php` | — | `{ "status": "ok" }` |
+| `POST` | `/api/auth.php` | `{ "username", "password" }` | `{ "status": "ok", "user": { username, name, role, department? }, "csrf_token" }` |
+| `GET` | `/api/auth.php` | — | `{ "authenticated": true/false, "user"?, "csrf_token"? }` |
+| `DELETE` | `/api/auth.php` | — | `{ "status": "ok" }` — send `X-CSRF-Token` if logged in |
+
+After login, mutating requests must send header `X-CSRF-Token`. The public vendor quote form does not.
 
 **Demo department accounts** (password `staff123`):
 

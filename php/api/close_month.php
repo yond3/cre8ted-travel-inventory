@@ -238,6 +238,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         json_error('failed to close month: ' . $e->getMessage(), 500);
     }
 
+    record_audit(
+        'month_close.record',
+        'month_close',
+        "$itemKey:$month",
+        null,
+        ['opening_qty' => $opening, 'received_qty' => $received, 'closing_qty' => $closing, 'usage_qty' => $usage]
+    );
+
     echo json_encode([
         'status' => 'ok',
         'item' => $itemKey,

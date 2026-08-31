@@ -11,6 +11,7 @@ __pycache__/
 # Local secrets / env
 .env
 .env.*
+!.env.example
 
 # Old SQLite demo (app uses MySQL now)
 inventory.db
@@ -31,3 +32,7 @@ scripts/
 # Uploaded files (keep folder only)
 php/uploads/receipts/*
 !php/uploads/receipts/.gitkeep
+
+# Local cookie jars from curl / test scripts
+php/cookies.txt
+php/cookies*.txt
