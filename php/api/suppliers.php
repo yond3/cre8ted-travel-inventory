@@ -9,6 +9,7 @@
  * for order history. Set active = 0 to mark inactive; active = 1 to reactivate.
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -16,16 +17,17 @@ $method = $_SERVER['REQUEST_METHOD'];
 function format_supplier(PDO $pdo, array $row): array
 {
     $stmt = $pdo->prepare(
-        'SELECT sp.item_key, i.label, sp.price, sp.last_purchase_date
+        'SELECT sp.item_key, i.label, i.equipment_group, i.item_type, i.unit, sp.price, sp.last_purchase_date
          FROM supplier_prices sp
          JOIN items i ON i.item_key = sp.item_key
          WHERE sp.supplier_id = ?
-         ORDER BY i.label'
+         ORDER BY COALESCE(i.equipment_group, i.label), i.label'
     );
     $stmt->execute([$row['id']]);
-    $prices = array_map(fn($p) => [
+    $prices = array_map(fn ($p) => [
         'item_key' => $p['item_key'],
-        'label' => $p['label'],
+        'label' => equipment_item_display_label($p),
+        'unit' => $p['unit'],
         'price' => (float) $p['price'],
         'last_purchase_date' => $p['last_purchase_date'],
     ], $stmt->fetchAll());
@@ -34,6 +36,7 @@ function format_supplier(PDO $pdo, array $row): array
         'id' => (int) $row['id'],
         'name' => $row['name'],
         'contact' => $row['contact'],
+        'address' => $row['address'] ?? null,
         'rating' => $row['rating'] !== null ? (float) $row['rating'] : null,
         'procurement_methods' => $row['procurement_methods'] ? explode(',', $row['procurement_methods']) : [],
         'notes' => $row['notes'],
@@ -43,7 +46,11 @@ function format_supplier(PDO $pdo, array $row): array
 }
 
 if ($method === 'GET') {
+    require_auth();
     $includeInactive = isset($_GET['include_inactive']) && $_GET['include_inactive'] !== '0';
+    if ($includeInactive) {
+        require_manager_or_above();
+    }
     $sql = 'SELECT * FROM suppliers';
     if (!$includeInactive) {
         $sql .= ' WHERE active = 1';
@@ -55,6 +62,7 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    require_manager_or_above();
     $body = read_json_body();
     $name = trim($body['name'] ?? '');
     if ($name === '') {
@@ -93,15 +101,35 @@ if ($method === 'PUT') {
     if (!$id) {
         json_error('missing required query param: id');
     }
+    $beforeRow = $pdo->query("SELECT * FROM suppliers WHERE id = $id")->fetch();
     $body = read_json_body();
+    if (array_key_exists('active', $body)) {
+        require_super_admin();
+    } else {
+        require_manager_or_above();
+    }
 
     $fields = [];
     $values = [];
-    foreach (['name', 'contact', 'rating', 'notes'] as $field) {
-        if (array_key_exists($field, $body)) {
-            $fields[] = "$field = ?";
-            $values[] = $body[$field];
-        }
+    if (array_key_exists('name', $body)) {
+        $fields[] = 'name = ?';
+        $values[] = parse_required_text($body['name'], LIMIT_VENDOR_COMPANY, 'Supplier name');
+    }
+    if (array_key_exists('contact', $body)) {
+        $fields[] = 'contact = ?';
+        $values[] = parse_optional_text($body['contact'], LIMIT_SUPPLIER_CONTACT, 'Contact');
+    }
+    if (array_key_exists('address', $body)) {
+        $fields[] = 'address = ?';
+        $values[] = parse_optional_text($body['address'], LIMIT_SUPPLIER_ADDRESS, 'Address');
+    }
+    if (array_key_exists('notes', $body)) {
+        $fields[] = 'notes = ?';
+        $values[] = parse_optional_note($body['notes'] ?? null);
+    }
+    if (array_key_exists('rating', $body)) {
+        $fields[] = 'rating = ?';
+        $values[] = $body['rating'];
     }
     if (array_key_exists('procurement_methods', $body)) {
         $methods = $body['procurement_methods'];
@@ -127,9 +155,54 @@ if ($method === 'PUT') {
         $priceStmt->execute([$id, $body['item_key'], $body['price']]);
     }
 
+    if (array_key_exists('prices', $body) && is_array($body['prices'])) {
+        require_manager_or_above();
+        $validItems = $pdo->query(
+            "SELECT item_key FROM items WHERE item_type IN ('consumable', 'equipment') AND active = 1"
+        )->fetchAll(PDO::FETCH_COLUMN);
+        $validSet = array_flip($validItems);
+
+        $priceStmt = $pdo->prepare(
+            'INSERT INTO supplier_prices (supplier_id, item_key, price, last_purchase_date)
+             VALUES (?, ?, ?, CURDATE())
+             ON DUPLICATE KEY UPDATE price = VALUES(price), last_purchase_date = VALUES(last_purchase_date)'
+        );
+        foreach ($body['prices'] as $line) {
+            $itemKey = $line['item_key'] ?? '';
+            $price = $line['price'] ?? null;
+            if ($itemKey === '' || !isset($validSet[$itemKey])) {
+                continue;
+            }
+            if ($price === null || $price === '' || (float) $price <= 0) {
+                continue;
+            }
+            $priceStmt->execute([$id, $itemKey, (float) $price]);
+        }
+    }
+
+    if (array_key_exists('remove_item_keys', $body) && is_array($body['remove_item_keys'])) {
+        require_manager_or_above();
+        $delStmt = $pdo->prepare('DELETE FROM supplier_prices WHERE supplier_id = ? AND item_key = ?');
+        foreach ($body['remove_item_keys'] as $itemKey) {
+            if ($itemKey === '' || $itemKey === null) {
+                continue;
+            }
+            $delStmt->execute([$id, $itemKey]);
+        }
+    }
+
     $row = $pdo->query("SELECT * FROM suppliers WHERE id = $id")->fetch();
     if (!$row) {
         json_error('unknown supplier', 404);
+    }
+    if ($beforeRow) {
+        record_audit(
+            'supplier.edit',
+            'supplier',
+            (string) $id,
+            ['name' => $beforeRow['name'], 'active' => (int) ($beforeRow['active'] ?? 1)],
+            ['name' => $row['name'], 'active' => (int) ($row['active'] ?? 1)]
+        );
     }
     echo json_encode(format_supplier($pdo, $row));
     exit;

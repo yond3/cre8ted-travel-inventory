@@ -1,5 +1,5 @@
 -- One-time cleanup: one document row per PR/PO, status synced with live records.
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 DELETE FROM documents WHERE doc_type = 'Delivery receipt';
 

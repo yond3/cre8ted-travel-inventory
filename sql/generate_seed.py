@@ -121,8 +121,8 @@ def esc(s):
 sql.append("-- Cre8ted Travel inventory system - full MySQL schema + demo seed data")
 sql.append("-- Regenerate with sql/generate_seed.py after changing the seed data in that file.")
 sql.append("")
-sql.append("CREATE DATABASE IF NOT EXISTS wayfarer_inventory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;")
-sql.append("USE wayfarer_inventory;")
+sql.append("CREATE DATABASE IF NOT EXISTS cre8ted_inventory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;")
+sql.append("USE cre8ted_inventory;")
 sql.append("")
 sql.append("SET FOREIGN_KEY_CHECKS = 0;")
 for t in ["tour_vouchers", "documents", "purchase_orders", "purchase_requests", "vendor_application_prices",

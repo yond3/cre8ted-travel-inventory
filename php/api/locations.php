@@ -6,6 +6,7 @@
  * PUT  /api/locations.php?id=<id>               body: fields or active: 0|1
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -23,7 +24,11 @@ function format_location(array $row): array
 }
 
 if ($method === 'GET') {
+    require_auth();
     $includeInactive = isset($_GET['include_inactive']) && $_GET['include_inactive'] !== '0';
+    if ($includeInactive) {
+        require_manager_or_above();
+    }
     $sql = 'SELECT l.*, COUNT(i.item_key) AS item_count
          FROM locations l
          LEFT JOIN items i ON i.location_id = l.id';
@@ -37,14 +42,11 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    require_manager_or_above();
     $body = read_json_body();
-    $name = trim($body['name'] ?? '');
+    $name = parse_required_text($body['name'] ?? '', LIMIT_LOCATION_NAME, 'Location name');
     $type = $body['location_type'] ?? 'storage';
-    $description = $body['description'] ?? null;
-
-    if ($name === '') {
-        json_error('name is required');
-    }
+    $description = parse_optional_text($body['description'] ?? null, LIMIT_LOCATION_DESC, 'Description');
     if (!in_array($type, ['storage', 'in_use'], true)) {
         json_error("location_type must be 'storage' or 'in_use'");
     }
@@ -82,6 +84,11 @@ if ($method === 'PUT') {
     }
 
     $body = read_json_body();
+    if (array_key_exists('active', $body)) {
+        require_super_admin();
+    } else {
+        require_manager_or_above();
+    }
 
     if (array_key_exists('active', $body)) {
         $active = filter_var($body['active'], FILTER_VALIDATE_BOOLEAN) || (int) $body['active'] === 1 ? 1 : 0;
@@ -92,11 +99,17 @@ if ($method === 'PUT') {
 
     $fields = [];
     $values = [];
-    foreach (['name', 'location_type', 'description'] as $field) {
-        if (array_key_exists($field, $body)) {
-            $fields[] = "$field = ?";
-            $values[] = $body[$field];
-        }
+    if (array_key_exists('name', $body)) {
+        $fields[] = 'name = ?';
+        $values[] = parse_required_text($body['name'], LIMIT_LOCATION_NAME, 'Location name');
+    }
+    if (array_key_exists('location_type', $body)) {
+        $fields[] = 'location_type = ?';
+        $values[] = $body['location_type'];
+    }
+    if (array_key_exists('description', $body)) {
+        $fields[] = 'description = ?';
+        $values[] = parse_optional_text($body['description'], LIMIT_LOCATION_DESC, 'Description');
     }
     if (array_key_exists('active', $body)) {
         $fields[] = 'active = ?';
@@ -113,6 +126,13 @@ if ($method === 'PUT') {
         "SELECT l.*, COUNT(i.item_key) AS item_count FROM locations l
          LEFT JOIN items i ON i.location_id = l.id WHERE l.id = $id GROUP BY l.id"
     )->fetch();
+    record_audit(
+        'location.edit',
+        'location',
+        (string) $id,
+        ['name' => $row['name'], 'active' => (int) ($row['active'] ?? 1)],
+        ['name' => $updated['name'], 'active' => (int) ($updated['active'] ?? 1)]
+    );
     echo json_encode(format_location($updated));
     exit;
 }

@@ -1,10 +1,20 @@
 -- Cre8ted Travel inventory system - full MySQL schema + demo seed data
 -- Regenerate with sql/generate_seed.py after changing the seed data in that file.
 
-CREATE DATABASE IF NOT EXISTS wayfarer_inventory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE wayfarer_inventory;
+CREATE DATABASE IF NOT EXISTS cre8ted_inventory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE cre8ted_inventory;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS audit_log;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS login_attempts;
+DROP TABLE IF EXISTS month_closes;
+DROP TABLE IF EXISTS finance_integration_log;
+DROP TABLE IF EXISTS inventory_retirements;
+DROP TABLE IF EXISTS equipment_movements;
+DROP TABLE IF EXISTS equipment_deployments;
+DROP TABLE IF EXISTS stock_requests;
+DROP TABLE IF EXISTS stock_issues;
 DROP TABLE IF EXISTS tour_vouchers;
 DROP TABLE IF EXISTS documents;
 DROP TABLE IF EXISTS purchase_orders;
@@ -29,13 +39,46 @@ CREATE TABLE locations (
 CREATE TABLE items (
     item_key VARCHAR(50) PRIMARY KEY,
     label VARCHAR(100) NOT NULL,
+    equipment_group VARCHAR(100) NULL,
     unit VARCHAR(20) NOT NULL,
     item_type ENUM('consumable','equipment') NOT NULL DEFAULT 'consumable',
     location_id INT NULL,
+    assigned_department VARCHAR(100) NULL,
     current_qty DECIMAL(10,2) NOT NULL DEFAULT 0,
     min_qty DECIMAL(10,2) NULL,
     max_qty DECIMAL(10,2) NULL,
     active TINYINT(1) NOT NULL DEFAULT 1,
+    FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE equipment_deployments (
+    item_key VARCHAR(50) NOT NULL,
+    department VARCHAR(100) NOT NULL,
+    qty DECIMAL(10,2) NOT NULL DEFAULT 0,
+    PRIMARY KEY (item_key, department),
+    FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE equipment_movements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    movement_code VARCHAR(20) NOT NULL UNIQUE,
+    item_key VARCHAR(50) NOT NULL,
+    qty DECIMAL(10,2) NOT NULL,
+    movement_type ENUM('issue_from_storage', 'receive_to_storage', 'deploy_from_purchase', 'retired', 'return_to_storage') NOT NULL,
+    department VARCHAR(100) NULL,
+    location_id INT NULL,
+    issued_to VARCHAR(100) NULL,
+    notes VARCHAR(255) NULL,
+    return_condition ENUM('good', 'damaged', 'broken') NULL,
+    recorded_by VARCHAR(100) NOT NULL,
+    reference_type ENUM('stock_issue', 'purchase_order', 'inventory_retirement') NULL,
+    reference_id INT NULL,
+    reference_code VARCHAR(20) NULL,
+    status ENUM('Active', 'Voided') NOT NULL DEFAULT 'Active',
+    voided_reason VARCHAR(255) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    voided_at DATETIME NULL,
+    FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE,
     FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
@@ -50,7 +93,8 @@ CREATE TABLE usage_log (
 CREATE TABLE suppliers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
-    contact VARCHAR(150) NULL,
+    contact VARCHAR(500) NULL,
+    address VARCHAR(500) NULL,
     rating DECIMAL(2,1) NULL,
     procurement_methods VARCHAR(100) NOT NULL DEFAULT 'walk_in',
     notes VARCHAR(255) NULL,
@@ -71,7 +115,10 @@ CREATE TABLE vendor_applications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     application_code VARCHAR(20) NOT NULL UNIQUE,
     company_name VARCHAR(150) NOT NULL,
-    contact VARCHAR(150) NULL,
+    contact VARCHAR(500) NULL,
+    phones VARCHAR(500) NULL,
+    emails VARCHAR(500) NULL,
+    address VARCHAR(500) NULL,
     procurement_methods VARCHAR(100) NOT NULL DEFAULT 'walk_in',
     notes VARCHAR(255) NULL,
     status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
@@ -94,9 +141,12 @@ CREATE TABLE purchase_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     request_code VARCHAR(20) NOT NULL UNIQUE,
     employee VARCHAR(100) NOT NULL,
-    item_key VARCHAR(50) NOT NULL,
+    department VARCHAR(100) NULL,
+    item_key VARCHAR(50) NULL,
+    requested_label VARCHAR(255) NULL,
     qty DECIMAL(10,2) NOT NULL,
     notes VARCHAR(255) NULL,
+    reason ENUM('replacement', 'new_need', 'other', 'stock_up') NULL,
     status ENUM('Pending','Approved','Rejected','Ordered','Completed') NOT NULL DEFAULT 'Pending',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_key) REFERENCES items(item_key)
@@ -111,10 +161,76 @@ CREATE TABLE purchase_orders (
     assigned_to VARCHAR(100) NULL,
     amount DECIMAL(10,2) NULL,
     status ENUM('Placed','Received','Cancelled') NOT NULL DEFAULT 'Placed',
+    -- Financial Management integration state (see finance_client.php).
+    -- Separate from `status` above: `status` tracks procurement/receiving,
+    -- `finance_status` tracks budget disbursement + expense recording.
+    finance_status ENUM(
+        'not_sent',
+        'pending_disbursement',
+        'funded',
+        'disbursement_rejected',
+        'expense_pending',
+        'expense_recorded'
+    ) NOT NULL DEFAULT 'not_sent',
+    finance_disbursement_id VARCHAR(64) NULL,
+    finance_expense_id VARCHAR(64) NULL,
+    expense_category VARCHAR(50) NULL,
+    finance_sent_at DATETIME NULL,
+    finance_funded_at DATETIME NULL,
+    finance_expense_sent_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     received_at DATETIME NULL,
+    received_by VARCHAR(100) NULL,
+    -- A receipt must be attached (see purchase_orders.php) before a Placed
+    -- order can be marked Received; kept on file for audits and, later,
+    -- handoff to Financial Management.
+    receipt_filename VARCHAR(255) NULL,
+    receipt_original_name VARCHAR(255) NULL,
+    receipt_mime VARCHAR(100) NULL,
+    receipt_amount DECIMAL(10,2) NULL,
+    receipt_number VARCHAR(80) NULL,
+    receipt_notes VARCHAR(255) NULL,
+    receipt_uploaded_at DATETIME NULL,
+    receipt_uploaded_by VARCHAR(100) NULL,
+    -- Manager-only exception when proof of purchase cannot be attached
+    -- (lost receipt). Unlocks mark-received and notifies Finance with the note.
+    receipt_waived TINYINT(1) NOT NULL DEFAULT 0,
+    receipt_waiver_note VARCHAR(500) NULL,
+    receipt_waived_at DATETIME NULL,
+    receipt_waived_by VARCHAR(100) NULL,
+    -- A manager can reject an uploaded receipt (wrong file, wrong amount,
+    -- unreadable, etc.) with a required note. While rejected the order
+    -- cannot be marked Received; the next successful upload clears this.
+    receipt_rejected TINYINT(1) NOT NULL DEFAULT 0,
+    receipt_rejection_note VARCHAR(500) NULL,
+    receipt_rejected_at DATETIME NULL,
+    receipt_rejected_by VARCHAR(100) NULL,
+    -- Staff lost-receipt report awaiting manager approval before it counts
+    -- as proof and is forwarded to Financial Management.
+    receipt_lost_report_pending TINYINT(1) NOT NULL DEFAULT 0,
+    receipt_lost_report_amount DECIMAL(10,2) NULL,
+    receipt_lost_report_note VARCHAR(500) NULL,
+    receipt_lost_report_at DATETIME NULL,
+    receipt_lost_report_by VARCHAR(100) NULL,
+    receipt_lost_report_rejected TINYINT(1) NOT NULL DEFAULT 0,
+    receipt_lost_report_rejection_note VARCHAR(500) NULL,
+    receipt_lost_report_rejected_at DATETIME NULL,
+    receipt_lost_report_rejected_by VARCHAR(100) NULL,
     FOREIGN KEY (request_id) REFERENCES purchase_requests(id),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE finance_integration_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    po_id INT NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    direction ENUM('outbound', 'inbound') NOT NULL,
+    payload JSON NULL,
+    response_status INT NULL,
+    response_body TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+    INDEX idx_finance_log_po (po_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE documents (
@@ -139,6 +255,128 @@ CREATE TABLE tour_vouchers (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- Stock issue / checkout log: who took stock and for which department, at
+-- the moment items leave storage. Decrements items.current_qty immediately;
+-- separate from Close month, which reconciles against a physical count.
+CREATE TABLE stock_issues (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    issue_code VARCHAR(20) NOT NULL UNIQUE,
+    item_key VARCHAR(50) NOT NULL,
+    qty DECIMAL(10,2) NOT NULL,
+    department VARCHAR(100) NOT NULL,
+    issued_to VARCHAR(100) NULL,
+    notes VARCHAR(255) NULL,
+    recorded_by VARCHAR(100) NOT NULL,
+    status ENUM('Active','Voided') NOT NULL DEFAULT 'Active',
+    voided_reason VARCHAR(255) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    voided_at DATETIME NULL,
+    FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Retire / write-off log: broken, lost, expired, or damaged units removed from counts.
+CREATE TABLE inventory_retirements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    retirement_code VARCHAR(20) NOT NULL UNIQUE,
+    item_key VARCHAR(50) NOT NULL,
+    qty DECIMAL(10,2) NOT NULL,
+    source ENUM('storage', 'department') NOT NULL DEFAULT 'storage',
+    department VARCHAR(100) NULL,
+    reason ENUM('broken', 'lost', 'expired', 'damaged', 'other') NOT NULL,
+    notes VARCHAR(255) NULL,
+    recorded_by VARCHAR(100) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Login rate limiting: every login attempt (success or failure) is logged
+-- here so auth.php can lock out a username/IP after too many failures in a
+-- short window. See LOGIN_MAX_ATTEMPTS_PER_USER / _PER_IP in config.php.
+CREATE TABLE login_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    success TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_login_attempts_username (username, created_at),
+    INDEX idx_login_attempts_ip (ip_address, created_at)
+) ENGINE=InnoDB;
+
+-- Department stock requests: formal ask-before-issue flow. Fulfill creates a
+-- stock_issues row and links fulfilled_issue_id back to this request.
+CREATE TABLE stock_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    request_code VARCHAR(20) NOT NULL UNIQUE,
+    department VARCHAR(100) NOT NULL,
+    item_key VARCHAR(50) NULL,
+    requested_label VARCHAR(100) NULL,
+    requested_unit VARCHAR(15) NULL,
+    qty DECIMAL(10,2) NOT NULL,
+    requested_by VARCHAR(100) NOT NULL,
+    notes VARCHAR(255) NULL,
+    status ENUM('Pending','Fulfilled','Cancelled') NOT NULL DEFAULT 'Pending',
+    fulfilled_issue_id INT NULL,
+    fulfilled_by VARCHAR(100) NULL,
+    fulfilled_at DATETIME NULL,
+    cancelled_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_key) REFERENCES items(item_key),
+    FOREIGN KEY (fulfilled_issue_id) REFERENCES stock_issues(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE month_closes (
+    item_key VARCHAR(50) NOT NULL,
+    month DATE NOT NULL,
+    opening_qty DECIMAL(10,2) NOT NULL,
+    received_qty DECIMAL(10,2) NOT NULL,
+    closing_qty DECIMAL(10,2) NOT NULL,
+    usage_qty DECIMAL(10,2) NOT NULL,
+    closed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (item_key, month),
+    FOREIGN KEY (item_key) REFERENCES items(item_key) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Login accounts (see sql/migration_users_table.sql). Managed via the
+-- Manage Users page / users.php (super admin only) — no more hardcoded
+-- AUTH_USERS array in config.php.
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    role ENUM('department', 'staff', 'manager', 'super_admin') NOT NULL,
+    department VARCHAR(100) NULL,
+    active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NULL
+) ENGINE=InnoDB;
+
+-- Audit trail for admin/config-change actions (see sql/migration_audit_log.sql).
+CREATE TABLE audit_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    actor_username VARCHAR(50) NOT NULL,
+    actor_name VARCHAR(100) NOT NULL,
+    actor_role VARCHAR(20) NOT NULL,
+    action VARCHAR(60) NOT NULL,
+    entity_type VARCHAR(40) NOT NULL,
+    entity_id VARCHAR(40) NULL,
+    before_json JSON NULL,
+    after_json JSON NULL,
+    ip_address VARCHAR(45) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_audit_entity (entity_type, entity_id),
+    INDEX idx_audit_created (created_at),
+    INDEX idx_audit_actor (actor_username, created_at)
+) ENGINE=InnoDB;
+
+INSERT INTO users (username, password_hash, name, role, department) VALUES
+('juan', '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a', 'Juan Dela Cruz', 'staff', NULL),
+('maria', '$2y$10$x1iYBp20Zhvbq798nnUnAemwxW8A0CDA8TApsGkoH.bj0CZaan1P.', 'Maria Santos', 'manager', NULL),
+('admin', '$2y$10$aZHU4bDaT0CaqOOt3GVyu.Gk2EM7tYI7JaLuN12qR5S1vGBoSdcUq', 'System Administrator', 'super_admin', NULL),
+('fleet_dept', '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a', 'Fleet Department', 'department', 'Fleet & Transportation management'),
+('tour_ops_dept', '$2y$10$7pMcPfUMLtT6aWZ.ojuzu.moTtrpFV0TiiacECtIaFHOf0H/I464a', 'Tour Operations Department', 'department', 'Tour Operations');
+
 INSERT INTO locations (name, location_type, description) VALUES
 ('Cabinet A / Drawer 1', 'storage', 'Ink and toner'),
 ('Cabinet A / Drawer 2', 'storage', 'Paper stock'),
@@ -150,16 +388,16 @@ INSERT INTO locations (name, location_type, description) VALUES
 ('Admin desk', 'in_use', 'Equipment at the admin work area'),
 ('Meeting room', 'in_use', 'Equipment used during meetings');
 
-INSERT INTO items (item_key, label, unit, item_type, location_id, current_qty, min_qty, max_qty) VALUES
-('bondpaper', 'Bond paper (A4)', 'reams', 'consumable', 2, 3, 4, 15),
-('printerink', 'Printer ink (black)', 'units', 'consumable', 1, 2, 3, 10),
-('ballpointpens', 'Ballpoint pens', 'pcs', 'consumable', 5, 25, 10, 50),
-('businesscards', 'Business cards', 'pcs', 'consumable', 4, 100, 50, 200),
-('cleaningsupplies', 'Cleaning supplies', 'sets', 'consumable', 6, 2, 3, 10),
-('envelopes', 'Envelopes (long)', 'pcs', 'consumable', 3, 3, 5, 20),
-('receiptbooks', 'Receipt books', 'pcs', 'consumable', 3, 8, 2, 10),
-('printer', 'Printer (HP LaserJet)', 'unit', 'equipment', 7, 1, NULL, NULL),
-('extensioncord', 'Extension cord', 'unit', 'equipment', 7, 2, NULL, NULL);
+INSERT INTO items (item_key, label, equipment_group, unit, item_type, location_id, current_qty, min_qty, max_qty) VALUES
+('bondpaper', 'Bond paper (A4)', NULL, 'reams', 'consumable', 2, 3, 4, 15),
+('printerink', 'Printer ink (black)', NULL, 'units', 'consumable', 1, 2, 3, 10),
+('ballpointpens', 'Ballpoint pens', NULL, 'pcs', 'consumable', 5, 25, 10, 50),
+('businesscards', 'Business cards', NULL, 'pcs', 'consumable', 4, 100, 50, 200),
+('cleaningsupplies', 'Cleaning supplies', NULL, 'sets', 'consumable', 6, 2, 3, 10),
+('envelopes', 'Envelopes (long)', NULL, 'pcs', 'consumable', 3, 3, 5, 20),
+('receiptbooks', 'Receipt books', NULL, 'pcs', 'consumable', 3, 8, 2, 10),
+('printer', 'HP LaserJet', 'Printer', 'unit', 'equipment', 7, 1, NULL, NULL),
+('extensioncord', 'Standard', 'Extension cord', 'unit', 'equipment', 7, 2, NULL, NULL);
 
 INSERT INTO usage_log (item_key, month, usage_qty) VALUES
 ('bondpaper', '2024-07-01', 4),

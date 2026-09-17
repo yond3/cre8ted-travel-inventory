@@ -6,6 +6,7 @@
  * Update current stock / minimum threshold directly, without touching code.
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('method not allowed', 405);

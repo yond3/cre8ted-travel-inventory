@@ -1,4 +1,4 @@
-USE wayfarer_inventory;
+USE cre8ted_inventory;
 
 CREATE TABLE IF NOT EXISTS tour_vouchers (
     id INT AUTO_INCREMENT PRIMARY KEY,

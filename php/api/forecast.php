@@ -7,6 +7,9 @@
  * request and passes the JSON straight through.
  */
 require __DIR__ . '/config.php';
+block_department_user();
+
+require_auth();
 
 $itemKey = $_GET['item'] ?? '';
 if ($itemKey === '') {

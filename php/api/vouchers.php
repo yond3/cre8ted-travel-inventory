@@ -10,6 +10,7 @@
  *   { action: "edit", label, tour_package, current_qty, notes }
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -39,12 +40,14 @@ function format_voucher(array $row): array
 }
 
 if ($method === 'GET') {
+    require_auth();
     $rows = $pdo->query('SELECT * FROM tour_vouchers ORDER BY label')->fetchAll();
     echo json_encode(array_map('format_voucher', $rows));
     exit;
 }
 
 if ($method === 'POST') {
+    require_manager_or_above();
     $body = read_json_body();
     $label = trim($body['label'] ?? '');
     $currentQty = (int) ($body['current_qty'] ?? 0);
@@ -102,12 +105,14 @@ if ($method === 'PUT') {
     $action = $body['action'] ?? 'edit';
 
     if ($action === 'use_one') {
+        require_staff_or_above();
         if ((int) $voucher['current_qty'] <= 0) {
             json_error('No vouchers left to use', 409);
         }
         $pdo->prepare('UPDATE tour_vouchers SET current_qty = current_qty - 1 WHERE id = ?')
             ->execute([$id]);
     } elseif ($action === 'restock') {
+        require_manager_or_above();
         $qty = (int) ($body['qty'] ?? 0);
         if ($qty <= 0) {
             json_error('restock quantity must be greater than 0');
@@ -118,6 +123,7 @@ if ($method === 'PUT') {
              WHERE id = ?'
         )->execute([$qty, $qty, $id]);
     } elseif ($action === 'edit') {
+        require_super_admin();
         $label = trim($body['label'] ?? '');
         $currentQty = (int) ($body['current_qty'] ?? -1);
         if ($label === '') {
@@ -139,6 +145,13 @@ if ($method === 'PUT') {
             trim($body['notes'] ?? '') ?: null,
             $id,
         ]);
+        record_audit(
+            'voucher.edit',
+            'voucher',
+            (string) $id,
+            ['label' => $voucher['label'], 'current_qty' => (int) $voucher['current_qty']],
+            ['label' => $label, 'current_qty' => $currentQty]
+        );
     } else {
         json_error("action must be 'use_one', 'restock', or 'edit'");
     }

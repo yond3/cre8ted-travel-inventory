@@ -3,7 +3,7 @@
  * Vendor quotation submissions — no login; vendors use vendor-apply.html.
  *
  * GET  /api/vendor_applications.php?quotable=1
- *      -> consumable items vendors can quote (public form).
+ *      -> active catalog items vendors can quote (consumables + equipment).
  * GET  /api/vendor_applications.php
  * GET  /api/vendor_applications.php?status=Pending
  *      -> list applications with line-item prices (admin).
@@ -17,6 +17,7 @@
  *      -> approve copies prices into suppliers + supplier_prices.
  */
 require __DIR__ . '/config.php';
+block_department_user();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -35,16 +36,16 @@ function fetch_application(PDO $pdo, int $id): ?array
 function fetch_prices(PDO $pdo, int $applicationId): array
 {
     $stmt = $pdo->prepare(
-        'SELECT vap.item_key, i.label, i.unit, vap.price
+        'SELECT vap.item_key, i.label, i.equipment_group, i.item_type, i.unit, vap.price
          FROM vendor_application_prices vap
          JOIN items i ON i.item_key = vap.item_key
          WHERE vap.application_id = ?
-         ORDER BY i.label'
+         ORDER BY COALESCE(i.equipment_group, i.label), i.label'
     );
     $stmt->execute([$applicationId]);
-    return array_map(fn($r) => [
+    return array_map(fn ($r) => [
         'item_key' => $r['item_key'],
-        'label' => $r['label'],
+        'label' => equipment_item_display_label($r),
         'unit' => $r['unit'],
         'price' => (float) $r['price'],
     ], $stmt->fetchAll());
@@ -57,6 +58,9 @@ function format_application(PDO $pdo, array $row): array
         'application_code' => $row['application_code'],
         'company_name' => $row['company_name'],
         'contact' => $row['contact'],
+        'phones' => $row['phones'] ?? null,
+        'emails' => $row['emails'] ?? null,
+        'address' => $row['address'] ?? null,
         'procurement_methods' => $row['procurement_methods']
             ? explode(',', $row['procurement_methods'])
             : [],
@@ -82,18 +86,81 @@ function normalize_methods($methods): string
     return implode(',', $methods);
 }
 
+function normalize_contact_list(?string $value): ?string
+{
+    if ($value === null) {
+        return null;
+    }
+    $lines = preg_split('/[\r\n,]+/', $value);
+    $parts = [];
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line !== '') {
+            $parts[] = $line;
+        }
+    }
+    if ($parts === []) {
+        return null;
+    }
+    return implode("\n", $parts);
+}
+
+function format_vendor_contact_summary(?string $phones, ?string $emails): ?string
+{
+    $parts = [];
+    if ($phones !== null && $phones !== '') {
+        foreach (preg_split('/[\r\n]+/', $phones) as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $parts[] = $line;
+            }
+        }
+    }
+    if ($emails !== null && $emails !== '') {
+        foreach (preg_split('/[\r\n]+/', $emails) as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $parts[] = $line;
+            }
+        }
+    }
+    if ($parts === []) {
+        return null;
+    }
+    return implode(' · ', $parts);
+}
+
 if ($method === 'GET') {
     if (isset($_GET['quotable'])) {
-        $rows = $pdo->query(
-            "SELECT item_key, label, unit FROM items WHERE item_type = 'consumable' AND active = 1 ORDER BY label"
-        )->fetchAll();
-        echo json_encode(array_map(fn($r) => [
+        if (items_have_equipment_group($pdo)) {
+            $rows = $pdo->query(
+                "SELECT item_key, label, equipment_group, unit, item_type FROM items
+                 WHERE active = 1
+                 AND (item_type = 'consumable'
+                      OR (item_type = 'equipment' AND (assigned_department IS NULL OR TRIM(assigned_department) = '')))
+                 ORDER BY item_type, equipment_group, label"
+            )->fetchAll();
+        } else {
+            $rows = $pdo->query(
+                "SELECT item_key, label, unit, item_type FROM items
+                 WHERE active = 1
+                 AND (item_type = 'consumable'
+                      OR (item_type = 'equipment' AND (assigned_department IS NULL OR TRIM(assigned_department) = '')))
+                 ORDER BY item_type, label"
+            )->fetchAll();
+        }
+        echo json_encode(array_map(fn ($r) => [
             'item_key' => $r['item_key'],
             'label' => $r['label'],
+            'equipment_group' => $r['equipment_group'] ?? null,
+            'display_label' => equipment_item_display_label($r),
             'unit' => $r['unit'],
+            'item_type' => $r['item_type'],
         ], $rows));
         exit;
     }
+
+    require_auth();
 
     $id = (int) ($_GET['id'] ?? 0);
     if ($id) {
@@ -121,10 +188,7 @@ if ($method === 'GET') {
 
 if ($method === 'POST') {
     $body = read_json_body();
-    $companyName = trim($body['company_name'] ?? '');
-    if ($companyName === '') {
-        json_error('company_name is required');
-    }
+    $companyName = parse_required_text($body['company_name'] ?? '', LIMIT_VENDOR_COMPANY, 'Company name');
 
     $prices = $body['prices'] ?? [];
     if (!is_array($prices) || empty($prices)) {
@@ -132,7 +196,9 @@ if ($method === 'POST') {
     }
 
     $validItems = $pdo->query(
-        "SELECT item_key FROM items WHERE item_type = 'consumable' AND active = 1"
+        "SELECT item_key FROM items WHERE active = 1
+         AND (item_type = 'consumable'
+              OR (item_type = 'equipment' AND (assigned_department IS NULL OR TRIM(assigned_department) = '')))"
     )->fetchAll(PDO::FETCH_COLUMN);
     $validSet = array_flip($validItems);
 
@@ -154,20 +220,33 @@ if ($method === 'POST') {
 
     $code = next_code('VQ', 'vendor_applications', 'application_code');
     $methods = normalize_methods($body['procurement_methods'] ?? ['walk_in']);
+    $phones = parse_vendor_phones($body['phones'] ?? null);
+    $emails = parse_vendor_emails($body['emails'] ?? null);
+    $address = parse_optional_text($body['address'] ?? null, LIMIT_VENDOR_ADDRESS, 'Business address');
+    $legacyContact = parse_optional_text($body['contact'] ?? null, LIMIT_SUPPLIER_CONTACT, 'Contact');
+
+    if ($phones === null && $emails === null && $legacyContact === null) {
+        json_error('provide at least one phone number or email address');
+    }
+
+    $contactSummary = format_vendor_contact_summary($phones, $emails) ?: $legacyContact;
 
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare(
             'INSERT INTO vendor_applications
-             (application_code, company_name, contact, procurement_methods, notes, status)
-             VALUES (?, ?, ?, ?, ?, ?)'
+             (application_code, company_name, contact, phones, emails, address, procurement_methods, notes, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $code,
             $companyName,
-            trim($body['contact'] ?? '') ?: null,
+            $contactSummary,
+            $phones,
+            $emails,
+            $address,
             $methods,
-            trim($body['notes'] ?? '') ?: null,
+            parse_optional_note($body['notes'] ?? null),
             'Pending',
         ]);
         $appId = (int) $pdo->lastInsertId();
@@ -206,6 +285,7 @@ if ($method === 'PUT') {
         json_error("application is '{$row['status']}', not Pending", 409);
     }
 
+    require_manager_or_above();
     $body = read_json_body();
     $action = $body['action'] ?? '';
 
@@ -242,9 +322,10 @@ if ($method === 'PUT') {
             if ($supplierId) {
                 $supplierId = (int) $supplierId;
                 $pdo->prepare(
-                    'UPDATE suppliers SET contact = COALESCE(?, contact), procurement_methods = ?, notes = COALESCE(?, notes), active = 1 WHERE id = ?'
+                    'UPDATE suppliers SET contact = COALESCE(?, contact), address = COALESCE(?, address), procurement_methods = ?, notes = COALESCE(?, notes), active = 1 WHERE id = ?'
                 )->execute([
                     $row['contact'],
+                    $row['address'] ?? null,
                     $row['procurement_methods'],
                     $row['notes'],
                     $supplierId,
@@ -252,11 +333,12 @@ if ($method === 'PUT') {
             } else {
                 $rating = isset($body['rating']) ? (float) $body['rating'] : null;
                 $pdo->prepare(
-                    'INSERT INTO suppliers (name, contact, rating, procurement_methods, notes)
-                     VALUES (?, ?, ?, ?, ?)'
+                    'INSERT INTO suppliers (name, contact, address, rating, procurement_methods, notes)
+                     VALUES (?, ?, ?, ?, ?, ?)'
                 )->execute([
                     $row['company_name'],
                     $row['contact'],
+                    $row['address'] ?? null,
                     $rating,
                     $row['procurement_methods'],
                     $row['notes'],
