@@ -16,7 +16,7 @@
  * account management.
  */
 require __DIR__ . '/config.php';
-block_department_user();
+// Department self-service is allowed below; administration remains Super Admin only.
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -32,6 +32,7 @@ function format_user(array $row): array
         'active' => (int) ($row['active'] ?? 1) === 1,
         'created_at' => $row['created_at'],
         'updated_at' => $row['updated_at'],
+        'account_kind' => $row['account_kind'] ?? 'unclassified',
     ];
 }
 
@@ -64,6 +65,7 @@ function validate_role(string $role): void
 
 function validate_password(string $password): void
 {
+    if(strlen($password)>72)json_error('password must be at most 72 bytes');
     if (strlen($password) < MIN_PASSWORD_LENGTH) {
         json_error('password must be at least ' . MIN_PASSWORD_LENGTH . ' characters');
     }
@@ -109,9 +111,15 @@ if ($method === 'POST') {
     }
 
     $actor = require_super_admin();
+    account_change_begin($pdo);
+    account_assert_current($pdo,$actor);
+    $exists->execute([$username]);
+    if($exists->fetchColumn())json_error('that username is already taken',409);
+    $kind=$body['account_kind']??'named';
+    if($kind!=='named')json_error('New accounts must belong to a named person');
     $stmt = $pdo->prepare(
-        'INSERT INTO users (username, password_hash, name, role, department, created_by)
-         VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO users (username, password_hash, name, role, department, created_by, account_kind)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $username,
@@ -120,11 +128,13 @@ if ($method === 'POST') {
         $role,
         $department,
         $actor['username'],
+        $kind,
     ]);
     $id = (int) $pdo->lastInsertId();
     $row = fetch_user_or_404($pdo, $id);
 
-    record_audit('user.create', 'user', $username, null, format_user($row));
+    record_audit('user.create', 'user', $username, null, format_user($row),true);
+    $pdo->commit();
 
     echo json_encode(format_user($row));
     exit;
@@ -148,22 +158,30 @@ if ($method === 'PUT') {
         $new = (string) ($body['new_password'] ?? '');
         validate_password($new);
 
+        account_change_begin($pdo);
+        account_assert_current($pdo,$actor);
+        if(mfa_ready($pdo))mfa_rate($pdo,$actor['username'],'reauth');
         $stmt = $pdo->prepare('SELECT * FROM users WHERE username = ? AND active = 1');
         $stmt->execute([$actor['username']]);
         $row = $stmt->fetch();
         if (!$row || !password_verify($current, $row['password_hash'])) {
+            if(mfa_ready($pdo)){mfa_attempt($pdo,$actor['username'],'reauth',false);$pdo->commit();}
             json_error('current password is incorrect', 403);
         }
-        $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+        $pdo->prepare('UPDATE users SET password_hash = ?,security_version=security_version+1 WHERE id = ?')
             ->execute([password_hash($new, PASSWORD_BCRYPT), (int) $row['id']]);
 
-        record_audit('user.change_own_password', 'user', $actor['username']);
+        record_audit('user.change_own_password', 'user', $actor['username'],null,null,true);
+        $pdo->commit();
+        logout_user();
 
         echo json_encode(['status' => 'ok']);
         exit;
     }
 
-    require_super_admin();
+    $actor=require_super_admin();
+    account_change_begin($pdo);
+    account_assert_current($pdo,$actor);
     $id = (int) $idParam;
     if (!$id) {
         json_error('missing required query param: id');
@@ -174,15 +192,26 @@ if ($method === 'PUT') {
     if ($action === 'set_password') {
         $password = (string) ($body['password'] ?? '');
         validate_password($password);
-        $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+        $pdo->prepare('UPDATE users SET password_hash = ?,security_version=security_version+1 WHERE id = ?')
             ->execute([password_hash($password, PASSWORD_BCRYPT), $id]);
-        record_audit('user.set_password', 'user', $row['username']);
+        record_audit('user.set_password', 'user', $row['username'],null,null,true);
+        $pdo->commit();
+        if($row['username']===$actor['username'])logout_user();
         echo json_encode(format_user(fetch_user_or_404($pdo, $id)));
         exit;
     }
 
     $fields = [];
-    $values = [];
+    if(array_key_exists('account_kind',$body)){
+        if($body['account_kind']!=='named')json_error('Accounts can only be classified as a named person');
+        $fields[]='account_kind = ?';$kind=$body['account_kind'];
+    }
+    if(mfa_ready($pdo)&&isset($kind)&&$kind!=='named'&&(int)$row['mfa_required']===1)json_error('An MFA identity cannot be converted to a shared account',409);
+    $values = isset($kind)?[$kind]:[];
+    if(isset($body['password'])&&$body['password']!==''){
+        validate_password((string)$body['password']);
+        $fields[]='password_hash = ?';$values[]=password_hash((string)$body['password'],PASSWORD_BCRYPT);
+    }
 
     if (array_key_exists('name', $body)) {
         $name = trim($body['name']);
@@ -214,10 +243,13 @@ if ($method === 'PUT') {
 
     $newActive = (int) $row['active'];
     if (array_key_exists('active', $body)) {
+        if(!in_array($body['active'],[true,false,0,1,'0','1'],true))json_error('active must be a boolean');
         $newActive = filter_var($body['active'], FILTER_VALIDATE_BOOLEAN) || (int) $body['active'] === 1 ? 1 : 0;
         $fields[] = 'active = ?';
         $values[] = $newActive;
     }
+
+    if((int)$row['active']===0&&$newActive===1&&($kind??$row['account_kind'])!=='named')json_error('Confirm an individual account owner before reactivation',409);
 
     // Guard against locking everyone out of account management: never allow
     // the last active super_admin to be demoted or deactivated.
@@ -226,16 +258,24 @@ if ($method === 'PUT') {
     if ($wasActiveSuperAdmin && !$stillActiveSuperAdmin && count_other_active_super_admins($pdo, $id) === 0) {
         json_error('cannot demote or deactivate the last active super admin', 409);
     }
+    if($wasActiveSuperAdmin&&!$stillActiveSuperAdmin&&mfa_ready($pdo)&&(int)$pdo->query('SELECT enforce_mfa FROM auth_policy WHERE id=1')->fetchColumn()===1){
+        $q=$pdo->prepare("SELECT COUNT(*) FROM users u JOIN user_authenticators a ON a.user_id=u.id WHERE u.id<>? AND u.active=1 AND u.role='super_admin' AND u.account_kind='named' AND a.revoked_at IS NULL");$q->execute([$id]);
+        if((int)$q->fetchColumn()===0)json_error('Cannot remove the last enrolled active Super Admin while MFA is enforced',409);
+    }
 
     if (empty($fields)) {
         json_error('no fields to update');
     }
 
+    $fields[]='security_version = security_version + 1';
     $values[] = $id;
     $pdo->prepare('UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?')->execute($values);
 
+    if(mfa_ready($pdo)&&$newActive===0)mfa_revoke($pdo,$id);
     $after = format_user(fetch_user_or_404($pdo, $id));
-    record_audit('user.edit', 'user', $row['username'], $before, $after);
+    record_audit('user.edit', 'user', $row['username'], $before, $after,true);
+    $pdo->commit();
+    if($row['username']===$actor['username'])logout_user();
 
     echo json_encode($after);
     exit;

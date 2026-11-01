@@ -13,6 +13,9 @@ __pycache__/
 .env.*
 !.env.example
 
+# Local database/receipt backups contain private application data.
+/backups/
+
 # Old SQLite demo (app uses MySQL now)
 inventory.db
 archive/inventory.db
@@ -36,3 +39,16 @@ php/uploads/receipts/*
 # Local cookie jars from curl / test scripts
 php/cookies.txt
 php/cookies*.txt
+
+# Runtime deployment state must never be committed.
+/php/api/.inventory-maintenance
+
+# Isolated Phase 5 working copy; never served by the normal PHP root.
+/phase5-development/
+
+# Isolated Phase 6 development; normal PHP root is unchanged.
+/phase6-development/
+
+# Composer runtime/cache; commit composer.json and composer.lock only.
+/vendor/
+/tools/

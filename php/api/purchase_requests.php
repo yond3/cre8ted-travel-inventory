@@ -25,6 +25,7 @@ function format_request(array $row): array
     $displayLabel = trim($row['requested_label'] ?? '') ?: ($row['label'] ?? '—');
     $unit = $row['unit'] ?? 'unit(s)';
     return [
+        ...category_metadata_for_key(get_pdo(), $row['item_key'] ?? null),
         'id' => (int) $row['id'],
         'request_code' => $row['request_code'],
         'employee' => $row['employee'],
@@ -83,6 +84,8 @@ if ($method === 'POST') {
         json_error('insufficient permissions', 403);
     }
     $body = read_json_body();
+    stock_begin($pdo, 'purchase_request_create');
+    stock_operation($pdo, $body, false);
     $employee = $user['name'];
     $qty = $body['qty'] ?? null;
     $requestedLabelRaw = trim($body['requested_label'] ?? '');
@@ -101,7 +104,7 @@ if ($method === 'POST') {
         $requestedLabel = '';
     }
 
-    $qty = (float) $qty;
+    $qty = parse_nonnegative_quantity($qty, 'Quantity');
     if ($qty <= 0) {
         json_error('qty must be greater than 0');
     }
@@ -138,7 +141,7 @@ if ($method === 'POST') {
         $row = $pdo->query(
             REQUEST_SELECT . ' WHERE r.request_code = ' . $pdo->quote($code)
         )->fetch();
-        echo json_encode(format_request($row));
+        stock_reply($pdo, format_request($row));
         exit;
     }
 
@@ -213,7 +216,7 @@ if ($method === 'POST') {
     $row = $pdo->query(
         REQUEST_SELECT . ' WHERE r.request_code = ' . $pdo->quote($code)
     )->fetch();
-    echo json_encode(format_request($row));
+    stock_reply($pdo, format_request($row));
     exit;
 }
 
@@ -237,20 +240,25 @@ if ($method === 'PUT') {
         $newStatus = $action === 'approve' ? 'Approved' : 'Rejected';
         $updated = [];
         $skipped = [];
+        sort($ids, SORT_NUMERIC);
         foreach ($ids as $rid) {
-            $stmt = $pdo->prepare('SELECT * FROM purchase_requests WHERE id = ?');
+            stock_begin($pdo, 'purchase_request_' . $action);
+            $stmt = $pdo->prepare('SELECT * FROM purchase_requests WHERE id = ? FOR UPDATE');
             $stmt->execute([$rid]);
             $req = $stmt->fetch();
             if (!$req) {
+                stock_rollback();
                 $skipped[] = ['id' => $rid, 'reason' => 'not found'];
                 continue;
             }
             if ($req['status'] !== 'Pending') {
+                stock_rollback();
                 $skipped[] = ['id' => $rid, 'request_code' => $req['request_code'], 'reason' => "already {$req['status']}"];
                 continue;
             }
             $pdo->prepare('UPDATE purchase_requests SET status = ? WHERE id = ?')->execute([$newStatus, $rid]);
             update_document('Purchase request', $req['request_code'], $newStatus);
+            stock_commit($pdo);
             $updated[] = ['id' => $rid, 'request_code' => $req['request_code'], 'new_status' => $newStatus];
         }
         if (!empty($updated)) {
@@ -271,7 +279,8 @@ if ($method === 'PUT') {
         json_error('missing required query param: id');
     }
 
-    $stmt = $pdo->prepare('SELECT * FROM purchase_requests WHERE id = ?');
+    stock_begin($pdo, 'purchase_request_' . $action);
+    $stmt = $pdo->prepare('SELECT * FROM purchase_requests WHERE id = ? FOR UPDATE');
     $stmt->execute([$id]);
     $req = $stmt->fetch();
     if (!$req) {
@@ -286,6 +295,7 @@ if ($method === 'PUT') {
         }
         $pdo->prepare("UPDATE purchase_requests SET status = 'Pending' WHERE id = ?")->execute([$id]);
         update_document('Purchase request', $req['request_code'], 'Pending');
+        stock_commit($pdo);
         record_audit('purchase_request.reopen', 'purchase_request', $req['request_code'], ['status' => 'Rejected'], ['status' => 'Pending']);
         echo json_encode(['status' => 'ok', 'id' => $id, 'new_status' => 'Pending']);
         exit;
@@ -305,6 +315,7 @@ if ($method === 'PUT') {
 
     $pdo->prepare('UPDATE purchase_requests SET status = ? WHERE id = ?')->execute([$newStatus, $id]);
     update_document('Purchase request', $req['request_code'], $newStatus);
+    stock_commit($pdo);
     record_audit(
         'purchase_request.' . $action,
         'purchase_request',

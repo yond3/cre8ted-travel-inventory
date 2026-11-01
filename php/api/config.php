@@ -6,24 +6,33 @@
  */
 
 require __DIR__ . '/env.php';
+require __DIR__ . '/security.php';
+require __DIR__ . '/account_security.php';
+require __DIR__ . '/mfa_service.php';
+require __DIR__ . '/stock_service.php';
+require __DIR__ . '/usage_service.php';
+require __DIR__ . '/category_service.php';
+require __DIR__ . '/stock_request_service.php';
 
 header('Content-Type: application/json');
-// Reflect the request's own Origin (instead of '*') so this can legitimately
-// be paired with Allow-Credentials — browsers reject '*' + credentials on
-// cross-origin requests anyway. Same-origin requests (the normal case for
-// this app) ignore these headers entirely.
-$requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? null;
-if ($requestOrigin) {
-    header('Access-Control-Allow-Origin: ' . $requestOrigin);
-    header('Access-Control-Allow-Credentials: true');
-} else {
-    header('Access-Control-Allow-Origin: *');
-}
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
+apply_request_origin_policy();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
+    exit;
+}
+
+// Only the separately guarded, directly invoked CLI recovery tool can operate
+// under maintenance. A web request/constant alone cannot select this exception.
+$emergencyMfaOperator = PHP_SAPI === 'cli'
+    && defined('SCIM_EMERGENCY_MFA_OPERATOR') && SCIM_EMERGENCY_MFA_OPERATOR === true
+    && is_file(__DIR__ . '/../../scripts/recover_admin_mfa.php')
+    && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__DIR__ . '/../../scripts/recover_admin_mfa.php');
+// A local deployment marker pauses API traffic before sessions or database work.
+if (is_file(__DIR__ . '/.inventory-maintenance') && !$emergencyMfaOperator) {
+    header('Retry-After: 60');
+    http_response_code(503);
+    echo json_encode(['error' => 'Inventory maintenance is in progress. Please try again shortly.']);
     exit;
 }
 
@@ -58,6 +67,7 @@ require_csrf();
 // staying a drop-in change — every other file still refers to these as the
 // same bare constants as before.
 define('DB_HOST', env('DB_HOST', '127.0.0.1'));
+define('DB_PORT', env('DB_PORT', '3306'));
 define('DB_NAME', env('DB_NAME', 'cre8ted_inventory'));
 define('DB_USER', env('DB_USER', 'root'));
 define('DB_PASSWORD', env('DB_PASSWORD', ''));
@@ -378,11 +388,14 @@ function get_session_user(): ?array
         $refreshed = true;
         try {
             $stmt = get_pdo()->prepare(
-                'SELECT username, name, role, department, active FROM users WHERE username = ?'
+                'SELECT * FROM users WHERE username = ?'
             );
             $stmt->execute([$_SESSION['user']['username'] ?? '']);
             $row = $stmt->fetch();
-            if (!$row || (int) ($row['active'] ?? 0) !== 1) {
+            if (!$row || (int) ($row['active'] ?? 0) !== 1
+                || (account_security_ready(get_pdo()) && (!isset($_SESSION['user']['security_version'])
+                    || (string)$_SESSION['user']['security_version'] !== (string)$row['security_version']))
+                || !mfa_session_valid(get_pdo(),$row)) {
                 logout_user();
                 return null;
             }
@@ -391,9 +404,13 @@ function get_session_user(): ?array
                 'name' => $row['name'],
                 'role' => $row['role'],
                 'department' => $row['department'] ?? null,
+                'id' => (int)$row['id'],
+                'security_version' => isset($row['security_version']) ? (string)$row['security_version'] : null,
             ];
         } catch (Throwable $e) {
-            // users table not applied yet — keep the session as-is.
+            // Never authorize a stale session if its account cannot be checked.
+            error_log('session account verification failed: ' . $e->getMessage());
+            json_error('account verification unavailable - please try again', 503);
         }
     }
     return isset($_SESSION['user']) && is_array($_SESSION['user']) ? $_SESSION['user'] : null;
@@ -440,14 +457,17 @@ function authenticate_user(string $username, string $password): ?array
         'name' => $row['name'],
         'role' => $row['role'],
         'department' => $row['department'] ?? null,
+                'id' => (int)$row['id'],
+                'security_version' => isset($row['security_version']) ? (string)$row['security_version'] : null,
     ];
 }
 
 function login_user(array $user): void
 {
+    unset($_SESSION['mfa_pending'],$_SESSION['preauth_csrf'],$_SESSION['mfa_proof']);
     // Regenerate the session ID on every successful login so a session ID
     // seen (or fixed) before authentication can't be reused afterward.
-    session_regenerate_id(true);
+    if(!session_regenerate_id(true)){logout_user();json_error('Unable to create a secure session; sign in again',503);}
     $_SESSION['user'] = $user;
     $_SESSION['login_time'] = time();
     $_SESSION['last_activity'] = time();
@@ -485,6 +505,7 @@ function require_csrf(): void
         return;
     }
     if (!isset($_SESSION['user'])) {
+        if(isset($_SESSION['mfa_pending']))mfa_preauth_csrf();
         return;
     }
     $expected = $_SESSION['csrf_token'] ?? null;
@@ -513,17 +534,20 @@ function get_client_ip(): string
  * sql/migration_audit_log.sql) — who did it, from where, and (optionally) a
  * compact before/after snapshot. Wrapped in try/catch on purpose: a logging
  * failure (e.g. this migration hasn't been applied yet on an older install)
- * must never break the actual action being audited.
+ * is best effort by default. Required inventory/usage corrections pass true
+ * and save audit history inside their transaction; audit failure rolls it back.
  */
 function record_audit(
     string $action,
     string $entityType,
     ?string $entityId = null,
     ?array $before = null,
-    ?array $after = null
+    ?array $after = null,
+    bool $required = false
 ): void {
     $user = get_session_user();
     if (!$user) {
+        if ($required) throw new RuntimeException('Required audit actor is missing');
         return;
     }
     try {
@@ -543,6 +567,7 @@ function record_audit(
             get_client_ip(),
         ]);
     } catch (Throwable $e) {
+        if ($required) throw $e;
         error_log('record_audit failed (' . $action . '): ' . $e->getMessage());
     }
 }
@@ -577,34 +602,18 @@ function record_login_attempt(string $username, string $ip, bool $success): void
  */
 function login_lockout_seconds_remaining(string $username, string $ip): int
 {
-    $pdo = get_pdo();
-    $windowMinutes = LOGIN_ATTEMPT_WINDOW_MINUTES;
-    $lockoutMinutes = LOGIN_LOCKOUT_MINUTES;
-
-    $stmt = $pdo->prepare(
-        "SELECT COUNT(*) AS cnt,
-                GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), MAX(created_at) + INTERVAL {$lockoutMinutes} MINUTE)) AS remaining
-         FROM login_attempts
-         WHERE username = ? AND success = 0 AND created_at >= NOW() - INTERVAL {$windowMinutes} MINUTE"
-    );
-    $stmt->execute([$username]);
-    $userRow = $stmt->fetch();
-
-    $stmt = $pdo->prepare(
-        "SELECT COUNT(*) AS cnt,
-                GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), MAX(created_at) + INTERVAL {$lockoutMinutes} MINUTE)) AS remaining
-         FROM login_attempts
-         WHERE ip_address = ? AND success = 0 AND created_at >= NOW() - INTERVAL {$windowMinutes} MINUTE"
-    );
-    $stmt->execute([$ip]);
-    $ipRow = $stmt->fetch();
-
-    $remaining = 0;
-    if ($userRow && (int) $userRow['cnt'] >= LOGIN_MAX_ATTEMPTS_PER_USER) {
-        $remaining = max($remaining, (int) $userRow['remaining']);
-    }
-    if ($ipRow && (int) $ipRow['cnt'] >= LOGIN_MAX_ATTEMPTS_PER_IP) {
-        $remaining = max($remaining, (int) $ipRow['remaining']);
+    $pdo=get_pdo();$remaining=0;
+    $window=(int)LOGIN_ATTEMPT_WINDOW_MINUTES;$lockout=(int)LOGIN_LOCKOUT_MINUTES;
+    $stage=mfa_ready($pdo)?" AND a.stage='password'":'';
+    $stageB=mfa_ready($pdo)?" AND b.stage='password'":'';
+    foreach(['username'=>[$username,LOGIN_MAX_ATTEMPTS_PER_USER],'ip_address'=>[$ip,LOGIN_MAX_ATTEMPTS_PER_IP]] as $column=>$rule){
+        // Find actual threshold crossings; older failures must not erase a live lockout.
+        $q=$pdo->prepare("SELECT GREATEST(0,TIMESTAMPDIFF(SECOND,NOW(),MAX(a.created_at)+INTERVAL {$lockout} MINUTE))
+            FROM login_attempts a WHERE a.{$column}=? AND a.success=0 {$stage}
+            AND a.created_at>=NOW()-INTERVAL {$lockout} MINUTE
+            AND (SELECT COUNT(*) FROM login_attempts b WHERE b.{$column}=a.{$column} AND b.success=0 {$stageB}
+                 AND b.created_at BETWEEN a.created_at-INTERVAL {$window} MINUTE AND a.created_at)>=?");
+        $q->execute($rule);$remaining=max($remaining,(int)$q->fetchColumn());
     }
     return $remaining;
 }
@@ -736,9 +745,10 @@ function fetch_requestable_stock_items(PDO $pdo, ?string $typeFilter = null): ar
             'unit' => $row['unit'],
             'item_type' => $itemType,
             'max_qty' => $onHand,
+            ...category_metadata($pdo, $row),
         ];
     }
-    return $out;
+    return category_filter_rows($pdo, $out);
 }
 
 /** Validates catalog stock request and returns the item row. */
@@ -785,7 +795,7 @@ function get_pdo(): PDO
 {
     static $pdo = null;
     if ($pdo === null) {
-        $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+        $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
         $pdo = new PDO($dsn, DB_USER, DB_PASSWORD, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -796,6 +806,7 @@ function get_pdo(): PDO
 
 function json_error(string $message, int $status = 400): void
 {
+    stock_rollback();
     http_response_code($status);
     echo json_encode(['error' => $message]);
     exit;
@@ -814,8 +825,22 @@ function get_item_or_404(string $itemKey): array
 
 function read_json_body(): array
 {
-    $body = json_decode(file_get_contents('php://input'), true);
-    return is_array($body) ? $body : [];
+    $raw = file_get_contents('php://input');
+    if ($raw === false) {
+        json_error('could not read request body');
+    }
+    if (trim($raw) === '') {
+        return []; // Existing actions with no body remain valid.
+    }
+    try {
+        $body = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+    } catch (JsonException $e) {
+        json_error('request body must contain valid JSON');
+    }
+    if (!is_array($body) || !str_starts_with(ltrim($raw), '{')) {
+        json_error('request body must be a JSON object');
+    }
+    return $body;
 }
 
 /**
@@ -825,16 +850,28 @@ function read_json_body(): array
  */
 function next_code(string $prefix, string $table, string $column): string
 {
+    $sources = ['PR' => ['purchase_requests', 'request_code'], 'PO' => ['purchase_orders', 'po_code'],
+        'DOC' => ['documents', 'doc_code'], 'ISS' => ['stock_issues', 'issue_code'],
+        'SR' => ['stock_requests', 'request_code'], 'EM' => ['equipment_movements', 'movement_code'],
+        'RET' => ['inventory_retirements', 'retirement_code'], 'VQ' => ['vendor_applications', 'application_code']];
+    if (($sources[$prefix] ?? null) !== [$table, $column]) {
+        throw new InvalidArgumentException('Unknown code source');
+    }
     $year = date('Y');
     $like = "$prefix-$year-%";
-    $stmt = get_pdo()->prepare("SELECT $column FROM $table WHERE $column LIKE ? ORDER BY $column DESC LIMIT 1");
-    $stmt->execute([$like]);
-    $last = $stmt->fetchColumn();
-    $next = 1;
-    if ($last) {
-        $parts = explode('-', $last);
-        $next = ((int) end($parts)) + 1;
+    $pdo = get_pdo();
+    // Seed from the numeric suffix (not lexical ordering, which breaks after 999).
+    $exists = $pdo->prepare('SELECT counter_value FROM code_counters WHERE prefix = ? AND code_year = ?');
+    $exists->execute([$prefix, $year]);
+    if ($exists->fetchColumn() === false) {
+        $stmt = $pdo->prepare("INSERT IGNORE INTO code_counters (prefix, code_year, counter_value)
+            SELECT ?, ?, COALESCE(MAX(CAST(SUBSTRING_INDEX($column, '-', -1) AS UNSIGNED)), 0)
+            FROM $table WHERE $column LIKE ?");
+        $stmt->execute([$prefix, $year, $like]);
     }
+    $pdo->prepare('UPDATE code_counters SET counter_value = LAST_INSERT_ID(counter_value + 1) WHERE prefix = ? AND code_year = ?')
+        ->execute([$prefix, $year]);
+    $next = (int) $pdo->query('SELECT LAST_INSERT_ID()')->fetchColumn();
     return sprintf('%s-%s-%03d', $prefix, $year, $next);
 }
 
@@ -928,6 +965,12 @@ function add_equipment_deployment(PDO $pdo, string $itemKey, string $department,
     if ($qty <= 0) {
         return;
     }
+    $stmt = $pdo->prepare('SELECT qty FROM equipment_deployments WHERE item_key = ? AND department = ? FOR UPDATE');
+    $stmt->execute([$itemKey, $department]);
+    $current = (float) $stmt->fetchColumn();
+    if (stock_cents($current) + stock_cents($qty) > 9999999999) {
+        json_error('Department equipment quantity would exceed its permitted range.', 409);
+    }
     $pdo->prepare(
         'INSERT INTO equipment_deployments (item_key, department, qty) VALUES (?, ?, ?)
          ON DUPLICATE KEY UPDATE qty = qty + VALUES(qty)'
@@ -939,11 +982,11 @@ function subtract_equipment_deployment(PDO $pdo, string $itemKey, string $depart
     if ($qty <= 0) {
         return;
     }
-    $stmt = $pdo->prepare('SELECT qty FROM equipment_deployments WHERE item_key = ? AND department = ?');
+    $stmt = $pdo->prepare('SELECT qty FROM equipment_deployments WHERE item_key = ? AND department = ? FOR UPDATE');
     $stmt->execute([$itemKey, $department]);
     $current = (float) $stmt->fetchColumn();
-    if ($current <= 0) {
-        return;
+    if ($qty > $current) {
+        json_error('Not enough equipment remains in this department for this operation.', 409);
     }
     $newQty = $current - $qty;
     if ($newQty <= 0) {
@@ -1051,7 +1094,7 @@ function ensure_equipment_storage_item_key(PDO $pdo, array $catalogItem, ?int $l
 function receive_purchased_equipment(PDO $pdo, array $orderRow, array $body): array
 {
     $qty = (float) $orderRow['qty'];
-    $catalogItem = get_item_or_404($orderRow['item_key']);
+    $catalogItem = stock_lock_item($pdo, $orderRow['item_key']);
     $department = trim($orderRow['department'] ?? '');
     $deploy = !empty($body['deploy_to_department'])
         && $department !== ''
@@ -1075,8 +1118,7 @@ function receive_purchased_equipment(PDO $pdo, array $orderRow, array $body): ar
         : null;
 
     $storageKey = ensure_equipment_storage_item_key($pdo, $catalogItem, $locationId);
-    $pdo->prepare('UPDATE items SET current_qty = current_qty + ? WHERE item_key = ?')
-        ->execute([$qty, $storageKey]);
+    stock_change_storage($pdo, $storageKey, (float) $qty);
 
     $stmt = $pdo->prepare('SELECT current_qty, location_id FROM items WHERE item_key = ?');
     $stmt->execute([$storageKey]);
@@ -1088,7 +1130,7 @@ function receive_purchased_equipment(PDO $pdo, array $orderRow, array $body): ar
         'deployed_to' => null,
         'received_to' => 'storage',
         'storage_item_key' => $storageKey,
-        'storage_location_id' => $after['location_id'] !== null ? (int) $after['location_id'] : $loc,
+        'storage_location_id' => $after['location_id'] !== null ? (int) $after['location_id'] : null,
     ];
 }
 
@@ -1185,7 +1227,7 @@ function apply_equipment_return(PDO $pdo, array $body, array $user): array
 {
     $itemKey = trim($body['item_key'] ?? '');
     $department = trim($body['department'] ?? '');
-    $qty = isset($body['qty']) ? (float) $body['qty'] : 0;
+    $qty = parse_nonnegative_quantity($body['qty'] ?? null, 'Quantity');
     $condition = strtolower(trim($body['condition'] ?? ''));
     $notes = parse_optional_note($body['notes'] ?? null);
     $returnedBy = parse_optional_person_name($body['returned_by'] ?? null, 'Returned by');
@@ -1203,7 +1245,11 @@ function apply_equipment_return(PDO $pdo, array $body, array $user): array
         json_error('broken returns require a manager — ask a manager to record this write-off', 403);
     }
 
-    $item = get_item_or_404($itemKey);
+    stock_begin($pdo, 'equipment_return');
+    stock_operation($pdo, $body);
+    $item = stock_lock_item($pdo, $itemKey);
+    $qty = parse_nonnegative_quantity($body['qty'] ?? null, 'Quantity', $item['item_type'] === 'equipment');
+    if ($qty <= 0) json_error('qty must be greater than 0');
     if ((int) ($item['active'] ?? 1) !== 1) {
         json_error('cannot record a return for an inactive item');
     }
@@ -1226,7 +1272,7 @@ function apply_equipment_return(PDO $pdo, array $body, array $user): array
     $retirementCode = null;
     $locationId = !empty($item['location_id']) ? (int) $item['location_id'] : null;
 
-    $pdo->beginTransaction();
+    // Item and deployment balances are already locked.
     try {
         subtract_equipment_deployment($pdo, $itemKey, $department, $qty);
 
@@ -1249,8 +1295,7 @@ function apply_equipment_return(PDO $pdo, array $body, array $user): array
             $retirementId = (int) $pdo->lastInsertId();
             $locationId = null;
         } else {
-            $pdo->prepare('UPDATE items SET current_qty = current_qty + ? WHERE item_key = ?')
-                ->execute([$qty, $itemKey]);
+            stock_change_storage($pdo, $itemKey, (float) $qty);
         }
 
         log_equipment_movement(
@@ -1269,10 +1314,11 @@ function apply_equipment_return(PDO $pdo, array $body, array $user): array
             $condition
         );
 
-        $pdo->commit();
+        $returnMovementId = (int) $pdo->lastInsertId();
+        stock_reference('equipment_movement', $returnMovementId);
+        stock_commit($pdo);
     } catch (Exception $e) {
-        $pdo->rollBack();
-        json_error('failed to record return: ' . $e->getMessage(), 500);
+        stock_failure($e);
     }
 
     $extra = items_have_equipment_group($pdo) ? 'i.equipment_group, i.item_type,' : 'i.item_type,';
@@ -1281,8 +1327,7 @@ function apply_equipment_return(PDO $pdo, array $body, array $user): array
          FROM equipment_movements em
          JOIN items i ON i.item_key = em.item_key
          LEFT JOIN locations l ON l.id = em.location_id
-         WHERE em.item_key = ' . $pdo->quote($itemKey) . '
-         ORDER BY em.id DESC LIMIT 1'
+         WHERE em.id = ' . (int) $returnMovementId
     )->fetch();
 
     return [
@@ -1335,7 +1380,7 @@ function format_retirement_note(string $reason, ?string $notes): string
 function apply_inventory_retirement(PDO $pdo, array $body, array $user): array
 {
     $itemKey = trim($body['item_key'] ?? '');
-    $qty = isset($body['qty']) ? (float) $body['qty'] : 0;
+    $qty = parse_nonnegative_quantity($body['qty'] ?? null, 'Quantity');
     $source = $body['source'] ?? 'storage';
     $department = trim($body['department'] ?? '') ?: null;
     $reason = strtolower(trim($body['reason'] ?? ''));
@@ -1351,7 +1396,12 @@ function apply_inventory_retirement(PDO $pdo, array $body, array $user): array
         json_error("source must be 'storage' or 'department'");
     }
 
-    $item = get_item_or_404($itemKey);
+    stock_begin($pdo, 'retirement');
+    stock_operation($pdo, $body);
+    request_reconcile($pdo,$body);
+    $item = stock_lock_item($pdo, $itemKey);
+    $qty = parse_nonnegative_quantity($body['qty'] ?? null, 'Quantity', $item['item_type'] === 'equipment');
+    if ($qty <= 0) json_error('qty must be greater than 0');
     if ((int) ($item['active'] ?? 1) !== 1) {
         json_error('cannot retire units from an inactive item');
     }
@@ -1392,7 +1442,7 @@ function apply_inventory_retirement(PDO $pdo, array $body, array $user): array
     $code = next_code('RET', 'inventory_retirements', 'retirement_code');
     $recordedBy = $user['name'] ?? 'System';
 
-    $pdo->beginTransaction();
+    // Item and deployment balances are already locked.
     try {
         $pdo->prepare(
             'INSERT INTO inventory_retirements
@@ -1409,13 +1459,12 @@ function apply_inventory_retirement(PDO $pdo, array $body, array $user): array
             $recordedBy,
         ]);
         $retirementId = (int) $pdo->lastInsertId();
+        stock_reference('inventory_retirement', $retirementId, $code);
 
         if ($itemType === 'consumable') {
-            $pdo->prepare('UPDATE items SET current_qty = current_qty - ? WHERE item_key = ?')
-                ->execute([$qty, $itemKey]);
+            stock_change_storage($pdo, $itemKey, -(float) $qty);
         } elseif ($source === 'storage') {
-            $pdo->prepare('UPDATE items SET current_qty = current_qty - ? WHERE item_key = ?')
-                ->execute([$qty, $itemKey]);
+            stock_change_storage($pdo, $itemKey, -(float) $qty);
             $locationId = !empty($item['location_id']) ? (int) $item['location_id'] : null;
             log_equipment_movement(
                 $pdo,
@@ -1449,10 +1498,9 @@ function apply_inventory_retirement(PDO $pdo, array $body, array $user): array
             );
         }
 
-        $pdo->commit();
+        stock_commit($pdo);
     } catch (Exception $e) {
-        $pdo->rollBack();
-        json_error('failed to retire: ' . $e->getMessage(), 500);
+        stock_failure($e);
     }
 
     $stmt = $pdo->prepare(
@@ -1469,6 +1517,7 @@ function apply_inventory_retirement(PDO $pdo, array $body, array $user): array
 function format_inventory_retirement(array $row): array
 {
     return [
+        ...category_metadata_for_key(get_pdo(), $row['item_key'] ?? null),
         'id' => (int) $row['id'],
         'retirement_code' => $row['retirement_code'],
         'item_key' => $row['item_key'],

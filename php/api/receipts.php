@@ -23,7 +23,7 @@ $checkNumber = trim($_GET['check_number'] ?? '');
 
 function fetch_po_or_404(PDO $pdo, int $id): array
 {
-    $stmt = $pdo->prepare('SELECT * FROM purchase_orders WHERE id = ?');
+    $stmt = $pdo->prepare('SELECT * FROM purchase_orders WHERE id = ?' . ($pdo->inTransaction() ? ' FOR UPDATE' : ''));
     $stmt->execute([$id]);
     $row = $stmt->fetch();
     if (!$row) {
@@ -69,6 +69,11 @@ if ($method === 'POST') {
         json_error('missing required query param: po_id');
     }
     $user = require_staff_or_above();
+    stock_begin($pdo, 'receipt_upload');
+    $requestId = $pdo->query('SELECT request_id FROM purchase_orders WHERE id = ' . $poId)->fetchColumn();
+    if ($requestId !== false) {
+        $pdo->query('SELECT id FROM purchase_requests WHERE id = ' . (int) $requestId . ' FOR UPDATE')->fetch();
+    }
     $po = fetch_po_or_404($pdo, $poId);
 
     if ($po['status'] !== 'Placed') {
@@ -142,9 +147,13 @@ if ($method === 'POST') {
     // On a reupload (after rejection), the old file is superseded — remove
     // it from disk. Only the latest receipt is kept; the rejection note is
     // cleared in the same update since it no longer applies.
-    if ($po['receipt_filename'] && is_file(RECEIPT_UPLOAD_DIR . $po['receipt_filename'])) {
-        @unlink(RECEIPT_UPLOAD_DIR . $po['receipt_filename']);
-    }
+    $oldReceipt = $po['receipt_filename'];
+    register_shutdown_function(function () use ($pdo, $storedName, &$receiptCommitted): void {
+        if (empty($receiptCommitted)) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            @unlink(RECEIPT_UPLOAD_DIR . $storedName);
+        }
+    });
 
     // A reupload replaces the file/metadata and clears any prior rejection —
     // it's a fresh receipt awaiting the manager's review again. A successful
@@ -174,6 +183,11 @@ if ($method === 'POST') {
         $poId,
     ]);
 
+    stock_commit($pdo);
+    $receiptCommitted = true;
+    if ($oldReceipt && is_file(RECEIPT_UPLOAD_DIR . $oldReceipt)) {
+        @unlink(RECEIPT_UPLOAD_DIR . $oldReceipt);
+    }
     $freshPo = fetch_po_or_404($pdo, $poId);
     try {
         // Reupload after a rejection still corrects the same expense record

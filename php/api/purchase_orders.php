@@ -37,6 +37,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 function format_order(array $row): array
 {
     return [
+        ...category_metadata_for_key(get_pdo(), $row['item_key'] ?? null),
         'id' => (int) $row['id'],
         'po_code' => $row['po_code'],
         'request_id' => (int) $row['request_id'],
@@ -161,6 +162,7 @@ function finalize_lost_receipt(PDO $pdo, int $id, string $note, float $amount, s
          WHERE id = ?';
     }
     $pdo->prepare($sql)->execute([$note, $recordedBy, $amount, $id]);
+    stock_commit($pdo);
 
     $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
     try {
@@ -186,7 +188,8 @@ if ($method === 'POST') {
         json_error('request_id is required');
     }
 
-    $stmt = $pdo->prepare('SELECT * FROM purchase_requests WHERE id = ?');
+    stock_begin($pdo, 'purchase_order_create');
+    $stmt = $pdo->prepare('SELECT * FROM purchase_requests WHERE id = ? FOR UPDATE');
     $stmt->execute([$requestId]);
     $req = $stmt->fetch();
     if (!$req) {
@@ -221,7 +224,7 @@ if ($method === 'POST') {
 
     $poCode = next_code('PO', 'purchase_orders', 'po_code');
 
-    $pdo->beginTransaction();
+    // Purchase request is already locked.
     try {
         $stmt = $pdo->prepare(
             'INSERT INTO purchase_orders (po_code, request_id, supplier_id, procurement_method, assigned_to, amount, status)
@@ -239,10 +242,9 @@ if ($method === 'POST') {
         $pdo->prepare("UPDATE purchase_requests SET status = 'Ordered' WHERE id = ?")->execute([$requestId]);
         create_document('Purchase order', $poCode, 'Placed');
         update_document('Purchase request', $req['request_code'], 'Ordered');
-        $pdo->commit();
+        stock_commit($pdo);
     } catch (Exception $e) {
-        $pdo->rollBack();
-        json_error('failed to create purchase order: ' . $e->getMessage(), 500);
+        stock_failure($e);
     }
 
     $row = $pdo->query(ORDER_SELECT . " WHERE po.po_code = " . $pdo->quote($poCode))->fetch();
@@ -291,7 +293,13 @@ if ($method === 'PUT') {
         json_error("action must be 'receive', 'cancel', 'resend_finance', 'declare_receipt_lost', 'report_receipt_lost', 'approve_lost_receipt_report', 'reject_lost_receipt_report', or 'reject_receipt'");
     }
 
-    $row = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
+    stock_begin($pdo, 'purchase_order_' . $action);
+    $link = $pdo->query("SELECT request_id FROM purchase_orders WHERE id = $id")->fetchColumn();
+    if ($link !== false) {
+        $pdo->query('SELECT id FROM purchase_requests WHERE id = ' . (int) $link . ' FOR UPDATE')->fetch();
+        $pdo->query("SELECT id FROM purchase_orders WHERE id = $id FOR UPDATE")->fetch();
+    }
+    $row = $pdo->query(ORDER_SELECT . " WHERE po.id = $id FOR UPDATE")->fetch();
     if (!$row) {
         json_error('unknown purchase order', 404);
     }
@@ -300,11 +308,13 @@ if ($method === 'PUT') {
     }
 
     if ($action === 'resend_finance') {
+        stock_commit($pdo);
         try {
             finance_send_disbursement($pdo, $row);
         } catch (Exception $e) {
             json_error('failed to resend to Finance: ' . $e->getMessage(), 500);
         }
+        if ($pdo->inTransaction()) stock_commit($pdo);
         $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
         echo json_encode(format_order($updated));
         exit;
@@ -336,6 +346,7 @@ if ($method === 'PUT') {
                 receipt_lost_report_rejected_by = NULL
              WHERE id = ?'
         )->execute([$amount, $note, $user['name'], $id]);
+        if ($pdo->inTransaction()) stock_commit($pdo);
         $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
         echo json_encode(format_order($updated));
         exit;
@@ -378,6 +389,7 @@ if ($method === 'PUT') {
                 receipt_lost_report_rejected_by = ?
              WHERE id = ?'
         )->execute([$note, $user['name'], $id]);
+        if ($pdo->inTransaction()) stock_commit($pdo);
         $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
         echo json_encode(format_order($updated));
         exit;
@@ -405,6 +417,7 @@ if ($method === 'PUT') {
              WHERE id = ?'
         )->execute([$note, $user['name'], $id]);
 
+        if ($pdo->inTransaction()) stock_commit($pdo);
         $updated = $pdo->query(ORDER_SELECT . " WHERE po.id = $id")->fetch();
         echo json_encode(format_order($updated));
         exit;
@@ -423,8 +436,12 @@ if ($method === 'PUT') {
     }
 
     if ($action === 'receive') {
-        $pdo->beginTransaction();
+        // Transaction is already active.
         try {
+            $item = stock_lock_item($pdo, $row['item_key']);
+            $quantity = parse_nonnegative_quantity($row['qty'], 'Purchase quantity', $item['item_type'] === 'equipment');
+            if ($quantity <= 0) json_error('Purchase quantity must be greater than zero');
+            stock_reference('purchase_order', $id, $row['po_code']);
             $user = get_session_user();
             $receivedBy = $user['name'] ?? 'System';
             $pdo->prepare("UPDATE purchase_orders SET status = 'Received', received_at = NOW(), received_by = ? WHERE id = ?")
@@ -468,8 +485,7 @@ if ($method === 'PUT') {
                     );
                 }
             } else {
-                $pdo->prepare('UPDATE items SET current_qty = current_qty + ? WHERE item_key = ?')
-                    ->execute([$row['qty'], $row['item_key']]);
+                stock_change_storage($pdo, $row['item_key'], (float) $row['qty']);
                 $newQty = $pdo->prepare('SELECT current_qty FROM items WHERE item_key = ?');
                 $newQty->execute([$row['item_key']]);
                 $receiveResult = [
@@ -483,10 +499,9 @@ if ($method === 'PUT') {
 
             update_document('Purchase order', $row['po_code'], 'Received');
             update_document('Purchase request', $row['request_code'], 'Completed');
-            $pdo->commit();
+            stock_commit($pdo);
         } catch (Exception $e) {
-            $pdo->rollBack();
-            json_error('failed to mark received: ' . $e->getMessage(), 500);
+            stock_failure($e);
         }
 
         echo json_encode([
@@ -507,17 +522,16 @@ if ($method === 'PUT') {
     }
 
     if ($action === 'cancel') {
-        $pdo->beginTransaction();
+        // Transaction is already active.
         try {
             $pdo->prepare("UPDATE purchase_orders SET status = 'Cancelled' WHERE id = ?")->execute([$id]);
             // Back to Approved so admin can re-create a PO (e.g. with a different supplier).
             $pdo->prepare("UPDATE purchase_requests SET status = 'Approved' WHERE id = ?")->execute([$row['request_id']]);
             update_document('Purchase order', $row['po_code'], 'Cancelled');
             update_document('Purchase request', $row['request_code'], 'Approved');
-            $pdo->commit();
+            stock_commit($pdo);
         } catch (Exception $e) {
-            $pdo->rollBack();
-            json_error('failed to cancel: ' . $e->getMessage(), 500);
+            stock_failure($e);
         }
         record_audit('purchase_order.cancel', 'purchase_order', $row['po_code'], ['status' => 'Placed'], ['status' => 'Cancelled']);
         echo json_encode(['status' => 'ok', 'id' => $id, 'new_status' => 'Cancelled']);

@@ -41,7 +41,7 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $user = require_manager_or_above();
     $body = read_json_body();
-    echo json_encode(apply_inventory_retirement($pdo, $body, $user));
+    stock_reply($pdo, apply_inventory_retirement($pdo, $body, $user));
     exit;
 }
 

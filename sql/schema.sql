@@ -1,16 +1,21 @@
 -- Cre8ted Travel inventory system - full MySQL schema + demo seed data
--- Regenerate with sql/generate_seed.py after changing the seed data in that file.
+-- Maintained current schema. Legacy generate_seed.py does not include all current modules.
 
 CREATE DATABASE IF NOT EXISTS cre8ted_inventory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE cre8ted_inventory;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS stock_request_items;
+DROP TABLE IF EXISTS inventory_flow_lock;
 DROP TABLE IF EXISTS audit_log;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS login_attempts;
 DROP TABLE IF EXISTS month_closes;
 DROP TABLE IF EXISTS finance_integration_log;
 DROP TABLE IF EXISTS inventory_retirements;
+DROP TABLE IF EXISTS stock_movements;
+DROP TABLE IF EXISTS inventory_operations;
+DROP TABLE IF EXISTS code_counters;
 DROP TABLE IF EXISTS equipment_movements;
 DROP TABLE IF EXISTS equipment_deployments;
 DROP TABLE IF EXISTS stock_requests;
@@ -26,6 +31,7 @@ DROP TABLE IF EXISTS suppliers;
 DROP TABLE IF EXISTS usage_log;
 DROP TABLE IF EXISTS items;
 DROP TABLE IF EXISTS locations;
+DROP TABLE IF EXISTS inventory_categories;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE locations (
@@ -570,3 +576,249 @@ VALUES
     ('500offdomestictour', CONCAT(CONVERT(0xE282B1 USING utf8mb4), '500 off domestic tour'), 'Any domestic package', 12, 'Valid until Dec 2026', 12, '2026-08-01 09:00:00'),
     ('10groupdiscount', '10% group discount', 'Group bookings (10+ pax)', 3, NULL, 3, '2026-08-01 09:00:00'),
     ('freeairporttransfer', 'Free airport transfer', 'Boracay 3D2N', 0, 'Restock before next promotion', NULL, NULL);
+
+
+-- Stock integrity structures and cutover balances (fresh installations).
+-- Additive upgrade: run ONCE, with inventory writes paused and a verified backup.
+-- Never use schema.sql to upgrade an existing database.
+-- Preflight (must return no rows):
+-- SELECT item_key FROM items WHERE current_qty < 0;
+-- SELECT item_key, department FROM equipment_deployments WHERE qty < 0;
+-- Confirm affected tables use InnoDB. DDL is not transactionally reversible;
+-- stop on the first error, keep writes paused, and investigate before retrying.
+ALTER TABLE items ADD COLUMN stock_version BIGINT UNSIGNED NOT NULL DEFAULT 0;
+
+CREATE TABLE stock_movements (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    item_key VARCHAR(50) NOT NULL,
+    balance_scope ENUM('storage', 'department') NOT NULL,
+    department VARCHAR(100) NOT NULL DEFAULT '',
+    movement_type VARCHAR(60) NOT NULL,
+    quantity_delta DECIMAL(11,2) NOT NULL,
+    quantity_before DECIMAL(10,2) NOT NULL,
+    quantity_after DECIMAL(10,2) NOT NULL,
+    actor_username VARCHAR(100) NOT NULL,
+    actor_name VARCHAR(150) NOT NULL,
+    reference_type VARCHAR(50) NULL,
+    reference_id BIGINT NULL,
+    reference_code VARCHAR(50) NULL,
+    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    INDEX idx_stock_item_history (item_key, id),
+    INDEX idx_stock_reference (reference_type, reference_id),
+    FOREIGN KEY (item_key) REFERENCES items(item_key),
+    CHECK (quantity_before >= 0 AND quantity_after >= 0),
+    CHECK (quantity_after = quantity_before + quantity_delta)
+) ENGINE=InnoDB;
+
+CREATE TABLE inventory_operations (
+    actor_username VARCHAR(100) NOT NULL,
+    operation_key VARCHAR(100) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    request_hash CHAR(64) CHARACTER SET ascii NOT NULL,
+    response_json LONGTEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (actor_username, operation_key)
+) ENGINE=InnoDB;
+
+CREATE TABLE code_counters (
+    prefix VARCHAR(10) NOT NULL,
+    code_year SMALLINT UNSIGNED NOT NULL,
+    counter_value BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (prefix, code_year)
+) ENGINE=InnoDB;
+
+-- A cutover baseline, not fabricated historical usage or transactions.
+INSERT INTO stock_movements
+    (item_key, balance_scope, department, movement_type, quantity_delta, quantity_before, quantity_after, actor_username, actor_name)
+SELECT item_key, 'storage', '', 'opening_balance', current_qty, 0, current_qty, 'migration', 'Stock integrity migration'
+FROM items;
+INSERT INTO stock_movements
+    (item_key, balance_scope, department, movement_type, quantity_delta, quantity_before, quantity_after, actor_username, actor_name)
+SELECT item_key, 'department', department, 'opening_balance', qty, 0, qty, 'migration', 'Stock integrity migration'
+FROM equipment_deployments;
+
+-- Initialize current-year counters while writes are paused. Older codes stay unchanged.
+INSERT INTO code_counters (prefix, code_year, counter_value)
+SELECT 'PR', YEAR(CURRENT_DATE), COALESCE(MAX(CAST(SUBSTRING_INDEX(request_code, '-', -1) AS UNSIGNED)), 0)
+FROM purchase_requests WHERE request_code LIKE CONCAT('PR-', YEAR(CURRENT_DATE), '-%');
+INSERT INTO code_counters (prefix, code_year, counter_value)
+SELECT 'PO', YEAR(CURRENT_DATE), COALESCE(MAX(CAST(SUBSTRING_INDEX(po_code, '-', -1) AS UNSIGNED)), 0)
+FROM purchase_orders WHERE po_code LIKE CONCAT('PO-', YEAR(CURRENT_DATE), '-%');
+INSERT INTO code_counters (prefix, code_year, counter_value)
+SELECT 'DOC', YEAR(CURRENT_DATE), COALESCE(MAX(CAST(SUBSTRING_INDEX(doc_code, '-', -1) AS UNSIGNED)), 0)
+FROM documents WHERE doc_code LIKE CONCAT('DOC-', YEAR(CURRENT_DATE), '-%');
+INSERT INTO code_counters (prefix, code_year, counter_value)
+SELECT 'ISS', YEAR(CURRENT_DATE), COALESCE(MAX(CAST(SUBSTRING_INDEX(issue_code, '-', -1) AS UNSIGNED)), 0)
+FROM stock_issues WHERE issue_code LIKE CONCAT('ISS-', YEAR(CURRENT_DATE), '-%');
+INSERT INTO code_counters (prefix, code_year, counter_value)
+SELECT 'SR', YEAR(CURRENT_DATE), COALESCE(MAX(CAST(SUBSTRING_INDEX(request_code, '-', -1) AS UNSIGNED)), 0)
+FROM stock_requests WHERE request_code LIKE CONCAT('SR-', YEAR(CURRENT_DATE), '-%');
+INSERT INTO code_counters (prefix, code_year, counter_value)
+SELECT 'EM', YEAR(CURRENT_DATE), COALESCE(MAX(CAST(SUBSTRING_INDEX(movement_code, '-', -1) AS UNSIGNED)), 0)
+FROM equipment_movements WHERE movement_code LIKE CONCAT('EM-', YEAR(CURRENT_DATE), '-%');
+INSERT INTO code_counters (prefix, code_year, counter_value)
+SELECT 'RET', YEAR(CURRENT_DATE), COALESCE(MAX(CAST(SUBSTRING_INDEX(retirement_code, '-', -1) AS UNSIGNED)), 0)
+FROM inventory_retirements WHERE retirement_code LIKE CONCAT('RET-', YEAR(CURRENT_DATE), '-%');
+INSERT INTO code_counters (prefix, code_year, counter_value)
+SELECT 'VQ', YEAR(CURRENT_DATE), COALESCE(MAX(CAST(SUBSTRING_INDEX(application_code, '-', -1) AS UNSIGNED)), 0)
+FROM vendor_applications WHERE application_code LIKE CONCAT('VQ-', YEAR(CURRENT_DATE), '-%');
+
+-- Phase 3: monthly usage consistency (fresh-install equivalent).
+-- Phase 3 additive upgrade. Run ONCE with writers paused and a verified backup.
+-- Do not import schema.sql into an existing database. Stop on the first error.
+-- Prerequisite: migration_stock_integrity.sql and migration_audit_log.sql.
+-- No existing quantities or historical values are rewritten. Unknown provenance
+-- stays legacy; disagreements must be reviewed rather than silently repaired.
+ALTER TABLE usage_log
+    ADD COLUMN usage_version BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN usage_source ENUM('legacy', 'manual', 'month_close') NOT NULL DEFAULT 'legacy';
+ALTER TABLE audit_log MODIFY COLUMN entity_id VARCHAR(80) NULL;
+
+-- Read-only reconciliation (also available through the month-close UI/report):
+-- SELECT mc.item_key, mc.month, mc.usage_qty AS close_usage, u.usage_qty AS recorded_usage
+-- FROM month_closes mc LEFT JOIN usage_log u ON u.item_key=mc.item_key AND u.month=mc.month
+-- WHERE u.item_key IS NULL OR u.usage_qty <> mc.usage_qty;
+
+-- Phase 4 additive upgrade. Run ONCE with writers paused and a verified backup.
+-- Existing items remain uncategorized. Never import schema.sql as an upgrade.
+CREATE TABLE inventory_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(80) NOT NULL,
+    normalized_name VARCHAR(80) NOT NULL,
+    parent_id INT NULL,
+    parent_scope INT GENERATED ALWAYS AS (COALESCE(parent_id, 0)) STORED,
+    active TINYINT(1) NOT NULL DEFAULT 1,
+    revision BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY category_sibling_name (parent_scope, normalized_name),
+    KEY category_parent_active (parent_id, active),
+    CONSTRAINT fk_category_parent FOREIGN KEY (parent_id) REFERENCES inventory_categories(id) ON DELETE RESTRICT,
+    CONSTRAINT category_active CHECK (active IN (0,1))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT INTO inventory_categories (id,name,normalized_name) VALUES
+ (1,'Electronic Equipment','electronic equipment'),
+ (2,'Office Supplies / Stationery','office supplies / stationery'),
+ (3,'Furniture','furniture'), (4,'Cleaning Supplies','cleaning supplies'), (5,'Other','other');
+INSERT INTO inventory_categories (name,normalized_name,parent_id) VALUES
+ ('Computers','computers',1), ('Networking Equipment','networking equipment',1),
+ ('Peripherals','peripherals',1), ('Accessories','accessories',1),
+ ('Paper Products','paper products',2), ('Writing Materials','writing materials',2),
+ ('Filing Supplies','filing supplies',2), ('Chemicals','chemicals',4),
+ ('Cleaning Tools','cleaning tools',4), ('Sanitation Supplies','sanitation supplies',4);
+ALTER TABLE items
+ ADD COLUMN category_id INT NULL,
+ ADD COLUMN category_version BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ ADD KEY item_category (category_id),
+ ADD CONSTRAINT fk_item_category FOREIGN KEY (category_id) REFERENCES inventory_categories(id) ON DELETE RESTRICT;
+
+-- PHASE 5 REQUEST-LINE UPGRADE
+-- Apply ONCE after exception preflight, verified backup and pausing writers.
+CREATE TABLE inventory_flow_lock (id TINYINT PRIMARY KEY, CHECK(id=1)) ENGINE=InnoDB;
+INSERT INTO inventory_flow_lock VALUES (1);
+ALTER TABLE items ADD COLUMN protected_qty DECIMAL(10,2) NULL,
+ ADD CONSTRAINT item_protected_nonnegative CHECK(protected_qty IS NULL OR protected_qty>=0);
+ALTER TABLE stock_requests
+ MODIFY status ENUM('Pending','Approved','Partially Issued','Fulfilled','Rejected','Cancelled','Closed') NOT NULL DEFAULT 'Pending',
+ ADD COLUMN purpose TEXT NULL,
+ ADD COLUMN requested_by_id INT NULL,
+ ADD COLUMN request_revision BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ ADD COLUMN reviewed_by_id INT NULL,
+ ADD COLUMN reviewed_by_name VARCHAR(150) NULL,
+ ADD COLUMN reviewed_role VARCHAR(30) NULL,
+ ADD COLUMN reviewed_at DATETIME NULL,
+ ADD COLUMN review_reason TEXT NULL,
+ ADD COLUMN closed_reason TEXT NULL,
+ ADD COLUMN expected_collection DATE NULL,
+ ADD COLUMN legacy_status VARCHAR(30) NULL,
+ ADD KEY request_review_queue(status,created_at);
+CREATE TABLE stock_request_items (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ request_id INT NOT NULL,
+ line_no INT NOT NULL,
+ item_key VARCHAR(50) NULL,
+ item_label VARCHAR(150) NOT NULL,
+ unit VARCHAR(30) NOT NULL,
+ requested_qty DECIMAL(10,2) NOT NULL,
+ approved_qty DECIMAL(10,2) NULL,
+ released_qty DECIMAL(10,2) NOT NULL DEFAULT 0,
+ decision_reason TEXT NULL,
+ line_notes TEXT NULL,
+ approval_source ENUM('manager','legacy') NULL,
+ protected_override_reason TEXT NULL,
+ UNIQUE KEY request_line_number(request_id,line_no),
+ UNIQUE KEY request_item_identity(request_id,item_key),
+ KEY item_commitments(item_key,request_id),
+ FOREIGN KEY(request_id) REFERENCES stock_requests(id) ON DELETE RESTRICT,
+ FOREIGN KEY(item_key) REFERENCES items(item_key) ON DELETE RESTRICT,
+ CHECK(requested_qty>0),
+ CHECK(approved_qty IS NULL OR approved_qty>=0),
+ CHECK(released_qty>=0 AND released_qty<=COALESCE(approved_qty,0)),
+ CHECK(approval_source='legacy' OR approved_qty IS NULL OR approved_qty<=requested_qty)
+) ENGINE=InnoDB;
+ALTER TABLE stock_issues ADD COLUMN request_item_id INT NULL,
+ ADD KEY issue_request_line(request_item_id,status),
+ ADD CONSTRAINT issue_request_line_fk FOREIGN KEY(request_item_id) REFERENCES stock_request_items(id) ON DELETE RESTRICT;
+INSERT INTO stock_request_items(request_id,line_no,item_key,item_label,unit,requested_qty,approved_qty,approval_source,line_notes)
+ SELECT sr.id,1,sr.item_key,COALESCE(i.label,sr.requested_label,'Legacy item'),COALESCE(i.unit,sr.requested_unit,'unit(s)'),
+ sr.qty,CASE WHEN sr.status='Fulfilled' THEN si.qty ELSE NULL END,
+ CASE WHEN sr.status='Fulfilled' THEN 'legacy' ELSE NULL END,sr.notes
+ FROM stock_requests sr LEFT JOIN items i ON i.item_key=sr.item_key LEFT JOIN stock_issues si ON si.id=sr.fulfilled_issue_id;
+UPDATE stock_issues si JOIN stock_requests sr ON sr.fulfilled_issue_id=si.id
+ JOIN stock_request_items ri ON ri.request_id=sr.id SET si.request_item_id=ri.id;
+UPDATE stock_requests SET legacy_status=status;
+
+-- PHASE 6A ACCOUNT SECURITY UPGRADE
+-- Phase 6A: additive readiness only. Does not enroll or enforce MFA.
+ALTER TABLE users
+ ADD COLUMN security_version BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ ADD COLUMN account_kind ENUM('unclassified','named','shared') NOT NULL DEFAULT 'unclassified';
+
+-- PHASE 6B AUTHENTICATOR UPGRADE
+-- Phase 6B: additive structures. Existing users are not automatically enrolled.
+ALTER TABLE users ADD COLUMN mfa_required TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE login_attempts ADD COLUMN stage ENUM('password','mfa','reauth') NOT NULL DEFAULT 'password';
+CREATE TABLE auth_policy (
+ id TINYINT PRIMARY KEY, enforce_mfa TINYINT(1) NOT NULL DEFAULT 0,
+ CHECK(id=1), CHECK(enforce_mfa IN (0,1))
+) ENGINE=InnoDB;
+INSERT INTO auth_policy(id) VALUES(1);
+CREATE TABLE user_authenticators (
+ user_id INT PRIMARY KEY,
+ enrollment_id CHAR(32) NOT NULL UNIQUE,
+ secret_blob TEXT NOT NULL,
+ confirmed_at DATETIME NOT NULL,
+ revoked_at DATETIME NULL,
+ last_step BIGINT NULL,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+CREATE TABLE auth_enrollment_grants (
+ id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL,
+ token_hash CHAR(64) NOT NULL UNIQUE,
+ security_version BIGINT UNSIGNED NOT NULL,
+ purpose ENUM('initial','reset','replace') NOT NULL,
+ issued_by VARCHAR(100) NOT NULL, reason TEXT NOT NULL,
+ expires_at DATETIME NOT NULL, consumed_at DATETIME NULL, revoked_at DATETIME NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE RESTRICT,
+ KEY grant_user_expiry(user_id,expires_at)
+) ENGINE=InnoDB;
+CREATE TABLE auth_challenges (
+ id CHAR(64) PRIMARY KEY, user_id INT NOT NULL,
+ purpose ENUM('login','enroll') NOT NULL,
+ security_version BIGINT UNSIGNED NOT NULL,
+ binding_hash CHAR(64) NOT NULL,
+ grant_id INT NULL, secret_blob TEXT NULL,
+ expires_at DATETIME NOT NULL, attempts INT NOT NULL DEFAULT 0,
+ consumed_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE RESTRICT,
+ FOREIGN KEY(grant_id) REFERENCES auth_enrollment_grants(id) ON DELETE RESTRICT,
+ KEY challenge_user_expiry(user_id,expires_at), KEY challenge_expiry(expires_at)
+) ENGINE=InnoDB;
+CREATE TABLE user_recovery_codes (
+ id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL,
+ enrollment_id CHAR(32) NOT NULL, code_hash CHAR(64) NOT NULL UNIQUE,
+ consumed_at DATETIME NULL, revoked_at DATETIME NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE RESTRICT,
+ KEY recovery_user(user_id,enrollment_id)
+) ENGINE=InnoDB;

@@ -134,7 +134,7 @@ if ($method === 'GET') {
     if (isset($_GET['quotable'])) {
         if (items_have_equipment_group($pdo)) {
             $rows = $pdo->query(
-                "SELECT item_key, label, equipment_group, unit, item_type FROM items
+                "SELECT * FROM items
                  WHERE active = 1
                  AND (item_type = 'consumable'
                       OR (item_type = 'equipment' AND (assigned_department IS NULL OR TRIM(assigned_department) = '')))
@@ -142,14 +142,16 @@ if ($method === 'GET') {
             )->fetchAll();
         } else {
             $rows = $pdo->query(
-                "SELECT item_key, label, unit, item_type FROM items
+                "SELECT * FROM items
                  WHERE active = 1
                  AND (item_type = 'consumable'
                       OR (item_type = 'equipment' AND (assigned_department IS NULL OR TRIM(assigned_department) = '')))
                  ORDER BY item_type, label"
             )->fetchAll();
         }
+        $rows = category_filter_rows($pdo, $rows);
         echo json_encode(array_map(fn ($r) => [
+            ...category_metadata($pdo, $r),
             'item_key' => $r['item_key'],
             'label' => $r['label'],
             'equipment_group' => $r['equipment_group'] ?? null,

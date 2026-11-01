@@ -16,6 +16,7 @@ require __DIR__ . '/config.php';
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'];
+if (request_schema_available($pdo)) require __DIR__ . '/stock_requests_v5.php';
 
 const STOCK_REQUEST_SELECT = 'SELECT sr.*, i.label, i.equipment_group, i.item_type, i.unit, i.current_qty, si.issue_code
     FROM stock_requests sr
@@ -33,6 +34,7 @@ function format_stock_request(array $row): array
         : ($row['unit'] ?? 'unit(s)');
 
     return [
+        ...category_metadata_for_key(get_pdo(), $row['item_key'] ?? null),
         'id' => (int) $row['id'],
         'request_code' => $row['request_code'],
         'department' => $row['department'],
@@ -145,11 +147,13 @@ if ($method === 'POST') {
     if ($itemKey === '' || $qty === null) {
         json_error('item_key and qty are required');
     }
-    $qty = (float) $qty;
+    $qty = parse_nonnegative_quantity($qty, 'Quantity');
     if ($qty <= 0) {
         json_error('qty must be greater than 0');
     }
 
+    stock_begin($pdo, 'stock_request_create');
+    stock_operation($pdo, $body, false);
     if (is_department_user($user)) {
         if (!empty($body['department']) && trim($body['department']) !== $user['department']) {
             json_error('department accounts cannot submit requests for other departments', 403);
@@ -159,7 +163,7 @@ if ($method === 'POST') {
         if (!in_array($itemKey, $allowedKeys, true)) {
             json_error('item is not available to request from stock', 409);
         }
-        echo json_encode(insert_catalog_stock_request(
+        stock_reply($pdo, insert_catalog_stock_request(
             $pdo,
             $user['department'],
             $itemKey,
@@ -179,7 +183,7 @@ if ($method === 'POST') {
         json_error('invalid department — choose one of the official departments');
     }
 
-    echo json_encode(insert_catalog_stock_request(
+    stock_reply($pdo, insert_catalog_stock_request(
         $pdo,
         $department,
         $itemKey,
@@ -198,6 +202,10 @@ if ($method === 'PUT') {
     $body = read_json_body();
     $action = $body['action'] ?? '';
 
+    require_auth();
+    stock_begin($pdo, 'request_fulfillment');
+    $lock = $pdo->prepare('SELECT id FROM stock_requests WHERE id = ? FOR UPDATE');
+    $lock->execute([$id]);
     $row = fetch_stock_request($pdo, $id);
     if (!$row) {
         json_error('unknown stock request', 404);
@@ -215,12 +223,14 @@ if ($method === 'PUT') {
             json_error('item_key is required to fulfill this request — pick the catalog item when issuing');
         }
 
-        $qty = isset($body['qty']) ? (float) $body['qty'] : (float) $row['qty'];
+        $qty = parse_nonnegative_quantity($body['qty'] ?? $row['qty'], 'Quantity');
         if ($qty <= 0) {
             json_error('qty must be greater than 0');
         }
 
-        $item = get_item_or_404($itemKey);
+        $item = stock_lock_item($pdo, $itemKey);
+        $qty = parse_nonnegative_quantity($body['qty'] ?? $row['qty'], 'Quantity', $item['item_type'] === 'equipment');
+        if ($qty <= 0) json_error('qty must be greater than 0');
         if ((int) ($item['active'] ?? 1) !== 1) {
             json_error('cannot fulfill — item is inactive');
         }
@@ -240,7 +250,7 @@ if ($method === 'PUT') {
             ? parse_optional_note($body['notes'] ?? null)
             : ($row['notes'] ?? null);
 
-        $pdo->beginTransaction();
+        // Request and item are already locked.
         try {
             if (empty($row['item_key'])) {
                 $pdo->prepare('UPDATE stock_requests SET item_key = ? WHERE id = ?')
@@ -262,9 +272,9 @@ if ($method === 'PUT') {
             ]);
 
             $issueId = (int) $pdo->lastInsertId();
+            stock_reference('stock_issue', $issueId, $issueCode);
 
-            $pdo->prepare('UPDATE items SET current_qty = current_qty - ? WHERE item_key = ?')
-                ->execute([$qty, $itemKey]);
+            stock_change_storage($pdo, $itemKey, -(float) $qty);
 
             apply_equipment_checkout($pdo, $itemKey, $row['department'], $qty);
 
@@ -291,10 +301,9 @@ if ($method === 'PUT') {
                  WHERE id = ?"
             )->execute([$issueId, $user['name'], $id]);
 
-            $pdo->commit();
+            stock_commit($pdo);
         } catch (Exception $e) {
-            $pdo->rollBack();
-            json_error('failed to fulfill request: ' . $e->getMessage(), 500);
+            stock_failure($e);
         }
 
         $updated = fetch_stock_request($pdo, $id);
@@ -319,6 +328,7 @@ if ($method === 'PUT') {
             "UPDATE stock_requests SET status = 'Cancelled', cancelled_at = NOW() WHERE id = ?"
         )->execute([$id]);
 
+        stock_commit($pdo);
         $updated = fetch_stock_request($pdo, $id);
         echo json_encode(format_stock_request($updated));
         exit;

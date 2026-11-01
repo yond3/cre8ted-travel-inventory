@@ -18,6 +18,7 @@ require_auth();
 function format_equipment_movement(array $row): array
 {
     return [
+        ...category_metadata_for_key(get_pdo(), $row['item_key'] ?? null),
         'id' => (int) $row['id'],
         'movement_code' => $row['movement_code'],
         'item_key' => $row['item_key'],

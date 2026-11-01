@@ -23,6 +23,7 @@ foreach ($items as $item) {
     $count = (int) $stmt->fetch()['n'];
 
     $result[] = [
+        ...category_metadata($pdo, $item),
         'item_key' => $item['item_key'],
         'label' => $item['label'],
         'unit' => $item['unit'],
@@ -32,4 +33,4 @@ foreach ($items as $item) {
     ];
 }
 
-echo json_encode($result);
+echo json_encode(category_filter_rows($pdo, $result));

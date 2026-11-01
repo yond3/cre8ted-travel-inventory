@@ -1,21 +1,23 @@
 <?php
 /**
- * Minimal .env loader — no Composer dependency, consistent with this
+ * Minimal .env loader â€” no Composer dependency, consistent with this
  * project's zero-dependency PHP style (same idea as forecast_service.py /
  * ocr_service.py already reading DB_HOST/DB_USER/DB_PASSWORD/DB_NAME from
  * os.environ). Real environment variables (set by the OS, a process
  * manager, or a container) always win over the .env file.
  *
- * Copy .env.example to .env at the project root and fill in real values —
+ * Copy .env.example to .env at the project root and fill in real values â€”
  * .env itself is gitignored, .env.example is committed as documentation.
  */
 
 function load_env_file(string $path): void
 {
-    if (!is_file($path) || !is_readable($path)) {
+    if (!is_file($path)) {
         return;
     }
-    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    // On Windows, ACL probes can report unreadable even when the read succeeds.
+    // Treat the actual read result as authoritative; keep unreadable files optional.
+    $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     if ($lines === false) {
         return;
     }

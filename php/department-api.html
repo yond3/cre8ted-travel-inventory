@@ -17,6 +17,7 @@
   .toast{position:fixed;bottom:1.25rem;right:1.25rem;background:#0f2242;color:#fff;padding:.75rem 1rem;border-radius:12px;font-size:.85rem;z-index:3000;max-width:20rem}
   .toast.hidden{display:none}
 </style>
+<script src="stock-request-ui.js?v=phase5-1"></script>
 </head>
 <body class="min-h-screen bg-[#eef2f7] font-[Inter] text-[#0e1b3c] pb-8">
   <div class="max-w-3xl mx-auto px-4 py-8">
@@ -30,6 +31,7 @@
       </div>
       <div class="flex items-center gap-2">
         <a href="API.md" class="text-[.78rem] font-semibold text-[#173868] px-3 py-2">API docs</a>
+        <a href="account-security.html" class="text-[.85rem] font-semibold px-3 py-2">Account security</a>
         <button id="logoutBtn" type="button" class="px-4 py-2 rounded-xl bg-white border border-[#e7ecf3] text-[.85rem] font-semibold cursor-pointer">Logout</button>
       </div>
     </div>
@@ -85,6 +87,7 @@
         </div>
         <div>
           <label class="text-[.78rem] font-semibold text-[#5b6b85] block mb-1" id="stockItemLabel">Supply</label>
+          <label>Category<select id="stockCategory" class="w-full border rounded-xl p-2"><option value="">All categories</option></select></label>
           <select id="stockItem" class="w-full px-3 py-2.5 rounded-xl border border-[#e7ecf3] bg-[#f8fafc] text-[.88rem]" required></select>
           <p class="text-[.72rem] text-[#94a3bb] mt-1" id="stockQtyHint"></p>
         </div>
@@ -151,19 +154,38 @@
   let csrfToken = '';
   let requestableItems = [];
 
-  async function api(path, method, body){
-    const headers = {};
-    if(body) headers['Content-Type'] = 'application/json';
-    if(method && method !== 'GET') headers['X-CSRF-Token'] = csrfToken || '';
-    const res = await fetch('api/' + path, {
-      method: method || 'GET',
-      credentials: 'include',
-      headers: Object.keys(headers).length ? headers : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const data = await res.json().catch(() => ({}));
-    if(!res.ok) throw data;
-    return data;
+  const pendingWrites = new Map();
+  const retryWriteKeys = new Map();
+  async function api(path, method = 'GET', body){
+    const write = method !== 'GET';
+    const signature = method + ':' + path + ':' + JSON.stringify(body);
+    if(write && pendingWrites.has(signature)) return pendingWrites.get(signature);
+    const storageKey = 'inventory-write:' + JSON.stringify([user?.username || '', signature]);
+    let operationKey = retryWriteKeys.get(signature);
+    try { operationKey ||= sessionStorage.getItem(storageKey); } catch {}
+    operationKey ||= Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join('');
+    if(write) { try { sessionStorage.setItem(storageKey, operationKey); } catch {} }
+    if(write) retryWriteKeys.set(signature, operationKey);
+    const request = (async () => {
+      const headers = {};
+      if(body) headers['Content-Type'] = 'application/json';
+      if(write){
+        headers['X-CSRF-Token'] = csrfToken || '';
+        headers['X-Idempotency-Key'] = operationKey;
+      }
+      const res = await fetch('api/' + path, {
+        method, credentials: 'include', headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json().catch(() => { throw { error: 'Could not confirm the result. Retry the same action to check its status.' }; });
+      retryWriteKeys.delete(signature);
+      try { sessionStorage.removeItem(storageKey); } catch {}
+      if(!res.ok) throw data;
+      return data;
+    })();
+    if(write) pendingWrites.set(signature, request);
+    try { return await request; }
+    finally { pendingWrites.delete(signature); }
   }
 
   function toast(msg){
@@ -198,12 +220,23 @@
 
   async function loadRequestable(){
     requestableItems = await api('stock_requests.php?requestable=1');
+    const select = document.getElementById('stockCategory');
+    const previous = select.value;
+    const cats = new Map();
+    requestableItems.forEach(it => { if(it.category_id != null) cats.set(String(it.category_id), it.category_label); if(it.category_parent_id != null) cats.set(String(it.category_parent_id), it.category_parent_name); });
+    select.replaceChildren(new Option('All categories', ''), new Option('Uncategorized', 'uncategorized'), ...[...cats].sort((a,b) => a[1].localeCompare(b[1])).map(([id,name]) => new Option(name,id)));
+    select.value = previous;
+
   }
 
+  document.getElementById('stockCategory').addEventListener('change', syncStockItemSelect);
   function stockType(){ return document.querySelector('input[name="stockType"]:checked')?.value || 'consumable'; }
 
   function itemsForType(type){
-    return requestableItems.filter(it => it.item_type === type);
+    return requestableItems.filter(it => {
+      const selected = document.getElementById('stockCategory').value;
+      return it.item_type === type && (!selected || (selected === 'uncategorized' ? it.category_id == null : String(it.category_id) === selected || String(it.category_parent_id) === selected));
+    });
   }
 
   function syncStockItemSelect(){
@@ -342,6 +375,10 @@
     await fetch('api/auth.php', { method: 'DELETE', credentials: 'include', headers: { 'X-CSRF-Token': csrfToken || '' } });
     location.href = 'login.html';
   });
+
+  const requestUI=createStockRequestUI({user:()=>user,api,error:e=>toast(e.error||e.message||'Request operation failed'),refresh:async()=>{await loadRequestable();await loadStockRequests();}});
+  loadStockRequests=async function(){try{const rows=await api('stock_requests.php');requestUI.render(document.getElementById('stockRequestsList'),rows);}catch(e){toast(e.error||'Could not load requests');}};
+  const oldRequestButton=document.getElementById('openStockBtn');const newRequestButton=oldRequestButton.cloneNode(true);oldRequestButton.replaceWith(newRequestButton);newRequestButton.onclick=()=>requestUI.openCreate();
 
   await loadRequestable();
   loadStockRequests();

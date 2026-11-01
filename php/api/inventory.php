@@ -11,8 +11,10 @@
  */
 require __DIR__ . '/config.php';
 block_department_user();
+require_staff_or_above();
 
 $pdo = get_pdo();
+stock_require_schema($pdo);
 $method = $_SERVER['REQUEST_METHOD'];
 
 function equipment_item_status(array $row, float $deployedQty): string
@@ -72,6 +74,7 @@ function format_item(PDO $pdo, array $row): array
     }
 
     return [
+        ...category_metadata($pdo, $row),
         'item_key' => $row['item_key'],
         'label' => $row['label'],
         'equipment_group' => ($row['item_type'] ?? '') === 'equipment'
@@ -84,6 +87,8 @@ function format_item(PDO $pdo, array $row): array
         'location_type' => $row['location_type'],
         'assigned_department' => null,
         'current_qty' => $storageQty,
+        'stock_version' => (int) $row['stock_version'],
+        ...(request_schema_available($pdo)?request_availability($pdo,$row):[]),
         'storage_qty' => ($row['item_type'] ?? '') === 'equipment' ? $storageQty : null,
         'deployed_qty' => ($row['item_type'] ?? '') === 'equipment' ? $deployedQty : null,
         'total_qty' => ($row['item_type'] ?? '') === 'equipment' ? $storageQty + $deployedQty : $storageQty,
@@ -207,13 +212,17 @@ const EQUIPMENT_CATALOG_FILTER = "(i.item_type != 'equipment' OR i.assigned_depa
 
 if ($method === 'GET') {
     require_auth();
+    // Keep stock, version and deployment totals in one consistent read snapshot.
+    $pdo->beginTransaction();
     $itemKey = $_GET['item'] ?? null;
     if ($itemKey !== null) {
         $row = fetch_item_row($pdo, $itemKey);
         if (!$row) {
             json_error("unknown item '$itemKey'", 404);
         }
-        echo json_encode(format_item($pdo, $row));
+        $response = format_item($pdo, $row);
+        $pdo->commit();
+        echo json_encode($response);
         exit;
     }
 
@@ -234,17 +243,21 @@ if ($method === 'GET') {
         $sql .= ' ORDER BY i.label';
     }
     $rows = $pdo->query($sql)->fetchAll();
-    echo json_encode(array_map(fn ($row) => format_item($pdo, $row), $rows));
+    $response = category_filter_rows($pdo, array_map(fn ($row) => format_item($pdo, $row), $rows));
+    $pdo->commit();
+    echo json_encode($response);
     exit;
 }
 
 if ($method === 'POST') {
     require_manager_or_above();
     $body = read_json_body();
+
     $label = trim($body['label'] ?? '');
     $unit = parse_required_text($body['unit'] ?? '', LIMIT_UNIT, 'Unit');
     $itemType = $body['item_type'] ?? 'consumable';
-    $current = (float) ($body['current_qty'] ?? 0);
+    $current = parse_nonnegative_quantity(array_key_exists('current_qty', $body) ? $body['current_qty'] : 0,
+        'Current quantity', $itemType === 'equipment');
     $equipmentGroup = trim($body['equipment_group'] ?? '');
 
     if ($itemType === 'equipment') {
@@ -276,8 +289,13 @@ if ($method === 'POST') {
         json_error("similar item already exists: $names — edit that item and add storage qty instead", 409);
     }
 
-    $minQty = $itemType === 'consumable' && isset($body['min_qty']) ? (float) $body['min_qty'] : null;
-    $maxQty = $itemType === 'consumable' && isset($body['max_qty']) ? (float) $body['max_qty'] : null;
+    $minQty = $itemType === 'consumable' && isset($body['min_qty'])
+        ? parse_nonnegative_quantity($body['min_qty'], 'Minimum quantity') : null;
+    $maxQty = $itemType === 'consumable' && isset($body['max_qty'])
+        ? parse_nonnegative_quantity($body['max_qty'], 'Maximum quantity') : null;
+    if ($minQty !== null && $maxQty !== null && $minQty > $maxQty) {
+        json_error('minimum quantity cannot exceed maximum quantity');
+    }
 
     $slugSource = $itemType === 'equipment' ? "$equipmentGroup $label" : $label;
     $itemKey = slugify($slugSource);
@@ -288,6 +306,7 @@ if ($method === 'POST') {
         $suffix++;
     }
 
+    stock_begin($pdo, 'item_opening_balance');
     $stmt = $pdo->prepare(
         'INSERT INTO items (item_key, label, equipment_group, unit, item_type, location_id, assigned_department, current_qty, min_qty, max_qty, active)
          VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, 1)'
@@ -304,6 +323,16 @@ if ($method === 'POST') {
         $maxQty,
     ]);
 
+    if (array_key_exists('category_id', $body) && categories_available($pdo)) {
+        $category = category_assignment($pdo, $body['category_id']);
+        $pdo->prepare('UPDATE items SET category_id=? WHERE item_key=?')->execute([$category,$itemKey]);
+        record_audit('item.category', 'item', $itemKey, null, ['category_id'=>$category], true);
+    } elseif (isset($body['category_id'])) {
+        category_assignment($pdo, $body['category_id']);
+    }
+    stock_lock_item($pdo, $itemKey);
+    $GLOBALS['stock_transaction']['items'][$itemKey]['storage'] = 0;
+    stock_commit($pdo);
     $created = fetch_item_row($pdo, $itemKey);
     record_audit('item.create', 'item', $itemKey, null, [
         'label' => $created['label'],
@@ -320,18 +349,55 @@ if ($method === 'PUT') {
     if ($itemKey === '') {
         json_error('missing required query param: item');
     }
-    $existing = fetch_item_row($pdo, $itemKey);
+    stock_begin($pdo, 'inventory_edit');
+    $existing = stock_lock_item($pdo, $itemKey);
     if (!$existing) {
         json_error("unknown item '$itemKey'", 404);
     }
 
     $body = read_json_body();
+
     if (array_key_exists('active', $body)) {
         require_super_admin();
     } else {
         require_manager_or_above();
     }
+    if(request_schema_available($pdo)){
+        request_reconcile($pdo,$body);
+        if(request_reserved($pdo,$itemKey)>0 && (
+            (isset($body['active'])&&!(int)$body['active'])
+            ||(isset($body['item_type'])&&$body['item_type']!==$existing['item_type'])
+            ||(isset($body['unit'])&&$body['unit']!==$existing['unit'])))
+            json_error('Resolve outstanding reservations before changing item availability, type or unit.',409);
+        if(array_key_exists('protected_qty',$body)){
+            stock_expect_version($body,$existing);
+            $value=$body['protected_qty']===null?null:parse_nonnegative_quantity($body['protected_qty'],'Protected reserve',$existing['item_type']==='equipment');
+            $why=request_reason($body['policy_reason']??null,'Reserve policy reason');
+            $pdo->prepare('UPDATE items SET protected_qty=? WHERE item_key=?')->execute([$value,$itemKey]);
+            record_audit('item.reserve_policy','item',$itemKey,['protected_qty'=>$existing['protected_qty']],['protected_qty'=>$value,'reason'=>$why],true);
+        }
+    }
     $itemType = $body['item_type'] ?? $existing['item_type'];
+    if (!in_array($itemType, ['consumable', 'equipment'], true)) {
+        json_error("item_type must be 'consumable' or 'equipment'");
+    }
+    if (array_key_exists('current_qty', $body)) {
+        $body['current_qty'] = parse_nonnegative_quantity($body['current_qty'], 'Current quantity', $itemType === 'equipment');
+    } elseif ($itemType === 'equipment' && $itemType !== $existing['item_type']) {
+        parse_nonnegative_quantity($existing['current_qty'], 'Current quantity', true);
+    }
+    foreach (['min_qty', 'max_qty'] as $quantityField) {
+        if (array_key_exists($quantityField, $body) && $body[$quantityField] !== null) {
+            $body[$quantityField] = parse_nonnegative_quantity($body[$quantityField], $quantityField);
+        }
+    }
+    if ($itemType === 'consumable' && (array_key_exists('min_qty', $body) || array_key_exists('max_qty', $body))) {
+        $minimum = array_key_exists('min_qty', $body) ? $body['min_qty'] : $existing['min_qty'];
+        $maximum = array_key_exists('max_qty', $body) ? $body['max_qty'] : $existing['max_qty'];
+        if ($minimum !== null && $maximum !== null && (float) $minimum > (float) $maximum) {
+            json_error('minimum quantity cannot exceed maximum quantity');
+        }
+    }
     $equipmentGroup = array_key_exists('equipment_group', $body)
         ? trim((string) $body['equipment_group'])
         : (string) ($existing['equipment_group'] ?? '');
@@ -370,6 +436,14 @@ if ($method === 'PUT') {
 
     $fields = [];
     $values = [];
+    if (array_key_exists('category_id', $body) && categories_available($pdo)) {
+        $category = category_assignment($pdo, $body['category_id'], $existing, $body['category_version'] ?? null);
+        $fields[] = 'category_id = ?';
+        $values[] = $category;
+        $fields[] = 'category_version = category_version + 1';
+    } elseif (isset($body['category_id'])) {
+        category_assignment($pdo, $body['category_id']);
+    }
     if (array_key_exists('label', $body)) {
         $fields[] = 'label = ?';
         $values[] = $body['label'];
@@ -425,6 +499,14 @@ if ($method === 'PUT') {
         json_error('no fields to update');
     }
 
+    if (array_key_exists('current_qty', $body)) stock_expect_version($body, $existing);
+    $quantityChanged = array_key_exists('current_qty', $body)
+        && stock_cents($body['current_qty']) !== stock_cents($existing['current_qty']);
+    $reason = usage_reason($body['reason'] ?? null, $quantityChanged);
+    // Changing a deployed product into a consumable would orphan its equipment balance.
+    if ($itemType !== $existing['item_type'] && deployed_equipment_qty($pdo, $itemKey) > 0) {
+        json_error('Return or retire deployed equipment before changing its item type.', 409);
+    }
     $values[] = $itemKey;
     $stmt = $pdo->prepare('UPDATE items SET ' . implode(', ', $fields) . ' WHERE item_key = ?');
     $stmt->execute($values);
@@ -434,9 +516,12 @@ if ($method === 'PUT') {
         'item.edit',
         'item',
         $itemKey,
-        ['label' => $existing['label'], 'active' => (int) ($existing['active'] ?? 1), 'current_qty' => (float) $existing['current_qty'], 'min_qty' => $existing['min_qty'], 'max_qty' => $existing['max_qty']],
-        ['label' => $updatedRow['label'], 'active' => (int) ($updatedRow['active'] ?? 1), 'current_qty' => (float) $updatedRow['current_qty'], 'min_qty' => $updatedRow['min_qty'], 'max_qty' => $updatedRow['max_qty']]
+        ['category_id' => $existing['category_id'] ?? null, 'label' => $existing['label'], 'active' => (int) ($existing['active'] ?? 1), 'current_qty' => (float) $existing['current_qty'], 'min_qty' => $existing['min_qty'], 'max_qty' => $existing['max_qty']],
+        ['category_id' => $updatedRow['category_id'] ?? null, 'label' => $updatedRow['label'], 'active' => (int) ($updatedRow['active'] ?? 1), 'current_qty' => (float) $updatedRow['current_qty'], 'min_qty' => $updatedRow['min_qty'], 'max_qty' => $updatedRow['max_qty'], 'reason' => $reason],
+        true
     );
+    stock_commit($pdo);
+    $updatedRow = fetch_item_row($pdo, $itemKey);
     echo json_encode(format_item($pdo, $updatedRow));
     exit;
 }

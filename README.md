@@ -96,6 +96,33 @@ Copy `.env.example` to `.env` at the project root and edit values there (`.env` 
 
 Alternatively edit `php/api/config.php` only if you are not using `.env` — it reads `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, Finance URLs/keys, and service URLs via `env()`.
 
+`DB_PORT` defaults to `3306`. The API accepts browser requests from its own origin,
+the origin of `APP_BASE_URL`, and any exact origins listed in
+`CORS_ALLOWED_ORIGINS` (comma-separated). Other browser origins receive HTTP 403.
+Keep `APP_BASE_URL` set to the public app URL, especially behind an HTTPS proxy.
+There is no wildcard credential access. Adding an origin does not bypass login,
+CSRF checks, or the existing `SameSite=Lax` cookie restrictions; department apps
+on unrelated sites should continue to use the documented server-side proxy.
+
+Direct stock edits (`stock.php`) and monthly usage writes (`usage.php`) require
+Manager or Super Admin access and a CSRF token. Usage reads are available to
+central Staff and above. Quantities must be non-negative, fit `DECIMAL(10,2)`,
+and have at most two decimal places; equipment quantities must be whole numbers.
+Usage dates must be valid month-start dates (`YYYY-MM-01`). Invalid JSON bodies
+return HTTP 400. If a session account cannot be checked against the database,
+the API returns HTTP 503 rather than trusting stale session permissions.
+
+The Phase 1 regression runner uses a temporary, isolated MariaDB instance and
+never connects to the application's configured database. With XAMPP installed:
+
+```powershell
+python tests/phase1_security.py --php C:/xampp/php/php.exe --mysql-bin C:/xampp/mysql/bin
+```
+
+The runner uses installed binaries and Python's standard library; it does not
+install dependencies or modify the application's `.env` file. It removes only
+its own temporary test files after stopping its test processes.
+
 Forecast/OCR services use the same DB values via environment variables (optional):
 
 ```powershell
@@ -383,3 +410,101 @@ Get-Content ".\sql\schema.sql" | mysql -u root -p
 ## License
 
 Private / internal use for Cre8ted Travel unless otherwise specified.
+
+
+## Phase 2: transactional stock safeguards
+
+See [PHASE2_REVIEW.md](PHASE2_REVIEW.md) for the changed files, required API updates, migration/recovery procedure, known limitations and manual regression checklist.
+
+Existing databases require `sql/migration_stock_integrity.sql` once, with a verified backup and writers paused. The migration is additive and establishes cutover stock/deployment baselines. The approved local application-database rollout is recorded in [PHASE2_APPLICATION_ROLLOUT.md](PHASE2_APPLICATION_ROLLOUT.md); do not rerun the migration on that upgraded database. Never use `schema.sql` to upgrade an existing installation. The legacy `sql/generate_seed.py` does not contain all current modules and must not be used to regenerate the current schema.
+
+Run the isolated API regression/concurrency checks and the dependency-free JavaScript helper checks:
+
+```powershell
+python tests/phase1_security.py --php C:/xampp/php/php.exe --mysql-bin C:/xampp/mysql/bin --temp-parent C:/Users/Dion/AppData/Local/Temp --phase2
+node tests/phase2_browser_helpers.cjs
+```
+
+For safe manual browser testing, add `--preview` to the Python command. After checks pass, it prints a `MANUAL TEST URL` for a disposable demo database. Open that URL in Chrome and keep your PowerShell window open. Ctrl+C stops the preview and removes its data. This does not migrate or use the application's configured database; Finance is stubbed, and Prophet/OCR services are not started or called by the preview configuration.
+
+## Phase 3: historical month closing
+
+Implementation, automated verification and user preview testing are complete. The authorized normal-database migration is **applied and verified**; see [PHASE3_APPLICATION_ROLLOUT.md](PHASE3_APPLICATION_ROLLOUT.md). Maintenance is off. Do not rerun the migration. See [PHASE3_REVIEW.md](PHASE3_REVIEW.md) for changed files, migration boundaries and manual checks, and [PHASE3_MIGRATION_REHEARSAL.md](PHASE3_MIGRATION_REHEARSAL.md) for the actual-data copy rehearsal.
+
+Historical month closing now saves monthly figures without changing today's stock. Corrections require reasons and monthly revisions; stock quantity edits require reasons. Existing usage and month-close values are preserved by the additive migration `sql/migration_usage_consistency.sql`. Other installations must apply the matching additive migration before using the monthly endpoints. Do not use `schema.sql` to upgrade the existing database.
+
+Run the isolated preview from this project folder in your own PowerShell window:
+
+```powershell
+python tests/phase1_security.py --phase3 --preview --temp-parent C:/Users/Dion/AppData/Local/Temp
+```
+
+Open the printed `MANUAL TEST URL` in Chrome and keep the terminal open. This includes Phase 1/2 regression checks and Phase 3 tests. It uses disposable fixtures, not your normal database. Additional JS checks:
+
+```powershell
+node tests/phase2_browser_helpers.cjs
+node tests/phase3_browser.cjs
+```
+
+The existing backup/rehearsal helper supports `--phase3` for a read-only source backup and isolated restore/migration. This is not an application-database rollout command; source credentials/data stay local. Existing data changing after a backup requires a refreshed backup before rollout.
+# Phase 4 status: verified and applied
+
+Inventory categories/filtering passed user preview acceptance. The authorized additive migration was applied and verified on the normal database on 2026-10-25 at 16:37 Asia/Manila. All 1,329 original records and 54 receipts were preserved. Existing item types, equipment groups, stock/request/PO workflows and historical usage remain in place. Existing items remain Uncategorized until deliberately classified.
+
+**287 API/regression checks passed**, including Phases 1-3 and category concurrency, audit rollback, inactive-item history, permissions and old-schema compatibility. PHP syntax, browser helper checks, real Chrome functional checks for Manager/Staff/Department/Vendor, and the native MySQL actual-data migration rehearsal passed. The test-shell telemetry problem was addressed with Microsoft's documented PowerShell pre-start opt-out, scoped to the test launcher; no installed/global configuration was changed.
+
+For manual review, double-click `scripts/start_phase4_preview.cmd` and leave its window open. It runs the checks on a disposable database, prints its local login URL, and keeps that preview running. The copied pages are visibly labeled ISOLATED TEST PREVIEW. Demo accounts: Manager `maria / manager123`, Staff `juan / staff123`, Super Admin `admin / admin123`, Department `fleet_dept / staff123`. Enter/Ctrl+C in the preview window stops it. These are disposable seed accounts, not normal application credentials.
+
+See `PHASE4_REVIEW.md` for changed files, limitations and the manual checklist, `PHASE4_MIGRATION_REHEARSAL.md` for preserved-record rehearsal verification, and `PHASE4_APPLICATION_ROLLOUT.md` for the applied normal rollout. Do not import schema.sql into an existing database. Final normal-browser confirmation and separate commit approval remain pending. Phase 5 implementation requires its own plan approval.
+
+## Emergency administrator MFA recovery
+
+`scripts/recover_admin_mfa.php` is a CLI-only operator tool for an incident where all administrators have lost access to authenticators and recovery codes. Normal recovery should use an unused full recovery code or another enrolled Super Admin. This tool relies on verified server/database operator authority and an explicit lockout attestation; it cannot establish the truth of a lost-device report. Keep the tool outside the public document root. It never creates a user, changes a password/role, disables mandatory MFA or creates an authenticated session.
+
+**1. Verify the incident and account ownership.** Confirm that no administrator can regain access using an authenticator, unused recovery code or another enrolled administrator. Select one existing account to recover first, for example `owner`. That person must still know their password. The operator needs authorized access to the installation and its private database/configuration; an application role or a typed operator name does not establish server authority.
+
+**2. Run the read-only eligibility check.** For this local Windows installation, open PowerShell and use the commands below. Other installations must substitute their actual project directory, PHP path, database and target username.
+
+```powershell
+Set-Location 'C:\Users\Dion\OneDrive\Desktop\forecasting-backend'
+
+& 'C:\xampp\php\php.exe' scripts/recover_admin_mfa.php --username=owner --confirm-database=cre8ted_inventory
+```
+
+This check reports target eligibility, policy and maintenance state without modifying database records. The target must be an existing active named Super Admin with a previous authenticator record decryptable using the current key. Emergency execution requires mandatory MFA already enabled, complete account/MFA schema, the configured encryption key and existing PHP/PDO runtime. A missing/lost encryption key, corrupted factor or forgotten password is a separate incident; this tool does not repair those conditions. An existing revoked authenticator record is accepted so an expired reset handover can be reissued.
+
+**3. Prepare maintenance and a private handover location.** Record the incident, take an appropriate current backup, pause external/background writers and let in-flight requests finish. Then create the marker below to block new API requests. If a maintenance marker already exists, establish who owns that maintenance before proceeding; do not overwrite or remove another operation's marker.
+
+```powershell
+New-Item -ItemType File -Path 'php\api\.inventory-maintenance' -ErrorAction Stop
+```
+
+The marker alone does not stop already-running requests or external writers. Review the database and username from the read-only check. Choose a new output directory with a private, existing parent outside every served document root. For the example below, `C:\PrivateRecovery` must already exist with restricted access, while `new-incident-directory` must not exist. POSIX creation modes are 0700/0600; on Windows the operator must ensure the parent ACL restricts access, because chmod is not a Windows ACL boundary. Never send the authorization through chat, source control or public logs.
+
+**4. Execute the emergency reset only for the verified incident.** Replace the operator, reason and private destination below. This command invalidates the selected real account's current MFA material; do not run it as a routine test on working accounts.
+
+```powershell
+& 'C:\xampp\php\php.exe' scripts/recover_admin_mfa.php --username=owner --confirm-database=cre8ted_inventory --execute --confirm-username=owner --acknowledge-all-admins-locked-out '--operator=Verified operator name' '--reason=Incident identifier and verified recovery justification' '--output-dir=C:\PrivateRecovery\new-incident-directory'
+```
+
+The existing account-directory lock order serializes this operation with account and authentication changes. One transaction revokes the selected account's previous factor, all recovery codes, challenges and outstanding grants, increments its security version and requires MFA. It then creates a reset grant, the existing `mfa.grant` audit and a required `mfa.emergency_recovery` audit containing operator identity, reason and grant ID. The raw authorization is written only to the new private `handover.json`; the database stores its hash. No schema migration is needed. Other accounts and business records are preserved. The first-admin bootstrap remains closed.
+
+The private file must be written and flushed before the transaction commits. Pre-commit failures roll back database changes and attempt removal of only this invocation's private output. A process crash or commit connection failure can leave an uncertain outcome: keep maintenance enabled and inspect the matching target, grant ID, expiry and `mfa.emergency_recovery` audit before using the file or retrying. Do not assume a file alone proves that the reset committed. A committed reset invalidates the old security material even if the private handover is later lost. Reissuing recovery creates a new grant and supersedes earlier ones; concurrent executions serialize, leaving only the latest authorization usable.
+
+**5. Resume service after confirmed success.** Confirm the tool reports that the emergency reset authorization committed. If the outcome is uncertain, keep maintenance enabled and reconcile the audit/grant first. Once it is safe to resume and this incident owns the maintenance marker, remove it:
+
+```powershell
+Remove-Item -LiteralPath 'php\api\.inventory-maintenance'
+```
+
+**6. Complete enrollment and verify restored access.** At the normal Login page, the account owner chooses **Set up or replace an authenticator**, enters their existing password and the complete `grant` value from the private `handover.json`, then completes QR/code verification. The authorization expires 15 minutes after issuance; check `expires_at_database_time` in the handover. Save the new recovery codes separately and perform a fresh MFA login using the next authenticator code. The recovered administrator can then authorize recovery for other administrators using normal authenticated administration. Delete the expired/consumed private handover according to the incident procedure and retain the nonsecret incident/audit record. Never disable MFA or restore a stale whole database just to recover a lost factor.
+
+Verify recovery through the disposable runner, including cumulative account, stock and request regressions:
+
+```powershell
+& 'C:\Python314\python.exe' tests/phase1_security.py --phase6b --temp-parent C:/Users/Dion/AppData/Local/Temp
+```
+
+Add `--preview` for manual testing. After the negative security tests pass, the runner verifies the disposable database/directory identity, clears only the synthetic `emergency_admin` account's test attempts and checks that the shared IP budget is still available. It issues a fresh reset authorization, proves that the authorization starts enrollment successfully, then cancels that pending challenge without consuming the authorization. Production rate limits, other fixture accounts and normal application records are unchanged.
+
+The runner prints an isolated login URL, disposable credentials and the private `manual-browser-handover/handover.json` path. **Open that file and copy the complete 64-character value of its `grant` field** into Enrollment authorization, without the surrounding quotation marks. The temporary directory identifier and file path are not authorization values. The handover expires after 15 minutes and is never served through an API. Keep the runner alive while testing; stopping it removes its disposable installation and database. Restart an already-running old preview after this test change; its in-memory setup does not receive the fix. Do not confuse the printed test URL with the normal application URL. Actual hosting compatibility remains deferred. See `PHASE6_EMERGENCY_RECOVERY_REVIEW.md` for verification and the acceptance checklist. `scripts/` is currently Git-ignored; an eventual separately approved commit/package must deliberately include this required tool.

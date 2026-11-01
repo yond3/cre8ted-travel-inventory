@@ -141,7 +141,8 @@
         <div>
           <label class="text-[.78rem] font-semibold text-textMid block mb-2">Item prices</label>
           <p class="text-[.72rem] text-textSoft mb-3">Check each item you supply and enter your unit price in pesos. Leave unchecked if you don't carry it. Scroll down for the <strong>Equipment</strong> section (chairs, printers, etc.).</p>
-          <div id="itemPriceList" class="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1">
+          <label>Category<select id="quoteCategory" class="border rounded-xl p-2"><option value="">All categories</option></select></label>
+<div id="itemPriceList" class="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1">
             <p class="text-[.85rem] text-textMid">Loading items…</p>
           </div>
         </div>
@@ -525,6 +526,18 @@ document.getElementById('quoteForm').addEventListener('submit', async function(e
   try {
     const items = await loadQuotableItems();
     renderItemRows(items);
+    const select = document.getElementById('quoteCategory');
+    const cats = new Map();
+    items.forEach(it => { if(it.category_id != null) cats.set(String(it.category_id),it.category_label); if(it.category_parent_id != null) cats.set(String(it.category_parent_id),it.category_parent_name); });
+    select.replaceChildren(new Option('All categories',''),new Option('Uncategorized','uncategorized'),...[...cats].sort((a,b) => a[1].localeCompare(b[1])).map(([id,name])=>new Option(name,id)));
+    select.addEventListener('change', () => {
+      document.querySelectorAll('.quote-row').forEach(row => {
+        const item = items.find(it => it.item_key === row.dataset.key);
+        const value = select.value;
+        row.hidden = !!value && !(value === 'uncategorized' ? item.category_id == null : String(item.category_id) === value || String(item.category_parent_id) === value);
+        row.style.display = row.hidden ? 'none' : '';
+      });
+    });
   } catch {
     document.getElementById('itemPriceList').innerHTML =
       '<p class="text-[.85rem] text-textMid">Could not load items — is the server running?</p>';

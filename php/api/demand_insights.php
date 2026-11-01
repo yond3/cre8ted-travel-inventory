@@ -161,7 +161,10 @@ try {
 
     // Inline LIMIT — PDO cannot bind LIMIT reliably on all MySQL drivers.
     $usageStmt = $pdo->prepare(
-        'SELECT usage_qty FROM usage_log WHERE item_key = ? ORDER BY month DESC LIMIT ' . (int) $lookbackMonths
+        "SELECT month, usage_qty FROM usage_log WHERE item_key = ?
+         AND month >= DATE_SUB(CAST(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS DATE), INTERVAL {$lookbackMonths} MONTH)
+         AND month < CAST(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS DATE)
+         ORDER BY month DESC"
     );
 
     $rows = [];
@@ -170,7 +173,8 @@ try {
 
         $usageStmt->execute([$key]);
         $usageValues = [];
-        foreach ($usageStmt->fetchAll() as $usageRow) {
+        $usageRows = $usageStmt->fetchAll();
+        foreach ($usageRows as $usageRow) {
             $usageValues[] = (float) $usageRow['usage_qty'];
         }
 
@@ -179,12 +183,10 @@ try {
             ? round(array_sum($usageValues) / $monthsOfHistory, 1)
             : 0.0;
 
-        $recentMonths = min(3, $monthsOfHistory);
-        $recentAvg = 0.0;
-        if ($recentMonths > 0) {
-            $recentSlice = array_slice($usageValues, 0, $recentMonths);
-            $recentAvg = round(array_sum($recentSlice) / $recentMonths, 1);
-        }
+        $recentStart = (new DateTimeImmutable(usage_current_month($pdo)))->modify('-3 months')->format('Y-m-d');
+        $recentSlice = array_map(fn($r) => (float) $r['usage_qty'],
+            array_values(array_filter($usageRows, fn($r) => $r['month'] >= $recentStart)));
+        $recentAvg = $recentSlice ? round(array_sum($recentSlice) / count($recentSlice), 1) : 0.0;
 
         $poStats = po_stats_for_item($key, $item['label'], $recentPos);
         $poCount = $poStats['count'];
@@ -212,6 +214,8 @@ try {
             'avg_monthly_usage' => $avgMonthly,
             'recent_avg_usage' => $recentAvg,
             'months_of_history' => $monthsOfHistory,
+            'missing_months_in_window' => $lookbackMonths - $monthsOfHistory,
+            'usage_average_basis' => 'Recorded completed months only; missing months are unknown, not zero.',
             'po_count_90d' => $poCount,
             'po_qty_90d' => $poQty,
             'po_received_90d' => $poReceived,

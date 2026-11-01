@@ -15,4 +15,4 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $user = require_staff_or_above();
 $body = read_json_body();
-echo json_encode(apply_equipment_return($pdo, $body, $user));
+stock_reply($pdo, apply_equipment_return($pdo, $body, $user));

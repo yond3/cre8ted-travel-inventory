@@ -5,13 +5,22 @@
  * DELETE /api/auth.php  -> logout
  */
 require __DIR__ . '/config.php';
+header('Cache-Control: no-store');
 
 $method = $_SERVER['REQUEST_METHOD'];
+
+if ($method === 'GET' && ($_GET['transport'] ?? '') === '1') {
+    // No user, database, key or deployment configuration is disclosed.
+    mfa_secure_transport();
+    echo json_encode(['transport_allowed' => true]);
+    exit;
+}
 
 if ($method === 'GET') {
     $user = get_session_user();
     if (!$user) {
-        echo json_encode(['authenticated' => false]);
+        header('Cache-Control: no-store');
+        echo json_encode(mfa_ready(get_pdo())?mfa_pending_response(get_pdo()):['authenticated' => false]);
         exit;
     }
     echo json_encode(['authenticated' => true, 'user' => public_user($user), 'csrf_token' => get_csrf_token()]);
@@ -20,6 +29,7 @@ if ($method === 'GET') {
 
 if ($method === 'POST') {
     $body = read_json_body();
+    if(mfa_ready(get_pdo())){echo json_encode(mfa_auth_post(get_pdo(),$body));exit;}
     $username = trim($body['username'] ?? '');
     $password = (string) ($body['password'] ?? '');
     if ($username === '' || $password === '') {

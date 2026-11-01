@@ -79,6 +79,16 @@ function date_range_clause(string $column, string $from, string $to, array &$par
 function build_report(PDO $pdo, string $type, string $from, string $to): array
 {
     switch ($type) {
+        case 'stock_requests':
+            request_require_schema($pdo);
+            $params=[];$where=date_range_clause('sr.created_at',$from,$to,$params);
+            $q=$pdo->prepare('SELECT sr.id FROM stock_requests sr '.$where.' ORDER BY sr.created_at DESC,sr.id DESC');
+            $q->execute($params);$rows=[];
+            foreach($q->fetchAll(PDO::FETCH_COLUMN)as $id){
+                $r=request_snapshot($pdo,(int)$id);
+                foreach($r['items']as $line)$rows[]=[$r['request_code'],$r['created_at'],$r['department'],$r['requested_by'],$r['purpose']??'',$r['status'],$line['item_label'],$line['unit'],$line['requested_qty'],$line['approved_qty']??'',$line['issued_qty'],$line['released_qty'],$line['remaining_qty'],$r['reviewed_by_name']??'',$r['self_approved']?'Yes':'No',$line['decision_reason']??'',$line['protected_override_reason']??''];
+            }
+            return ['title'=>'Stock requests and commitments','columns'=>['Request #','Date','Department','Requester','Purpose','Status','Item','Unit','Requested','Approved','Issued','Released','Remaining','Reviewer','Self-approved','Decision reason','Protected override'],'rows'=>$rows];
         case 'purchase_requests':
             $params = [];
             $where = date_range_clause('r.created_at', $from, $to, $params);
@@ -171,29 +181,40 @@ function build_report(PDO $pdo, string $type, string $from, string $to): array
             ];
 
         case 'month_closes':
+            $usageSource = usage_schema_available($pdo) ? 'u.usage_source' : "'legacy'";
             $params = [];
             $where = date_range_clause('mc.closed_at', $from, $to, $params);
             $rows = $pdo->prepare(
                 "SELECT mc.item_key, i.label, mc.month, mc.opening_qty, mc.received_qty,
-                        mc.closing_qty, mc.usage_qty, mc.closed_at
+                        mc.closing_qty, mc.usage_qty, mc.closed_at, u.usage_qty AS recorded_usage,
+                        $usageSource AS usage_source,
+                        prev.closing_qty AS previous_closing, nxt.opening_qty AS next_opening
                  FROM month_closes mc
                  JOIN items i ON i.item_key = mc.item_key
+                 LEFT JOIN usage_log u ON u.item_key=mc.item_key AND u.month=mc.month
+                 LEFT JOIN month_closes prev ON prev.item_key=mc.item_key AND prev.month=DATE_SUB(mc.month, INTERVAL 1 MONTH)
+                 LEFT JOIN month_closes nxt ON nxt.item_key=mc.item_key AND nxt.month=DATE_ADD(mc.month, INTERVAL 1 MONTH)
                  $where
                  ORDER BY mc.closed_at DESC"
             );
             $rows->execute($params);
             return [
                 'title' => 'Month close / usage history',
-                'columns' => ['Item', 'Month', 'Opening', 'Received', 'Closing', 'Usage', 'Closed at'],
+                'columns' => ['Item', 'Month', 'Opening', 'Received', 'Historical closing', 'Close usage', 'Closed at', 'Recorded usage', 'Usage source', 'Review needed'],
                 'rows' => array_map(fn ($r) => [
                     $r['label'], substr($r['month'], 0, 7), $r['opening_qty'], $r['received_qty'],
-                    $r['closing_qty'], $r['usage_qty'], $r['closed_at'],
+                    $r['closing_qty'], $r['usage_qty'], $r['closed_at'], $r['recorded_usage'] ?? 'Missing', $r['usage_source'],
+                    implode('; ', array_filter([
+                        $r['recorded_usage'] === null || stock_cents($r['recorded_usage']) !== stock_cents($r['usage_qty']) ? 'Usage disagreement' : null,
+                        $r['previous_closing'] !== null && stock_cents($r['previous_closing']) !== stock_cents($r['opening_qty']) ? 'Previous month mismatch' : null,
+                        $r['next_opening'] !== null && stock_cents($r['next_opening']) !== stock_cents($r['closing_qty']) ? 'Next month mismatch' : null,
+                    ])),
                 ], $rows->fetchAll()),
             ];
 
         case 'inventory':
             $rows = $pdo->query(
-                "SELECT i.label, i.equipment_group, i.item_type, i.unit, i.current_qty, i.min_qty, i.max_qty,
+                "SELECT i.*,
                         l.name AS location_name, i.active
                  FROM items i
                  LEFT JOIN locations l ON l.id = i.location_id
@@ -201,11 +222,11 @@ function build_report(PDO $pdo, string $type, string $from, string $to): array
             );
             return [
                 'title' => 'Inventory snapshot (as of now)',
-                'columns' => ['Item', 'Group', 'Type', 'Unit', 'Qty on hand', 'Min', 'Max', 'Location', 'Active'],
+                'columns' => ['Item', 'Group', 'Type', 'Unit', 'Qty on hand', 'Min', 'Max', 'Location', 'Active', 'Current category'],
                 'rows' => array_map(fn ($r) => [
                     $r['label'], $r['equipment_group'] ?? '', $r['item_type'], $r['unit'], $r['current_qty'],
-                    $r['min_qty'] ?? '', $r['max_qty'] ?? '', $r['location_name'] ?? '', $r['active'] ? 'Yes' : 'No',
-                ], $rows->fetchAll()),
+                    $r['min_qty'] ?? '', $r['max_qty'] ?? '', $r['location_name'] ?? '', $r['active'] ? 'Yes' : 'No', category_metadata($pdo, $r)['category_label'],
+                ], category_filter_rows($pdo, $rows->fetchAll())),
             ];
 
         case 'suppliers':
@@ -287,7 +308,9 @@ if ($format === 'csv') {
     fputs($out, "\xEF\xBB\xBF"); // UTF-8 BOM so Excel opens ₱/– correctly
     fputcsv($out, $report['columns']);
     foreach ($report['rows'] as $row) {
-        fputcsv($out, $row);
+        // Purpose/notes are untrusted text; do not execute them as spreadsheet formulas.
+        $safe=array_map(fn($v)=>is_string($v)&&!is_numeric($v)&&preg_match('/^[\x00-\x20]*[=+@-]/u',$v)?"'".$v:$v,$row);
+        fputcsv($out, $safe);
     }
     fclose($out);
     exit;

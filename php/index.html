@@ -15,6 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
   tailwind.config = {
     theme: {
@@ -655,8 +656,9 @@
     .main-content{ padding:1.5rem 1.2rem 3rem; }
   }
 </style>
+<script src="stock-request-ui.js?v=phase5-1"></script>
 </head>
-<body class="font-sans bg-bg text-textDark overflow-x-hidden">
+<body class="font-sans bg-bg text-textDark overflow-x-hidden" style="visibility:hidden">
 <div class="flex h-screen overflow-hidden">
 
 <div class="overlay fixed inset-0 bg-black/40 z-[999] opacity-0 invisible transition-all duration-300" id="overlay"></div>
@@ -786,6 +788,7 @@
           </div>
         </div>
         <button class="w-full px-4 py-[.95rem] bg-transparent border-none flex items-center gap-3 text-textDark text-[.95rem] cursor-pointer text-left hover:bg-[rgba(14,27,60,.05)]" id="profileViewBtn" title="Profile"><i class='bx bx-user text-[1.1rem]'></i>Profile</button>
+        <a href="account-security.html" class="w-full px-4 py-3 block text-textDark">Authenticator &amp; recovery</a>
         <button class="w-full px-4 py-[.95rem] bg-transparent border-none flex items-center gap-3 text-textDark text-[.95rem] cursor-pointer text-left hover:bg-[rgba(14,27,60,.05)]" id="changePasswordBtn" title="Change password"><i class='bx bx-lock-alt text-[1.1rem]'></i>Change password</button>
         <button class="w-full px-4 py-[.95rem] bg-transparent border-none flex items-center gap-3 text-textDark text-[.95rem] cursor-pointer text-left hover:bg-[rgba(14,27,60,.05)]" id="logoutBtn" title="Logout"><i class='bx bx-log-out text-[1.1rem]'></i>Logout</button>
       </div>
@@ -950,6 +953,7 @@
           <span class="table-date-label">Item</span>
           <select id="inventoryTableItemSelect" class="table-item-select" aria-label="Filter by item"><option value="">Any item</option></select>
         </label>
+<label>Category <select id="inventoryTableCategorySelect" class="table-item-select" aria-label="Filter by category"><option value="">All categories</option></select></label><button type="button" id="manageCategoriesBtn" class="btn btn-secondary hidden" onclick="openCategoryManager()">Manage categories</button>
       </div>
     </div>
     <div class="overflow-x-auto gl-table-wrap-sticky" id="inventoryTableWrap">
@@ -1081,6 +1085,7 @@
           <span class="table-date-label">Item</span>
           <select id="requestsTableItemSelect" class="table-item-select" aria-label="Filter by item"><option value="">Any item</option></select>
         </label>
+<label>Category <select id="requestsTableCategorySelect" class="table-item-select" aria-label="Filter by category"><option value="">All categories</option></select></label>
       </div>
     </div>
     <div class="overflow-x-auto gl-table-wrap-sticky">
@@ -1144,6 +1149,7 @@
           <span class="table-date-label">Item</span>
           <select id="ordersTableItemSelect" class="table-item-select" aria-label="Filter by item"><option value="">Any item</option></select>
         </label>
+<label>Category <select id="ordersTableCategorySelect" class="table-item-select" aria-label="Filter by category"><option value="">All categories</option></select></label>
       </div>
     </div>
     <div class="po-table-wrap">
@@ -1287,6 +1293,7 @@
           <span class="table-date-label">Item</span>
           <select id="documentsTableItemSelect" class="table-item-select" aria-label="Filter by item"><option value="">Any item</option></select>
         </label>
+<label>Category <select id="documentsTableCategorySelect" class="table-item-select" aria-label="Filter by category"><option value="">All categories</option></select></label>
       </div>
     </div>
     <div class="overflow-x-auto" id="documentsPrTableWrap">
@@ -1368,6 +1375,7 @@
       <label class="flex items-center gap-2 text-[.88rem] text-textDark"><input type="radio" name="reportType" value="suppliers"> Supplier directory (as of now)</label>
       <label class="flex items-center gap-2 text-[.88rem] text-textDark hidden" id="reportFinanceOption"><input type="radio" name="reportType" value="finance_log"> Finance integration log</label>
     </div>
+    <label class="block mb-3">Current category (inventory snapshot only)<select id="reportCategorySelect" class="table-item-select"><option value="">All categories</option></select></label>
     <div class="flex flex-wrap gap-2">
       <button type="button" onclick="exportReport('csv')" class="btn-primary"><i class='bx bx-download'></i> Download CSV</button>
       <button type="button" onclick="exportReport('html')" class="btn-secondary"><i class='bx bx-printer'></i> Printable report</button>
@@ -1621,6 +1629,7 @@
       </div>
       <div id="stockReqItemSelectWrap" class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1" id="stockReqItemLabel">Supply</label>
+        <label>Category<select id="stockReqCategory" class="w-full border rounded-xl p-2"><option value="">All categories</option></select></label>
         <select id="stockReqItem" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]"></select>
         <p id="stockReqPurchaseHint" class="hidden text-[.72rem] text-textMid mt-1"></p>
         <p class="field-error hidden" role="alert"></p>
@@ -1869,6 +1878,21 @@
 </div>
 
 <!-- ===================== MODAL: ADD / EDIT ITEM ===================== -->
+
+<div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="categoryModalOverlay">
+ <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+  <div class="flex justify-between mb-4"><h3 class="font-bold">Inventory categories</h3><button type="button" onclick="closeModal('categoryModalOverlay')">Close</button></div>
+  <p class="text-sm mb-3">Archive unused categories. Existing assigned items remain usable.</p>
+  <label>Edit category<select id="categoryEdit" class="w-full border rounded-xl p-2"><option value="">New category</option></select></label>
+  <form id="categoryForm" class="flex flex-col gap-3 mt-3">
+   <label>Name<input id="categoryName" maxlength="80" required class="w-full border rounded-xl p-2"></label>
+   <label>Parent<select id="categoryParent" class="w-full border rounded-xl p-2"></select></label>
+   <label><input id="categoryActive" type="checkbox" checked> Active</label>
+   <p id="categoryError" role="alert" class="text-red-600"></p>
+   <button class="btn btn-primary" id="categorySave">Save category</button>
+  </form>
+ </div>
+</div>
 <div class="modal-overlay fixed inset-0 bg-black/45 z-[2000]" id="itemModalOverlay">
   <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-4">
@@ -1877,6 +1901,7 @@
     </div>
     <form id="itemForm" class="flex flex-col gap-4">
       <input type="hidden" id="itmEditKey" value="">
+      <label>Category (optional)<select id="itmCategory" class="w-full px-3 py-2.5 rounded-xl border border-line"><option value="">Uncategorized</option></select></label>
       <div id="itmConsumableNameWrap" class="field-wrap">
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Item name</label>
         <input id="itmName" required maxlength="60" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="e.g. Whiteboard markers">
@@ -1959,16 +1984,20 @@
       <div class="grid grid-cols-3 gap-3">
         <div>
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Current</label>
-          <input id="itmCurrent" type="number" min="0" value="0" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <input id="itmCurrent" type="number" min="0" step="0.01" value="0" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
         </div>
         <div id="itmMinWrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Min</label>
-          <input id="itmMin" type="number" min="0" value="1" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <input id="itmMin" type="number" min="0" step="0.01" value="1" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
         </div>
         <div id="itmMaxWrap">
           <label class="text-[.78rem] font-semibold text-textMid block mb-1">Max</label>
-          <input id="itmMax" type="number" min="0" value="5" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
+          <input id="itmMax" type="number" min="0" step="0.01" value="5" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]">
         </div>
+      </div>
+      <div id="itmReasonWrap" class="hidden">
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1" for="itmReason">Stock adjustment reason</label>
+        <textarea id="itmReason" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Required when changing the existing quantity"></textarea>
       </div>
       <button type="submit" id="itemFormSubmitBtn" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Add item</button>
     </form>
@@ -1977,12 +2006,12 @@
 
 <!-- ===================== MODAL: CLOSE MONTH (consumables) ===================== -->
 <div class="modal-overlay fixed inset-0 bg-black/45 z-[2150]" id="closeMonthModalOverlay">
-  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6">
+  <div class="bg-card rounded-card shadow-modal w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-display font-extrabold text-[1.1rem] text-textDark" id="closeMonthModalTitle">Close month</h3>
       <button onclick="closeModal('closeMonthModalOverlay')" class="w-8 h-8 rounded-full flex items-center justify-center text-textMid hover:bg-[#eef2f7] border-none bg-transparent cursor-pointer text-[1.2rem]"><i class='bx bx-x'></i></button>
     </div>
-    <p class="text-[.8rem] text-textMid mb-4" id="closeMonthSubtitle">Count what's on the shelf — starting stock and deliveries come from the system.</p>
+    <p class="text-[.8rem] text-textMid mb-4" id="closeMonthSubtitle">Record the balance at the end of a completed month. This saves historical usage and does not change current stock.</p>
     <form id="closeMonthForm" class="flex flex-col gap-4">
       <input type="hidden" id="closeMonthItemKey" value="">
       <div>
@@ -2010,13 +2039,18 @@
         </div>
       </div>
       <div>
-        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Counted on shelf (you enter this)</label>
-        <input id="closeClosing" type="number" min="0" step="any" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Physical count right now">
-        <p class="text-[.68rem] text-textSoft mt-1">Walk to the shelf and enter what you actually count.</p>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1">Closing balance at the end of this month</label>
+        <input id="closeClosing" type="number" min="0" step="any" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Documented month-end count">
+        <p class="text-[.68rem] text-textSoft mt-1">Use the count recorded at that month end, not today's shelf count. Usage represents depletion and may include losses or adjustments.</p>
       </div>
       <p class="text-[.82rem] font-semibold text-navy800 bg-[#eaf1fb] rounded-xl px-3 py-2.5" id="closeMonthPreview">Usage = starting stock + received − your count</p>
+      <p id="closeMonthWarnings" class="hidden text-[.78rem] text-amberTx bg-amberBg rounded-xl px-3 py-2.5 whitespace-pre-line"></p>
+      <div>
+        <label class="text-[.78rem] font-semibold text-textMid block mb-1" for="closeMonthReason">Reason / explanation</label>
+        <textarea id="closeMonthReason" maxlength="200" class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Required for corrections or overriding system figures"></textarea>
+      </div>
       <span class="hidden" id="closeMonthUnit"></span>
-      <button type="submit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Close month &amp; save usage</button>
+      <button type="submit" id="closeMonthSubmit" class="mt-1 px-4 py-2.5 rounded-xl bg-amberBg text-navy800 border border-creamBorder text-[.88rem] font-bold cursor-pointer border-none shadow-btn">Close month &amp; save usage</button>
     </form>
   </div>
 </div>
@@ -2571,6 +2605,7 @@
       </div>
       <div>
         <label class="text-[.78rem] font-semibold text-textMid block mb-1">Display name</label>
+        <label>Account type<select id="userAccountKind" class="w-full px-3 py-2 rounded-xl border border-line"><option value="unclassified" disabled>Legacy - owner not confirmed</option><option value="named">Named person</option><option value="shared" disabled>Legacy shared - replace and deactivate</option></select></label>
         <input id="userName" required class="w-full px-3 py-2.5 rounded-xl border border-line bg-[#f8fafc] text-[.88rem]" placeholder="Jane Cruz">
       </div>
       <div>
@@ -2889,17 +2924,34 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!res.ok) throw await res.json().catch(() => ({ error: 'request failed' }));
     return res.json();
   }
+  const pendingWrites = new Map();
+  const retryWriteKeys = new Map();
   async function apiSend(path, method, body){
-    const res = await fetch(API + path, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': state.csrfToken || '' },
-      body: body != null ? JSON.stringify(body) : undefined,
-    });
-    if(res.status === 401){ location.href = 'login.html'; throw { error: 'authentication required' }; }
-    const data = await res.json().catch(() => ({}));
-    if(!res.ok) throw data;
-    return data;
+    const signature = method + ':' + path + ':' + JSON.stringify(body);
+    if(pendingWrites.has(signature)) return pendingWrites.get(signature);
+    const storageKey = 'inventory-write:' + JSON.stringify([state.user?.username || '', signature]);
+    let operationKey = retryWriteKeys.get(signature);
+    try { operationKey ||= sessionStorage.getItem(storageKey); } catch {}
+    operationKey ||= Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join('');
+    try { sessionStorage.setItem(storageKey, operationKey); } catch {}
+    retryWriteKeys.set(signature, operationKey);
+    const request = (async () => {
+      const res = await fetch(API + path, {
+        method,
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': state.csrfToken || '', 'X-Idempotency-Key': operationKey },
+        body: body != null ? JSON.stringify(body) : undefined,
+      });
+      if(res.status === 401){ location.href = 'login.html'; throw { error: 'authentication required' }; }
+      const data = await res.json().catch(() => { throw { error: 'Could not confirm the result. Retry the same action to check its status.' }; });
+      retryWriteKeys.delete(signature);
+      try { sessionStorage.removeItem(storageKey); } catch {}
+      if(!res.ok) throw data;
+      return data;
+    })();
+    pendingWrites.set(signature, request);
+    try { return await request; }
+    finally { pendingWrites.delete(signature); }
   }
 
   /* ---------- auth / RBAC ---------- */
@@ -2925,6 +2977,7 @@ document.addEventListener('DOMContentLoaded', function(){
       return false;
     }
     loadAttentionDismissedFromStorage();
+    document.body.style.visibility = 'visible';
     return true;
   }
 
@@ -3090,7 +3143,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function pendingStockRequestIds(){
-    return state.stockRequests.filter(r => r.status === 'Pending').map(r => r.id);
+    return state.stockRequests.filter(r => r.can_review || r.can_issue).map(r => r.id);
   }
 
   function computeAttentionCounts(){
@@ -3250,7 +3303,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const requestItems = unseenItems(state.requests.filter(requestNeedsAttention), r => r.id, attentionDismissed.requests);
     const orderItems = unseenItems(state.orders.filter(orderNeedsAttention), o => o.id, attentionDismissed.orders);
     const lowStock = lowStockItems();
-    const stockReqItems = unseenItems(state.stockRequests.filter(r => r.status === 'Pending'), r => r.id, attentionDismissed.stockRequests);
+    const stockReqItems = unseenItems(state.stockRequests.filter(r => r.can_review || r.can_issue), r => r.id, attentionDismissed.stockRequests);
     const vendorItems = roleAtLeast('manager')
       ? unseenItems(state.vendorApplications.filter(a => a.status === 'Pending'), a => a.id, attentionDismissed.suppliers)
       : [];
@@ -3367,17 +3420,17 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function fmtDate(mysqlDatetime){
     if(!mysqlDatetime) return '—';
-    const d = new Date(mysqlDatetime.replace(' ', 'T'));
+    const d = new Date(mysqlDatetime.replace(' ', 'T') + 'Z');
     return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
   }
   function fmtTime(mysqlDatetime){
     if(!mysqlDatetime) return '—';
-    const d = new Date(mysqlDatetime.replace(' ', 'T'));
+    const d = new Date(mysqlDatetime.replace(' ', 'T') + 'Z');
     return d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
   }
   function fmtDateTime(mysqlDatetime){
     if(!mysqlDatetime) return '—';
-    const d = new Date(mysqlDatetime.replace(' ', 'T'));
+    const d = new Date(mysqlDatetime.replace(' ', 'T') + 'Z');
     return d.toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
   }
   function poReceivedCell(o){
@@ -3889,7 +3942,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function mysqlLocalDay(mysqlDatetime){
     if(!mysqlDatetime) return null;
-    const d = new Date(mysqlDatetime.replace(' ', 'T'));
+    const d = new Date(mysqlDatetime.replace(' ', 'T') + 'Z');
     if(Number.isNaN(d.getTime())) return null;
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
@@ -3909,6 +3962,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(range.from || range.to) return true;
     if(tableTypeFilter(prefix) !== 'all') return true;
     if(tableItemKeyFilter(prefix)) return true;
+    if(document.getElementById(prefix + "CategorySelect")?.value) return true;
     return false;
   }
 
@@ -3933,12 +3987,19 @@ document.addEventListener('DOMContentLoaded', function(){
     const resolvedType = itemType || catalogMetaForItemKey(itemKey).item_type;
     if(!rowMatchesTypeFilter(resolvedType, typeFilter)) return false;
     if(selectedKey && itemKey !== selectedKey) return false;
+    if(!categoryMatches(catalogMetaForItemKey(itemKey), document.getElementById(prefix + "CategorySelect")?.value)) return false;
     return true;
   }
 
   function catalogMetaForItemKey(itemKey){
-    const it = state.inventory.find(i => i.item_key === itemKey);
-    return { item_type: it?.item_type || 'consumable', item_key: itemKey || null };
+    let it = state.inventory.find(i => i.item_key === itemKey);
+    if(!it && itemKey){
+      for(const rows of [state.stockRequests, state.requests, state.orders, state.stockIssues, state.equipmentMovements, state.inventoryRetirements]){
+        it = rows?.find(row => row.item_key === itemKey && Object.prototype.hasOwnProperty.call(row, 'category_id'));
+        if(it) break;
+      }
+    }
+    return { ...it, item_type: it?.item_type || 'consumable', item_key: itemKey || null };
   }
 
   function catalogItemsForTypeFilter(typeFilter){
@@ -3953,9 +4014,9 @@ document.addEventListener('DOMContentLoaded', function(){
     const select = document.getElementById(prefix + 'ItemSelect');
     if(!select) return;
     const current = select.value;
-    const items = catalogItemsForTypeFilter(tableTypeFilter(prefix));
+    const items = catalogItemsForTypeFilter(tableTypeFilter(prefix)).filter(it => categoryMatches(it, document.getElementById(prefix + "CategorySelect")?.value));
     select.innerHTML = '<option value="">Any item</option>' + items.map(it =>
-      `<option value="${escapeHtml(it.item_key)}">${escapeHtml(itemDisplayLabel(it))}</option>`
+      `<option value="${escapeHtml(it.item_key)}">${escapeHtml(itemDisplayLabel(it))} — ${escapeHtml(it.category_label || "Uncategorized")}</option>`
     ).join('');
     select.value = current && items.some(it => it.item_key === current) ? current : '';
   }
@@ -3965,6 +4026,8 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function clearTableCatalogFilters(prefix){
+    const category = document.getElementById(prefix + 'CategorySelect');
+    if(category) category.value = '';
     document.querySelectorAll(`#${prefix}TypeFilter .table-type-pill`).forEach(btn => {
       btn.classList.toggle('active', btn.dataset.type === 'all');
     });
@@ -3977,6 +4040,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const typeRoot = document.getElementById(prefix + 'TypeFilter');
     if(!typeRoot || typeRoot.dataset.wired) return;
     typeRoot.dataset.wired = '1';
+    document.getElementById(prefix + 'CategorySelect')?.addEventListener('change', () => { refreshTableItemSelect(prefix); onFilter(); });
     typeRoot.addEventListener('click', e => {
       const pill = e.target.closest('.table-type-pill');
       if(!pill || pill.classList.contains('active')) return;
@@ -4543,7 +4607,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function equipmentItemMatchesSearch(it, query){
     return rowMatchesSearch(
-      query, it.label, it.equipment_group, it.display_label, it.item_key, it.item_type,
+      query, it.label, it.equipment_group, it.category_label, it.display_label, it.item_key, it.item_type,
       itemPlacementLabel(it), it.status, it.location_name
     );
   }
@@ -4551,7 +4615,7 @@ document.addEventListener('DOMContentLoaded', function(){
   function equipmentGroupMatchesSearch(groupName, variants, query){
     if(!query) return true;
     if(rowMatchesSearch(query, groupName)) return true;
-    return variants.some(v => equipmentItemMatchesSearch(v, query));
+    return variants.some(v => rowMatchesSearch(query, v.category_label) || equipmentItemMatchesSearch(v, query));
   }
 
   function groupEquipmentItems(items){
@@ -4635,7 +4699,7 @@ document.addEventListener('DOMContentLoaded', function(){
   function renderConsumableInventoryRow(it){
     return `
       <tr class="border-b border-line last:border-0 ${it.active ? '' : 'opacity-70'}">
-        <td class="py-3 pr-3">${cellItem(it.label, { badge: !it.active ? 'Inactive' : null })}</td>
+        <td class="py-3 pr-3">${cellItem(it.label, { badge: !it.active ? 'Inactive' : null })}<div class="text-xs text-textSoft">${escapeHtml(it.category_label || 'Uncategorized')}</div></td>
         <td class="py-3 pr-3">${cellTypeTag(it.item_type)}</td>
         <td class="py-3 pr-3 text-textMid placement-cell">${renderPlacementCell(it)}</td>
         <td class="py-3 pr-3 qty-cell">${renderEquipmentQtyCell(it)}</td>
@@ -4672,7 +4736,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <tr class="border-b border-line last:border-0 equip-variant-row ${it.active ? '' : 'opacity-70'}">
         <td class="py-3 pr-3">
           <div class="equip-variant-indent">
-            <span class="equip-variant-label">${escapeHtml(variantTitle)}</span>
+            <span class="equip-variant-label">${escapeHtml(variantTitle)}</span><div class="text-xs text-textSoft">${escapeHtml(it.category_label || "Uncategorized")}</div>
             ${!it.active ? cellHint('Inactive', 'warn') : ''}
           </div>
         </td>
@@ -4868,6 +4932,7 @@ document.addEventListener('DOMContentLoaded', function(){
   /* ---------- inventory ---------- */
   function itemTypeToggle(){
     const isConsumable = document.querySelector('input[name="itmType"]:checked').value === 'consumable';
+    document.getElementById('itmCurrent').step = isConsumable ? '0.01' : '1';
     document.getElementById('itmMinWrap').classList.toggle('hidden', !isConsumable);
     document.getElementById('itmMaxWrap').classList.toggle('hidden', !isConsumable);
     document.getElementById('itmConsumableNameWrap').classList.toggle('hidden', !isConsumable);
@@ -4880,10 +4945,83 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   document.querySelectorAll('input[name="itmType"]').forEach(r => r.addEventListener('change', itemTypeToggle));
 
+
+  let inventoryCategories = [];
+  function categoryMatches(item, selected){
+    if(!selected) return true;
+    if(selected === 'uncategorized') return item.category_id == null;
+    return String(item.category_id) === selected || String(item.category_parent_id) === selected;
+  }
+  function categoryLabel(c){
+    const parent = inventoryCategories.find(p => Number(p.id) === Number(c.parent_id));
+    return (parent ? parent.name + ' / ' : '') + c.name + (Number(c.active) ? '' : ' (archived)');
+  }
+  function categoryOptions(rows){
+    return rows.slice().sort((a,b) => categoryLabel(a).localeCompare(categoryLabel(b))).map(c => `<option value="${Number(c.id)}">${escapeHtml(categoryLabel(c))}</option>`).join('');
+  }
+  async function loadCategories(){
+    inventoryCategories = await apiGet('inventory_categories.php');
+    for(const prefix of ['inventoryTable','requestsTable','ordersTable','documentsTable','report']){
+      const el = document.getElementById(prefix + 'CategorySelect');
+      const previous = el.value;
+      el.innerHTML = '<option value="">All categories</option><option value="uncategorized">Uncategorized</option>' + categoryOptions(inventoryCategories);
+      el.value = previous;
+    }
+    const stockCategory = document.getElementById('stockReqCategory');
+    const selectedStockCategory = stockCategory.value;
+    stockCategory.innerHTML = '<option value="">All categories</option><option value="uncategorized">Uncategorized</option>' + categoryOptions(inventoryCategories);
+    stockCategory.value = selectedStockCategory;
+    document.getElementById('manageCategoriesBtn').classList.toggle('hidden', !roleAtLeast('manager') || !inventoryCategories.length);
+  }
+  function populateItemCategory(id){
+    const select = document.getElementById('itmCategory');
+    select.innerHTML = '<option value="">Uncategorized</option>' + categoryOptions(inventoryCategories.filter(c => Number(c.active) || Number(c.id) === Number(id)));
+    select.value = id ?? '';
+  }
+  function populateCategoryEditor(){
+    const id = document.getElementById('categoryEdit').value;
+    const row = inventoryCategories.find(c => String(c.id) === id);
+    document.getElementById('categoryForm').dataset.revision = row?.revision ?? '';
+    document.getElementById('categoryName').value = row?.name || '';
+    document.getElementById('categoryActive').checked = row ? Boolean(Number(row.active)) : true;
+    document.getElementById('categoryParent').innerHTML = '<option value="">No parent (root)</option>' + categoryOptions(inventoryCategories.filter(c => c.parent_id == null && String(c.id) !== id));
+    document.getElementById('categoryParent').value = row?.parent_id ?? '';
+    document.getElementById('categoryError').textContent = '';
+  }
+  window.openCategoryManager = async function(){
+    try {
+      await loadCategories();
+      document.getElementById('categoryEdit').innerHTML = '<option value="">New category</option>' + categoryOptions(inventoryCategories);
+      populateCategoryEditor();
+      openModal('categoryModalOverlay');
+    } catch(err){ showError(err.error || 'Could not load categories.'); }
+  };
+  document.getElementById('categoryEdit').addEventListener('change', populateCategoryEditor);
+  document.getElementById('categoryForm').addEventListener('submit', async function(event){
+    event.preventDefault();
+    const id = document.getElementById('categoryEdit').value;
+    const parent = document.getElementById('categoryParent').value;
+    const button = document.getElementById('categorySave');
+    button.disabled = true;
+    try {
+      const result = await apiSend('inventory_categories.php' + (id ? '?id=' + encodeURIComponent(id) : ''), id ? 'PUT' : 'POST', {
+        name: document.getElementById('categoryName').value.trim(), parent_id: parent ? Number(parent) : null,
+        active: document.getElementById('categoryActive').checked, revision: this.dataset.revision
+      });
+      await loadInventory();
+      document.getElementById('categoryEdit').innerHTML = '<option value="">New category</option>' + categoryOptions(inventoryCategories);
+      document.getElementById('categoryEdit').value = result.id;
+      populateCategoryEditor();
+      showToast('Category saved.');
+    } catch(err){ document.getElementById('categoryError').textContent = err.error || 'Could not save category. Reload the category manager before retrying a stale edit.'; }
+    finally { button.disabled = false; }
+  });
+
   async function loadInventory(){
     const path = roleAtLeast('manager') ? 'inventory.php?include_inactive=1' : 'inventory.php';
     try {
       state.inventory = await apiGet(path);
+      await loadCategories();
     } catch (err) {
       console.error('loadInventory failed', err);
       state.inventory = [];
@@ -4935,7 +5073,7 @@ document.addEventListener('DOMContentLoaded', function(){
       });
     const tbody = document.getElementById('inventoryTableBody');
     const consumables = visible.filter(it => it.item_type !== 'equipment')
-      .filter(it => rowMatchesSearch(query, it.label, it.item_key, it.item_type, itemPlacementLabel(it), it.status, it.location_name));
+      .filter(it => rowMatchesSearch(query, it.label, it.category_label, it.item_key, it.item_type, itemPlacementLabel(it), it.status, it.location_name));
     const equipment = visible.filter(it => it.item_type === 'equipment');
     const equipmentGroups = groupEquipmentItems(equipment)
       .filter(([groupName, variants]) => equipmentGroupMatchesSearch(groupName, variants, query));
@@ -5044,9 +5182,11 @@ document.addEventListener('DOMContentLoaded', function(){
       && it.location_id;
   }
 
+  document.getElementById('stockReqCategory').addEventListener('change', syncStockRequestTypeUI);
   function stockRequestItemsByType(type){
     return activeItems().filter(it => {
       if(it.item_type !== type) return false;
+      if(!categoryMatches(it, document.getElementById('stockReqCategory').value)) return false;
       if(type === 'equipment') return isEquipmentInStorage(it);
       return it.current_qty > 0;
     });
@@ -5229,7 +5369,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const visible = state.stockRequests.filter(sr => rowMatchesSearch(
       query, sr.request_code, sr.department, sr.item_label, sr.requested_label, sr.item_type, sr.requested_by, sr.notes, sr.status, sr.fulfilled_issue_code
     ) && rowMatchesDateRange(sr.created_at, dates.from, dates.to)
-      && (sr.is_free_text || rowMatchesCatalogFilters(sr.item_type, sr.item_key, 'inventoryTable')));
+      && (sr.is_free_text ? categoryMatches({}, document.getElementById('inventoryTableCategorySelect')?.value) : rowMatchesCatalogFilters(sr.item_type, sr.item_key, 'inventoryTable')));
     const tbody = document.getElementById('stockRequestsTableBody');
     if(!visible.length){
       tbody.innerHTML = tableSearchEmptyMessage(10, tableHasActiveFilters(query, 'inventoryTable'), 'No stock requests yet. Ask inventory to pull items from the shelf.', { label: 'Request from stock', icon: 'bx-package', onclick: 'openStockRequestModal()', className: 'btn-primary' });
@@ -5755,6 +5895,8 @@ document.addEventListener('DOMContentLoaded', function(){
   window.openItemModal = function(){
     document.getElementById('itemForm').reset();
     document.getElementById('itmEditKey').value = '';
+    populateItemCategory(null);
+    document.getElementById('itmReasonWrap').classList.add('hidden');
     document.getElementById('itmDeploymentsWrap')?.classList.add('hidden');
     document.getElementById('itemModalTitle').textContent = 'Add office item';
     document.getElementById('itemFormSubmitBtn').textContent = 'Add item';
@@ -5768,6 +5910,12 @@ document.addEventListener('DOMContentLoaded', function(){
     const it = state.inventory.find(i => i.item_key === itemKey);
     if(!it) return;
     document.getElementById('itmEditKey').value = it.item_key;
+    populateItemCategory(it.category_id);
+    document.getElementById('itemForm').dataset.categoryVersion = it.category_version;
+    document.getElementById('itemForm').dataset.stockVersion = it.stock_version;
+    document.getElementById('itemForm').dataset.openingCurrent = it.storage_qty ?? it.current_qty;
+    document.getElementById('itmReason').value = '';
+    document.getElementById('itmReasonWrap').classList.remove('hidden');
     if(it.item_type === 'equipment'){
       document.getElementById('itmEquipmentGroup').value = it.equipment_group || '';
       document.getElementById('itmVariant').value = it.label || '';
@@ -5807,57 +5955,85 @@ document.addEventListener('DOMContentLoaded', function(){
     el.classList.toggle('bg-[#f8fafc]', !readonly);
   }
 
+  let closeMonthLoadSequence = 0;
   async function refreshCloseMonthFromServer(){
+    const sequence = ++closeMonthLoadSequence;
+    const form = document.getElementById('closeMonthForm');
     const itemKey = document.getElementById('closeMonthItemKey').value;
     const yearMonth = document.getElementById('closeMonthPick').value;
+    const submit = document.getElementById('closeMonthSubmit');
+    submit.disabled = true;
+    delete form.dataset.usageVersion;
+    delete form.dataset.contextVersion;
+    form.dataset.reasonRequired = 'false';
+    ['closeOpening', 'closeReceived', 'closeClosing', 'closeMonthReason'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('closeMonthWarnings').classList.add('hidden');
+    document.getElementById('closeReceivedHint').classList.add('hidden');
     if(!itemKey || !yearMonth) return;
-    const hintEl = document.getElementById('closeReceivedHint');
     try {
       const data = await apiGet(`close_month.php?item=${encodeURIComponent(itemKey)}&month=${yearMonth}`);
-      document.getElementById('closeOpening').value = data.opening_qty;
+      if(sequence !== closeMonthLoadSequence) return;
+      form.dataset.usageVersion = data.usage_version;
+      form.dataset.contextVersion = data.context_version;
+      form.dataset.reasonRequired = String(data.reason_required);
+      form.dataset.expectedOpening = data.opening_qty ?? '';
+      form.dataset.poReceived = data.po_received_qty;
+      document.getElementById('closeOpening').value = data.opening_qty ?? '';
       document.getElementById('closeOpeningNote').textContent = data.opening_note;
       document.getElementById('closeReceived').value = data.received_qty;
       document.getElementById('closeReceivedNote').textContent = data.received_note;
-      setCloseMonthFieldReadonly('closeOpening', true);
+      const deliveryHint = document.getElementById('closeReceivedHint');
+      if(data.received_hint){
+        deliveryHint.textContent = data.received_hint;
+        deliveryHint.classList.remove('hidden');
+        const suggested = data.received_elsewhere?.find(row => row.month <= data.latest_completed_month);
+        if(suggested){
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'font-bold text-navy800 underline bg-transparent border-none cursor-pointer ml-1';
+          button.textContent = `Switch to ${suggested.label}`;
+          button.addEventListener('click', () => {
+            document.getElementById('closeMonthPick').value = suggested.month;
+            refreshCloseMonthFromServer();
+          });
+          deliveryHint.append(button);
+        }
+      }
+      document.getElementById('closeClosing').value = data.existing_closing_qty ?? '';
+      document.getElementById('closeMonthPick').max = data.latest_completed_month;
+      setCloseMonthFieldReadonly('closeOpening', data.opening_qty != null);
       setCloseMonthFieldReadonly('closeReceived', true);
-      document.getElementById('closeOpeningOverrideBtn').classList.remove('hidden');
-      document.getElementById('closeReceivedOverrideBtn').classList.toggle('hidden', data.received_qty === 0);
-      if(data.received_hint && Array.isArray(data.received_elsewhere) && data.received_elsewhere.length){
-        const top = data.received_elsewhere[0];
-        hintEl.innerHTML = `${data.received_hint} <button type="button" class="font-bold text-navy800 underline bg-transparent border-none cursor-pointer p-0 ml-1" data-switch-month="${top.month}">Switch to ${top.label}</button>`;
-        hintEl.classList.remove('hidden');
-        hintEl.querySelector('[data-switch-month]')?.addEventListener('click', function(){
-          document.getElementById('closeMonthPick').value = this.getAttribute('data-switch-month');
-          refreshCloseMonthFromServer();
-        });
-      } else {
-        hintEl.classList.add('hidden');
-        hintEl.innerHTML = '';
-      }
-      if(data.already_closed && data.existing_closing_qty != null){
-        document.getElementById('closeClosing').value = data.existing_closing_qty;
-      }
+      document.getElementById('closeOpeningOverrideBtn').classList.toggle('hidden', data.opening_qty == null);
+      document.getElementById('closeReceivedOverrideBtn').classList.remove('hidden');
+      const warnings = [...data.warnings];
+      if(data.usage_conflict) warnings.push(`Recorded usage: ${data.recorded_usage ?? 'missing'}; month-close usage: ${data.close_usage}.`);
+      if(!data.can_close) warnings.push('Only completed calendar months can be closed.');
+      const warning = document.getElementById('closeMonthWarnings');
+      warning.textContent = warnings.join('\n');
+      warning.classList.toggle('hidden', !warnings.length);
+      submit.disabled = !data.can_close;
       updateCloseMonthPreview();
     } catch (err) {
-      hintEl.classList.add('hidden');
-      hintEl.innerHTML = '';
+      if(sequence !== closeMonthLoadSequence) return;
       showError(err.error || 'Could not load month close data.');
     }
   }
 
   function updateCloseMonthPreview(){
-    const opening = Number(document.getElementById('closeOpening').value) || 0;
-    const received = Number(document.getElementById('closeReceived').value) || 0;
+    const openingRaw = document.getElementById('closeOpening').value;
+    const receivedRaw = document.getElementById('closeReceived').value;
     const closingRaw = document.getElementById('closeClosing').value;
     const unit = document.getElementById('closeMonthUnit').textContent || '';
     const preview = document.getElementById('closeMonthPreview');
-    if(closingRaw === ''){
-      preview.textContent = `Usage will be: ${opening} + ${received} − (enter your shelf count)${unit ? ' ' + unit : ''}`;
+    if([openingRaw, receivedRaw, closingRaw].some(value => value === '')){
+      preview.textContent = 'Enter all historical figures to calculate usage. Current stock will remain unchanged.';
       return;
     }
-    const closing = Number(closingRaw);
-    const usage = Math.max(0, opening + received - closing);
-    preview.textContent = `Usage for this month: ${usage}${unit ? ' ' + unit : ''} · stock on hand after close: ${closing}${unit ? ' ' + unit : ''}`;
+    const cents = value => Math.round(Number(value) * 100);
+    const usage = (cents(openingRaw) + cents(receivedRaw) - cents(closingRaw)) / 100;
+    preview.textContent = usage < 0
+      ? 'Closing exceeds opening plus receipts. Review the figures before saving.'
+      : `Recorded depletion: ${usage} ${unit}. Current stock will remain unchanged.`;
   }
 
   window.openCloseMonthModal = async function(itemKey){
@@ -5866,6 +6042,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('closeMonthItemKey').value = it.item_key;
     document.getElementById('closeMonthUnit').textContent = it.unit;
     document.getElementById('closeMonthModalTitle').textContent = `Close month — ${itemDisplayLabel(it)}`;
+    document.getElementById('closeMonthPick').max = defaultCloseMonthPick();
     document.getElementById('closeMonthPick').value = defaultCloseMonthPick();
     document.getElementById('closeClosing').value = '';
     openModal('closeMonthModalOverlay');
@@ -5891,16 +6068,29 @@ document.addEventListener('DOMContentLoaded', function(){
 
   document.getElementById('closeMonthForm').addEventListener('submit', async function(e){
     e.preventDefault();
+    if(!this.reportValidity()) return;
+    if(!this.dataset.contextVersion) { showError('Reload the month before saving.'); return; }
+    const usageVersion = this.dataset.usageVersion;
+    const contextVersion = this.dataset.contextVersion;
+    const loadSequence = closeMonthLoadSequence;
+    const reason = document.getElementById('closeMonthReason').value.trim();
     const itemKey = document.getElementById('closeMonthItemKey').value;
     const yearMonth = document.getElementById('closeMonthPick').value;
     const opening = Number(document.getElementById('closeOpening').value);
     const received = Number(document.getElementById('closeReceived').value);
     const closing = Number(document.getElementById('closeClosing').value);
+    const overridden = (this.dataset.expectedOpening !== '' && opening !== Number(this.dataset.expectedOpening)) || received !== Number(this.dataset.poReceived);
+    if((this.dataset.reasonRequired === 'true' || overridden) && !reason){ showError('Provide a reason for the correction or overridden figures.'); return; }
+    if(Math.round(closing * 100) > Math.round(opening * 100) + Math.round(received * 100)){ showError('Closing cannot exceed opening plus receipts.'); return; }
     const it = state.inventory.find(i => i.item_key === itemKey);
     const monthLabel = yearMonth ? new Date(yearMonth + '-01T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'this month';
     if(!await showConfirmModal({ title: `Close ${monthLabel}?`, message: `${it?.label || itemKey}\n\nOpening ${opening}, received ${received}, closing ${closing}.`, confirmText: 'Close month' })) return;
+    if(loadSequence !== closeMonthLoadSequence){ showError('The selected month changed. Review it again before saving.'); return; }
     try {
       const result = await apiSend(`close_month.php?item=${encodeURIComponent(itemKey)}`, 'POST', {
+        usage_version: usageVersion,
+        context_version: contextVersion,
+        reason,
         month: yearMonth + '-01',
         opening_qty: opening,
         received_qty: received,
@@ -5910,7 +6100,7 @@ document.addEventListener('DOMContentLoaded', function(){
       await loadInventory();
       await loadDemandInsights();
       renderDashboard();
-      showNoticeModal({ title: `${monthLabel} closed`, message: `Usage logged: ${result.computed_usage} ${it?.unit || ''}\nStock on hand: ${result.new_current_qty} ${it?.unit || ''}\n\nOpen AI Demand Forecast to see the updated prediction.`, variant: 'success', okText: 'Done' });
+      showNoticeModal({ title: `${monthLabel} closed`, message: `Usage logged: ${result.computed_usage} ${it?.unit || ''}\nCurrent stock was not changed.${result.warnings?.length ? '\n\n' + result.warnings.join('\n') : ''}`, variant: 'success', okText: 'Done' });
     } catch (err) {
       showError(err.error || 'Could not close month.');
     }
@@ -6051,6 +6241,8 @@ document.addEventListener('DOMContentLoaded', function(){
       return;
     }
     const payload = {
+      category_id: document.getElementById('itmCategory').value ? Number(document.getElementById('itmCategory').value) : null,
+      category_version: editKey ? this.dataset.categoryVersion : undefined,
       label: label,
       unit: unitEl.value,
       item_type: itemType,
@@ -6071,6 +6263,13 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     try {
       if(editKey){
+        payload.stock_version = this.dataset.stockVersion;
+        payload.reason = document.getElementById('itmReason').value.trim();
+        if(payload.current_qty !== Number(this.dataset.openingCurrent) && !payload.reason){
+          setFieldError(document.getElementById('itmReason'), 'Provide a reason for changing stock quantity.');
+          focusFirstFieldError(this);
+          return;
+        }
         await apiSend(`inventory.php?item=${encodeURIComponent(editKey)}`, 'PUT', payload);
       } else {
         await apiSend('inventory.php', 'POST', payload);
@@ -6113,8 +6312,8 @@ document.addEventListener('DOMContentLoaded', function(){
       return;
     }
     el.innerHTML = items.map(it => {
-      const usageLine = it.avg_monthly_usage > 0
-        ? `~${it.avg_monthly_usage} ${escapeHtml(it.unit)}/mo`
+      const usageLine = it.months_of_history > 0
+        ? `~${it.avg_monthly_usage} ${escapeHtml(it.unit)}/mo (${it.months_of_history}/6 completed months recorded)`
         : 'No usage logged yet';
       const poLine = it.po_count_90d > 0
         ? `${it.po_count_90d} order${it.po_count_90d === 1 ? '' : 's'} (90d) · ${it.po_qty_90d} ${escapeHtml(it.unit)}${it.po_placed_90d > 0 && it.po_received_90d > 0 ? ` (${it.po_received_90d} received, ${it.po_placed_90d} open)` : it.po_placed_90d > 0 ? ' (open POs)' : ''}`
@@ -6304,7 +6503,7 @@ document.addEventListener('DOMContentLoaded', function(){
           action: () => navigateToPage('page-requests', { updateHash: true }),
         });
       });
-      state.stockRequests.filter(sr => sr.status === 'Pending').slice(0, 6).forEach(sr => {
+      state.stockRequests.filter(sr => sr.can_review || sr.can_issue).slice(0, 6).forEach(sr => {
         items.push({
           icon: 'bx-package', tone: 'navy',
           title: 'Fulfill stock request',
@@ -6965,46 +7164,138 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   document.getElementById('receiptAmount').addEventListener('input', checkReceiptAmountAgainstEstimate);
 
-  async function scanReceiptFile(file){
-    if(!file){ setReceiptScanStatus('hidden'); return; }
-    if(!file.type || !file.type.startsWith('image/')){
-      setReceiptScanStatus('hidden');
-      return;
-    }
-    setReceiptScanStatus('loading', `<i class='bx bx-loader-alt bx-spin'></i> Scanning receipt for amount &amp; OR number…`);
-    const fd = new FormData();
-    fd.append('receipt', file);
-    try {
-      const res = await fetch(`${API}ocr_receipt.php`, { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': state.csrfToken || '' }, body: fd });
-      const data = await res.json().catch(() => ({}));
-      if(!res.ok) throw data;
-      if(!data.ok){
-        setReceiptScanStatus('info', `<i class='bx bx-info-circle'></i> ${data.error || 'Could not read this receipt automatically — enter details manually and you can still submit.'}`);
-        return;
+  const AMOUNT_LINE_KEYWORDS = [
+  "grand total", "total amount due", "amount due", "total due",
+  "total sales", "total amount", "total",
+];
+const AMOUNT_TOKEN_RE = /(?<![\d.])(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})|\d+\.\d{2})(?!\d)/g;
+const OR_NUMBER_LINE_RE = /(?:official\s*receipt|o\.?\s*r\.?|receipt|invoice|s\.?\s*i\.?|sales\s*invoice)\s*(?:no\.?|number|#)?\s*[:\-#]?\s*([A-Z0-9][A-Z0-9\-]{3,20})/i;
+ 
+function parseAmountToken(token) {
+  const val = parseFloat(token.replace(/,/g, ""));
+  return isNaN(val) ? null : Math.round(val * 100) / 100;
+}
+ 
+function extractAmount(text) {
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  const lowerLines = lines.map(l => l.toLowerCase());
+ 
+  for (const keyword of AMOUNT_LINE_KEYWORDS) {
+    for (let i = 0; i < lowerLines.length; i++) {
+      if (lowerLines[i].includes(keyword)) {
+        for (const candidateLine of [lines[i], lines[i + 1] || ""]) {
+          const tokens = candidateLine.match(AMOUNT_TOKEN_RE);
+          if (tokens && tokens.length) {
+            const amt = parseAmountToken(tokens[tokens.length - 1]);
+            if (amt !== null && amt > 0) return amt;
+          }
+        }
       }
-      const amountField = document.getElementById('receiptAmount');
-      const numberField = document.getElementById('receiptNumber');
-      const bits = [];
-      if(data.amount != null){
-        bits.push(`amount ${peso(data.amount)}`);
-        if(!amountField.value) amountField.value = data.amount;
-      }
-      if(data.receipt_number){
-        bits.push(`OR ${data.receipt_number}`);
-        if(!numberField.value) numberField.value = data.receipt_number;
-      }
-      if(bits.length){
-        setReceiptScanStatus('success', `<i class='bx bx-check-circle'></i> Detected ${bits.join(' · ')} — please verify before submitting.`);
-      } else {
-        setReceiptScanStatus('info', `<i class='bx bx-info-circle'></i> Could not detect an amount or OR number — enter them manually and you can still submit.`);
-      }
-      checkReceiptAmountAgainstEstimate();
-      await checkReceiptNumberDuplicate();
-    } catch (err) {
-      setReceiptScanStatus('info', `<i class='bx bx-info-circle'></i> ${(err && err.error) || 'Automatic scan unavailable — enter details manually and you can still submit.'}`);
     }
   }
-  document.getElementById('receiptFile').addEventListener('change', e => scanReceiptFile(e.target.files[0]));
+ 
+  const allTokens = text.match(AMOUNT_TOKEN_RE) || [];
+  const amounts = allTokens.map(parseAmountToken).filter(a => a !== null && a > 0);
+  return amounts.length ? Math.max(...amounts) : null;
+}
+ 
+function extractReceiptNumber(text) {
+  const match = text.match(OR_NUMBER_LINE_RE);
+  return match ? match[1].trim().toUpperCase() : null;
+}
+ 
+// ---- image preprocessing: grayscale + autocontrast + upscale (canvas equivalent of the old PIL step) ----
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+ 
+async function preprocessToCanvas(file) {
+  const img = await loadImageFromFile(file);
+  const scale = img.width < 1200 ? 1200 / img.width : 1;
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+ 
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, w, h);
+ 
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+ 
+  let min = 255, max = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+    data[i] = data[i + 1] = data[i + 2] = gray;
+    if (gray < min) min = gray;
+    if (gray > max) max = gray;
+  }
+  const range = max - min || 1;
+  for (let i = 0; i < data.length; i += 4) {
+    const stretched = Math.round(((data[i] - min) * 255) / range);
+    data[i] = data[i + 1] = data[i + 2] = stretched;
+  }
+ 
+  ctx.putImageData(imageData, 0, 0);
+  URL.revokeObjectURL(img.src);
+  return canvas;
+}
+ 
+// ---- one worker, reused across scans (don't recreate per file) ----
+let _tesseractWorkerPromise = null;
+function getTesseractWorker() {
+  if (!_tesseractWorkerPromise) {
+    _tesseractWorkerPromise = Tesseract.createWorker("eng");
+  }
+  return _tesseractWorkerPromise;
+}
+ 
+async function scanReceiptFile(file) {
+  if (!file) { setReceiptScanStatus('hidden'); return; }
+  if (!file.type || !file.type.startsWith('image/')) {
+    setReceiptScanStatus('hidden');
+    return;
+  }
+  setReceiptScanStatus('loading', `<i class='bx bx-loader-alt bx-spin'></i> Scanning receipt for amount &amp; OR number…`);
+ 
+  try {
+    const canvas = await preprocessToCanvas(file);
+    const worker = await getTesseractWorker();
+    const { data: { text } } = await worker.recognize(canvas);
+ 
+    const amount = extractAmount(text);
+    const receiptNumber = extractReceiptNumber(text);
+ 
+    const amountField = document.getElementById('receiptAmount');
+    const numberField = document.getElementById('receiptNumber');
+    const bits = [];
+    if (amount != null) {
+      bits.push(`amount ${peso(amount)}`);
+      if (!amountField.value) amountField.value = amount;
+    }
+    if (receiptNumber) {
+      bits.push(`OR ${receiptNumber}`);
+      if (!numberField.value) numberField.value = receiptNumber;
+    }
+    if (bits.length) {
+      setReceiptScanStatus('success', `<i class='bx bx-check-circle'></i> Detected ${bits.join(' · ')} — please verify before submitting.`);
+    } else {
+      setReceiptScanStatus('info', `<i class='bx bx-info-circle'></i> Could not detect an amount or OR number — enter them manually and you can still submit.`);
+    }
+    checkReceiptAmountAgainstEstimate();
+    await checkReceiptNumberDuplicate();
+  } catch (err) {
+    console.error('OCR failed', err);
+    setReceiptScanStatus('info', `<i class='bx bx-info-circle'></i> Automatic scan unavailable — enter details manually and you can still submit.`);
+  }
+}
+document.getElementById('receiptFile').addEventListener('change', e => scanReceiptFile(e.target.files[0]));
 
   document.getElementById('receiptNumber').addEventListener('input', function(){
     clearTimeout(receiptNumberCheckTimer);
@@ -8166,7 +8457,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const select = document.getElementById('reqCatalogPick');
     const items = activeItems().filter(it => mode === 'equipment' ? it.item_type === 'equipment' : it.item_type === 'consumable');
     select.innerHTML = `<option value="">No catalog link — describe the item above</option>` +
-      items.map(it => `<option value="${it.item_key}">${escapeHtml(itemDisplayLabel(it))}</option>`).join('');
+      items.map(it => `<option value="${it.item_key}">${escapeHtml(itemDisplayLabel(it))} — ${escapeHtml(it.category_label || "Uncategorized")}</option>`).join('');
     if(selectedKey && items.some(i => i.item_key === selectedKey)) select.value = selectedKey;
     else select.value = '';
   }
@@ -8178,7 +8469,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const label = (req.requested_label || req.display_label || '').trim();
     const norm = normalizeItemLabel(label);
     select.innerHTML = `<option value="">— Choose catalog item —</option>` +
-      items.map(it => `<option value="${it.item_key}">${escapeHtml(itemDisplayLabel(it))}</option>`).join('');
+      items.map(it => `<option value="${it.item_key}">${escapeHtml(itemDisplayLabel(it))} — ${escapeHtml(it.category_label || "Uncategorized")}</option>`).join('');
     const exact = items.find(it =>
       itemDisplayLabel(it).toLowerCase() === label.toLowerCase()
       || it.label.toLowerCase() === label.toLowerCase()
@@ -8492,6 +8783,8 @@ document.addEventListener('DOMContentLoaded', function(){
       if(days > 366){ showError('Date range cannot exceed 1 year.'); return; }
     }
     const qs = new URLSearchParams({ type, format });
+    const category = document.getElementById('reportCategorySelect').value;
+    if(type === 'inventory' && category) qs.set('category', category);
     if(from) qs.set('from', from);
     if(to) qs.set('to', to);
     const url = API + 'reports.php?' + qs.toString();
@@ -8538,7 +8831,7 @@ document.addEventListener('DOMContentLoaded', function(){
     tbody.innerHTML = state.users.map(u => `
       <tr class="border-b border-line last:border-0 ${u.active ? '' : 'opacity-60'}">
         <td class="py-3 pr-3 code-cell">${cellCode(u.username)}</td>
-        <td class="py-3 pr-3">${escapeHtml(u.name)}</td>
+        <td class="py-3 pr-3">${escapeHtml(u.name)}<div class="text-[.72rem] text-textMid">${escapeHtml(u.account_kind||"unclassified")}</div></td>
         <td class="py-3 pr-3">${escapeHtml(ROLE_LABELS[u.role] || u.role)}</td>
         <td class="py-3 pr-3">${u.department ? cellDeptChip(u.department) : cellEmpty()}</td>
         <td class="py-3 pr-3">${u.active
@@ -8569,6 +8862,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('userUsername').value = editing?.username || '';
     document.getElementById('userUsername').disabled = !!editing;
     document.getElementById('userName').value = editing?.name || '';
+    document.getElementById('userAccountKind').value=editing?.account_kind|| (editing?'unclassified':'named');
     document.getElementById('userRole').value = editing?.role || 'staff';
     if(editing?.department) document.getElementById('userDepartment').value = editing.department;
     document.getElementById('userPassword').required = !editing;
@@ -8596,11 +8890,15 @@ document.addEventListener('DOMContentLoaded', function(){
         : null,
     };
     try {
+      const kind=document.getElementById('userAccountKind').value;
+      if(kind==='named')payload.account_kind='named';
+      if(!id&&kind!=='named')throw {error:'New accounts must belong to a named person.'};
       if(id){
+        const editing=state.users.find(u=>String(u.id)===String(id));
+        if(password&&editing?.username===state.user?.username)throw {error:'Use Change password in your profile menu to change your own password.'};
+        if(password)payload.password=password;
         await apiSend(`users.php?id=${id}`, 'PUT', payload);
-        if(password){
-          await apiSend(`users.php?id=${id}`, 'PUT', { action: 'set_password', password });
-        }
+        if(editing?.username===state.user?.username){location.href='login.html';return;}
       } else {
         payload.username = document.getElementById('userUsername').value.trim();
         payload.password = password;
@@ -8702,18 +9000,43 @@ document.addEventListener('DOMContentLoaded', function(){
       await apiSend('users.php?id=me', 'PUT', { action: 'change_password', current_password: current, new_password: next });
       closeModal('changePasswordModalOverlay');
       this.reset();
-      showToast('Password updated.');
+      location.href='login.html';
     } catch (err) {
       errEl.textContent = err.error || 'Could not change password.';
       errEl.classList.remove('hidden');
     }
   });
 
+  const requestUI = createStockRequestUI({user:()=>state.user,
+    api:(path,method='GET',body)=>method==='GET'?apiGet(path):apiSend(path,method,body),
+    error:e=>showError(e.error||e.message||'Request operation failed'),
+    refresh:async()=>{await Promise.all([loadStockRequests(),loadInventory(),loadStockIssues(),loadEquipmentMovements()]);renderDashboard();}
+  });
+  window.openStockRequestModal = key=>requestUI.openCreate(key||null);
+  window.fulfillStockRequest = id=>requestUI.open(id,'issue');
+  window.voidIssue=id=>{const issue=state.stockIssues.find(i=>i.id===id);if(issue)requestUI.openVoid(issue);};
+  window.cancelStockRequest = id=>requestUI.open(id,'close');
+  window.openIssueModal = key=>{showToast('Submit a stock request for manager approval before issuance.');requestUI.openCreate(key||null);};
+  renderStockRequests = function(){
+    const query=tableSearchQuery('inventoryTableSearch');const dates=tableDateRange('inventoryTable');
+    const rows=state.stockRequests.filter(r=>rowMatchesSearch(query,r.request_code,r.department,r.requested_by,r.purpose,r.status,...r.items.map(i=>i.item_label))
+      &&rowMatchesDateRange(r.created_at,dates.from,dates.to)
+      &&r.items.some(i=>rowMatchesTypeFilter(i.item_type,tableTypeFilter('inventoryTable'))&&(!tableItemKeyFilter('inventoryTable')||i.item_key===tableItemKeyFilter('inventoryTable'))&&categoryMatches(i,document.getElementById('inventoryTableCategorySelect')?.value)));
+    requestUI.render(document.getElementById('stockRequestsTableBody'),rows,true);
+  };
+  const outstandingBtn=document.createElement('button');outstandingBtn.type='button';outstandingBtn.className='btn-secondary';outstandingBtn.textContent='Outstanding reservations';
+  outstandingBtn.onclick=()=>requestUI.render(document.getElementById('stockRequestsTableBody'),state.stockRequests.filter(r=>['Approved','Partially Issued'].includes(r.status)),true);
+  document.getElementById('stockRequestsPanel').prepend(outstandingBtn);
+  const exportRequests=document.createElement('button');exportRequests.type='button';exportRequests.className='btn-secondary';exportRequests.textContent='Export request report';exportRequests.hidden=true;exportRequests.onclick=()=>window.open('api/reports.php?type=stock_requests&format=csv','_blank');document.getElementById('stockRequestsPanel').prepend(exportRequests);
+
   /* ---------- init ---------- */
   (async function init(){
     if(!(await ensureAuth())) return;
     updateProfileUI();
     applyRoleUI();
+    exportRequests.hidden=!roleAtLeast('manager');
+    if(roleAtLeast('manager')){const policy=document.createElement('button');policy.type='button';policy.className='btn-secondary';policy.textContent='Protected stock policy';policy.onclick=()=>requestUI.openPolicy();document.getElementById('stockRequestsPanel').prepend(policy);}
+
     navigateToPage(pageIdFromHash(location.hash));
     await loadLocations();
     await Promise.all([loadInventory(), loadInventoryRetirements(), loadStockIssues(), loadEquipmentMovements(), loadStockRequests(), loadSuppliers(), loadVendorApplications(), loadRequests(), loadOrders(), loadDocuments(), loadDemandInsights()]);

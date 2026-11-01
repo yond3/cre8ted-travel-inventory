@@ -3,8 +3,8 @@
  * GET  /api/close_month.php?item=<key>&month=2026-07 or 2026-07-01
  *      -> suggested opening (from previous month's closing), received (from POs).
  * POST /api/close_month.php?item=<key>
- *      body: { month, opening_qty, received_qty, closing_qty }
- *      -> logs usage, updates stock, saves month_closes row for next month.
+ *      body: { month, opening_qty, received_qty, closing_qty, usage_version, context_version, reason? }
+ *      -> saves historical usage and closing figures; never changes current stock.
  */
 require __DIR__ . '/config.php';
 block_department_user();
@@ -17,24 +17,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_manager_or_above();
 
 $itemKey = $_GET['item'] ?? '';
-if ($itemKey === '') {
+if (!is_string($itemKey) || $itemKey === '' || strlen($itemKey) > 50) {
     json_error('missing required query param: item');
 }
-get_item_or_404($itemKey);
+$item = get_item_or_404($itemKey);
 
 $pdo = get_pdo();
+usage_require_schema($pdo);
 
-function normalize_month(string $raw): string
+function normalize_month($raw): string
 {
+    if (!is_string($raw)) json_error('month must be YYYY-MM or YYYY-MM-01');
     $raw = trim($raw);
-    if (preg_match('/^\d{4}-\d{2}$/', $raw)) {
-        return $raw . '-01';
+    if (preg_match('/^\d{4}-\d{2}$/D', $raw)) {
+        return parse_usage_month($raw . '-01');
     }
     if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
-        $d = DateTime::createFromFormat('Y-m-d', $raw);
-        if ($d) {
-            return $d->format('Y-m-01');
-        }
+        return parse_usage_month($raw);
     }
     json_error('month must be YYYY-MM or YYYY-MM-01');
 }
@@ -54,7 +53,7 @@ function previous_month_first_day(string $monthFirstDay): string
 
 function received_qty_for_month(PDO $pdo, string $itemKey, string $monthFirstDay): float
 {
-    $yearMonth = substr($monthFirstDay, 0, 7);
+    $nextMonth = (new DateTimeImmutable($monthFirstDay))->modify('+1 month')->format('Y-m-d');
     $stmt = $pdo->prepare(
         "SELECT COALESCE(SUM(pr.qty), 0)
          FROM purchase_orders po
@@ -62,15 +61,15 @@ function received_qty_for_month(PDO $pdo, string $itemKey, string $monthFirstDay
          WHERE pr.item_key = ?
            AND po.status = 'Received'
            AND po.received_at IS NOT NULL
-           AND DATE_FORMAT(po.received_at, '%Y-%m') = ?"
+           AND po.received_at >= ? AND po.received_at < ?"
     );
-    $stmt->execute([$itemKey, $yearMonth]);
+    $stmt->execute([$itemKey, $monthFirstDay, $nextMonth]);
     return (float) $stmt->fetchColumn();
 }
 
 function po_codes_received_in_month(PDO $pdo, string $itemKey, string $monthFirstDay): array
 {
-    $yearMonth = substr($monthFirstDay, 0, 7);
+    $nextMonth = (new DateTimeImmutable($monthFirstDay))->modify('+1 month')->format('Y-m-d');
     $stmt = $pdo->prepare(
         "SELECT po.po_code, pr.qty
          FROM purchase_orders po
@@ -78,10 +77,10 @@ function po_codes_received_in_month(PDO $pdo, string $itemKey, string $monthFirs
          WHERE pr.item_key = ?
            AND po.status = 'Received'
            AND po.received_at IS NOT NULL
-           AND DATE_FORMAT(po.received_at, '%Y-%m') = ?
-         ORDER BY po.received_at"
+           AND po.received_at >= ? AND po.received_at < ?
+         ORDER BY po.received_at, po.id"
     );
-    $stmt->execute([$itemKey, $yearMonth]);
+    $stmt->execute([$itemKey, $monthFirstDay, $nextMonth]);
     return $stmt->fetchAll();
 }
 
@@ -136,124 +135,112 @@ function opening_for_month(PDO $pdo, string $itemKey, string $monthFirstDay): ar
         ];
     }
 
-    $item = get_item_or_404($itemKey);
     return [
-        'opening_qty' => (float) $item['current_qty'],
-        'opening_source' => 'first_close',
-        'opening_note' => 'First month close for this item — no prior record. Adjust only if this wasn\'t the starting stock.',
+        'opening_qty' => null,
+        'opening_source' => 'unknown',
+        'opening_note' => 'No previous close is available. Enter the documented opening balance for this month; today\'s stock is not a historical opening balance.',
     ];
+}
+
+function close_context(PDO $pdo, string $key, string $month): array
+{
+    $opening = opening_for_month($pdo, $key, $month);
+    $snapshot = usage_snapshot($pdo, $key, $month);
+    $received = received_qty_for_month($pdo, $key, $month);
+    $pos = po_codes_received_in_month($pdo, $key, $month);
+    $warnings = usage_adjacent_warnings($pdo, $key, $month, $snapshot['close']);
+    if ($snapshot['usage_conflict']) $warnings[] = 'Saved month-close usage and recorded usage disagree. Review both values and provide a correction reason.';
+    return ['opening' => $opening, 'snapshot' => $snapshot, 'received' => $received, 'pos' => $pos,
+        'warnings' => $warnings, 'context_version' => hash('sha256', json_encode([
+            $opening, $snapshot, $received, $pos, $warnings
+        ], JSON_THROW_ON_ERROR))];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $month = normalize_month($_GET['month'] ?? '');
-    $opening = opening_for_month($pdo, $itemKey, $month);
-    $received = received_qty_for_month($pdo, $itemKey, $month);
-    $pos = po_codes_received_in_month($pdo, $itemKey, $month);
-
-    $receivedNote = $received > 0
-        ? 'From ' . count($pos) . ' purchase order(s) marked received: ' . implode(', ', array_map(
-            fn($r) => $r['po_code'] . ' (+' . (float) $r['qty'] . ')',
-            $pos
-        ))
-        : 'No purchase orders marked received in ' . month_label($month) . '.';
-
-    $yearMonth = substr($month, 0, 7);
-    $receivedElsewhere = $received > 0 ? [] : recent_received_by_month($pdo, $itemKey, $yearMonth);
-    $receivedHint = null;
-    if ($received === 0.0 && !empty($receivedElsewhere)) {
-        $parts = array_map(
-            fn($r) => $r['label'] . ' (' . $r['qty'] . ' pcs, ' . $r['po_count'] . ' PO' . ($r['po_count'] === 1 ? '' : 's') . ')',
-            array_slice($receivedElsewhere, 0, 3)
-        );
-        $receivedHint = 'Deliveries were recorded in ' . implode('; ', $parts)
-            . ' — change the month above to match when items were received.';
-    }
-
-    $stmt = $pdo->prepare('SELECT closing_qty, closed_at FROM month_closes WHERE item_key = ? AND month = ?');
-    $stmt->execute([$itemKey, $month]);
-    $existing = $stmt->fetch();
-
-    echo json_encode([
+    $pdo->beginTransaction();
+    // All figures and revision tokens describe one consistent read snapshot.
+    $context = close_context($pdo, $itemKey, $month);
+    $existing = $context['snapshot']['close'];
+    $received = $context['received'];
+    $pos = $context['pos'];
+    $elsewhere = $received > 0 ? [] : recent_received_by_month($pdo, $itemKey, substr($month, 0, 7));
+    $currentMonth = usage_current_month($pdo);
+    $response = [
         'month' => $month,
-        'opening_qty' => $opening['opening_qty'],
-        'opening_source' => $opening['opening_source'],
-        'opening_note' => $opening['opening_note'],
-        'received_qty' => $received,
-        'received_note' => $receivedNote,
-        'received_hint' => $receivedHint,
-        'received_elsewhere' => $receivedElsewhere,
+        'usage_version' => $context['snapshot']['usage_version'],
+        'context_version' => $context['context_version'],
+        'usage_source' => $context['snapshot']['usage_source'],
+        'recorded_usage' => $context['snapshot']['usage'] ? (float) $context['snapshot']['usage']['usage_qty'] : null,
+        'close_usage' => $existing ? (float) $existing['usage_qty'] : null,
+        'usage_conflict' => $context['snapshot']['usage_conflict'],
+        'opening_qty' => $context['opening']['opening_qty'],
+        'opening_source' => $context['opening']['opening_source'],
+        'opening_note' => $context['opening']['opening_note'],
+        'received_qty' => $existing ? (float) $existing['received_qty'] : $received,
+        'po_received_qty' => $received,
+        'received_note' => 'PO receipts recorded in this month: ' . $received . ' across ' . count($pos) . ' order(s). '
+            . implode(', ', array_map(fn($r) => $r['po_code'] . ' (+' . (float) $r['qty'] . ')', $pos))
+            . ' Saved overrides are retained when reopening.',
+        'received_hint' => $elsewhere ? 'Deliveries were recorded in ' . implode('; ', array_map(
+            fn($r) => $r['label'] . ' (' . $r['qty'] . ', ' . $r['po_count'] . ' PO(s))', array_slice($elsewhere, 0, 3)))
+            . '. Choose the historical period you are reconciling.' : null,
+        'received_elsewhere' => $elsewhere,
         'already_closed' => (bool) $existing,
         'existing_closing_qty' => $existing ? (float) $existing['closing_qty'] : null,
-    ]);
+        'reason_required' => (bool) ($existing || $context['snapshot']['usage']),
+        'can_close' => $month < $currentMonth,
+        'latest_completed_month' => (new DateTimeImmutable($currentMonth))->modify('-1 month')->format('Y-m'),
+        'warnings' => $context['warnings'],
+    ];
+    $pdo->commit();
+    echo json_encode($response);
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $body = read_json_body();
     $month = normalize_month($body['month'] ?? '');
-    $opening = $body['opening_qty'] ?? null;
-    $received = $body['received_qty'] ?? null;
-    $closing = $body['closing_qty'] ?? null;
-
-    if ($opening === null || $received === null || $closing === null) {
-        json_error('body must include month, opening_qty, received_qty, closing_qty');
+    usage_completed_month($month);
+    $opening = parse_nonnegative_quantity($body['opening_qty'] ?? null, 'Opening quantity');
+    $received = parse_nonnegative_quantity($body['received_qty'] ?? null, 'Received quantity');
+    $closing = parse_nonnegative_quantity($body['closing_qty'] ?? null, 'Closing quantity');
+    $usageCents = stock_cents($opening) + stock_cents($received) - stock_cents($closing);
+    if ($usageCents < 0) {
+        json_error('Closing quantity exceeds opening plus receipts. Review missing receipts or stock discrepancies; usage cannot be silently set to zero.');
     }
-
-    $opening = (float) $opening;
-    $received = (float) $received;
-    $closing = (float) $closing;
-
-    if ($closing < 0) {
-        json_error('closing quantity cannot be negative');
-    }
-
-    $usage = max(0, $opening + $received - $closing);
-
-    $pdo->beginTransaction();
+    $usage = parse_nonnegative_quantity($usageCents / 100, 'Computed usage');
+    $reason = usage_reason($body['reason'] ?? null);
+    $item = usage_begin($pdo, $itemKey, $body, 'month_close');
     try {
-        $stmt = $pdo->prepare(
-            'INSERT INTO usage_log (item_key, month, usage_qty) VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE usage_qty = VALUES(usage_qty)'
-        );
-        $stmt->execute([$itemKey, $month, $usage]);
-
-        $stmt = $pdo->prepare(
-            'INSERT INTO month_closes (item_key, month, opening_qty, received_qty, closing_qty, usage_qty)
-             VALUES (?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE
-                opening_qty = VALUES(opening_qty),
-                received_qty = VALUES(received_qty),
-                closing_qty = VALUES(closing_qty),
-                usage_qty = VALUES(usage_qty),
-                closed_at = CURRENT_TIMESTAMP'
-        );
+        $context = close_context($pdo, $itemKey, $month);
+        usage_expect_version($body, $context['snapshot']);
+        if (!is_string($body['context_version'] ?? null)) {
+            json_error('context_version is required. Reload the selected month.', 428);
+        }
+        if (!hash_equals($context['context_version'], $body['context_version'])) {
+            json_error('The monthly figures changed while this form was open. Reload and review the selected month.', 409);
+        }
+        $expectedOpening = $context['opening']['opening_qty'];
+        $requiresReason = $context['snapshot']['usage'] || $context['snapshot']['close']
+            || ($expectedOpening !== null && stock_cents($opening) !== stock_cents($expectedOpening))
+            || stock_cents($received) !== stock_cents($context['received']);
+        if ($requiresReason) $reason = usage_reason($reason, true);
+        $version = usage_save($pdo, $itemKey, $month, $usage, 'month_close');
+        $stmt = $pdo->prepare('INSERT INTO month_closes (item_key, month, opening_qty, received_qty, closing_qty, usage_qty)
+            VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE opening_qty=VALUES(opening_qty),
+            received_qty=VALUES(received_qty), closing_qty=VALUES(closing_qty), usage_qty=VALUES(usage_qty), closed_at=CURRENT_TIMESTAMP');
         $stmt->execute([$itemKey, $month, $opening, $received, $closing, $usage]);
-
-        $stmt = $pdo->prepare('UPDATE items SET current_qty = ? WHERE item_key = ?');
-        $stmt->execute([$closing, $itemKey]);
-
-        $pdo->commit();
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        json_error('failed to close month: ' . $e->getMessage(), 500);
+        $after = ['opening_qty' => $opening, 'received_qty' => $received, 'closing_qty' => $closing,
+            'usage_qty' => $usage, 'usage_version' => $version, 'usage_source' => 'month_close', 'reason' => $reason];
+        record_audit('month_close.record', 'month_close', "$itemKey:$month", $context['snapshot'], $after, true);
+        $warnings = usage_adjacent_warnings($pdo, $itemKey, $month, $after);
+        stock_reply($pdo, ['status' => 'ok', 'item' => $itemKey, 'month' => $month,
+            'computed_usage' => $usage, 'usage_version' => $version, 'current_qty' => (float) $item['current_qty'],
+            'stock_changed' => false, 'next_month_opening' => $closing, 'warnings' => $warnings]);
+    } catch (Throwable $e) {
+        stock_failure($e);
     }
-
-    record_audit(
-        'month_close.record',
-        'month_close',
-        "$itemKey:$month",
-        null,
-        ['opening_qty' => $opening, 'received_qty' => $received, 'closing_qty' => $closing, 'usage_qty' => $usage]
-    );
-
-    echo json_encode([
-        'status' => 'ok',
-        'item' => $itemKey,
-        'month' => $month,
-        'computed_usage' => $usage,
-        'new_current_qty' => $closing,
-        'next_month_opening' => $closing,
-    ]);
     exit;
 }
 
